@@ -20,7 +20,6 @@
 #define BUILD_SHELL
 #define BUILD_ROMFS
 #define BUILD_MMCFS
-#define BUILD_QEI
 
 #if defined( ELUA_BOARD_SOLDERCORE )
   #define BUILD_USB_CDC
@@ -30,7 +29,7 @@
   #define BUILD_UIP
   #define BUILD_DHCPC
   #define BUILD_DNS
-#endif  
+#endif
 
 #define BUILD_ADC
 #define BUILD_RPC
@@ -61,7 +60,7 @@
 
 // The name of the platform specific libs table
 // FIXME: should handle partial or no inclusion of platform specific modules per conf.py
-#ifdef ENABLE_DISP
+#if defined( ENABLE_DISP ) ||  defined( ENABLE_QEI )
 #define PS_LIB_TABLE_NAME   "lm3s"
 #endif
 
@@ -90,12 +89,6 @@
 #define ADCLINE
 #endif
 
-#ifdef BUILD_QEI
-#define QEILINE _ROM( AUXLIB_QEI, luaopen_qei, qei_map )
-#else
-#define QEILINE
-#endif
-
 #ifdef BUILD_TERM
 #define TERMLINE _ROM( AUXLIB_TERM, luaopen_term, term_map )
 #else
@@ -106,7 +99,7 @@
 #define BUILD_RPC
 #endif
 
-#if defined( BUILD_RPC ) 
+#if defined( BUILD_RPC )
 #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
 #else
 #define RPCLINE
@@ -135,7 +128,6 @@
   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
   _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
   ADCLINE\
-  QEILINE\
   CANLINE\
   RPCLINE\
   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
@@ -199,7 +191,7 @@
   #define NUM_PWM             8
 #else
   #define NUM_PWM             6
-#endif  
+#endif
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
 #define NUM_ADC               16
 #else
@@ -218,7 +210,7 @@
 
 // These should be adjusted to support multiple ADC devices
 #define ADC_TIMER_FIRST_ID    0
-#define ADC_NUM_TIMERS        NUM_TIMER  
+#define ADC_NUM_TIMERS        NUM_TIMER
 
 // RPC boot options
 #define RPC_UART_ID           CON_UART_ID

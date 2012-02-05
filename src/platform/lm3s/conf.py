@@ -19,6 +19,10 @@ if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[
   specific_files = specific_files + " rit128x96x4.c disp.c"
   comp.Append(CPPDEFINES = 'ENABLE_DISP')
 
+if comp[ 'board' ] == 'EK-LM3S8962':
+  specific_files = specific_files + " qei.c"
+  comp.Append(CPPDEFINES = 'ENABLE_QEI')
+
 
 # The default for the Eagle 100 board is to start the image at 0x2000,
 # so that the built in Ethernet boot loader can be used to upload it

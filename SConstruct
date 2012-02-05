@@ -10,11 +10,11 @@ def cnorm( name ):
 
 # List of toolchains
 toolchain_list = {
-  'arm-gcc' : { 
-    'compile' : 'arm-elf-gcc', 
-    'link' : 'arm-elf-ld', 
-    'asm' : 'arm-elf-as', 
-    'bin' : 'arm-elf-objcopy', 
+  'arm-gcc' : {
+    'compile' : 'arm-elf-gcc',
+    'link' : 'arm-elf-ld',
+    'asm' : 'arm-elf-as',
+    'bin' : 'arm-elf-objcopy',
     'size' : 'arm-elf-size',
     'cross_cpumode' : 'little',
     'cross_lua' : 'float_arm 64',
@@ -30,21 +30,21 @@ toolchain_list = {
     'cross_lua' : 'float 64',
     'cross_lualong' : 'int 32'
   },
-  'codesourcery' : { 
-    'compile' : 'arm-none-eabi-gcc', 
-    'link' : 'arm-none-eabi-ld', 
-    'asm' : 'arm-none-eabi-as', 
-    'bin' : 'arm-none-eabi-objcopy', 
+  'codesourcery' : {
+    'compile' : 'arm-none-eabi-gcc',
+    'link' : 'arm-none-eabi-ld',
+    'asm' : 'arm-none-eabi-as',
+    'bin' : 'arm-none-eabi-objcopy',
     'size' : 'arm-none-eabi-size',
     'cross_cpumode' : 'little',
     'cross_lua' : 'float 64',
     'cross_lualong' : 'int 32'
   },
-  'avr32-gcc' : { 
-    'compile' : 'avr32-gcc', 
-    'link' : 'avr32-ld', 
-    'asm' : 'avr32-as', 
-    'bin' : 'avr32-objcopy', 
+  'avr32-gcc' : {
+    'compile' : 'avr32-gcc',
+    'link' : 'avr32-ld',
+    'asm' : 'avr32-as',
+    'bin' : 'avr32-objcopy',
     'size' : 'avr32-size',
     'cross_cpumode' : 'big',
     'cross_lua' : 'float 64',
@@ -60,11 +60,11 @@ toolchain_list = {
     'cross_lua' : 'float 64',
     'cross_lualong' : 'int 32'
   },
-  'i686-gcc' : { 
-    'compile' : 'i686-elf-gcc', 
-    'link' : 'i686-elf-ld', 
-    'asm' : 'nasm', 
-    'bin' : 'i686-elf-objcopy', 
+  'i686-gcc' : {
+    'compile' : 'i686-elf-gcc',
+    'link' : 'i686-elf-ld',
+    'asm' : 'nasm',
+    'bin' : 'i686-elf-objcopy',
     'size' : 'i686-elf-size',
     'cross_cpumode' : 'little',
     'cross_lua' : 'float 64',
@@ -78,7 +78,7 @@ toolchain_list['devkitarm'] = toolchain_list['arm-eabi-gcc']
 # List of platform/CPU/toolchains combinations
 # The first toolchain in the toolchains list is the default one
 # (the one that will be used if none is specified)
-platform_list = {  
+platform_list = {
   'at91sam7x' : { 'cpus' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
   'lm3s' : { 'cpus' : [ 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
   'str9' : { 'cpus' : [ 'STR912FAW44' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
@@ -136,21 +136,21 @@ class InsensitiveString(object):
   def __cmp__(self, other):
     return cmp(self.s.lower(), other.lower())
 
-def _validator(key, val, env, vals): 
-  if not val in vals: 
-    raise SCons.Errors.UserError( 
-      'Invalid value for option %s: %s' % (key, val)) 
+def _validator(key, val, env, vals):
+  if not val in vals:
+    raise SCons.Errors.UserError(
+      'Invalid value for option %s: %s' % (key, val))
 
 def MatchEnumVariable(key, help, default, allowed_values, map={}):
   help = '%s (%s)' % (help, string.join(allowed_values, '|'))
-  
+
   validator = lambda key, val, env, vals=allowed_values: \
               _validator(key, InsensitiveString(val), env, vals)
 
   converter = lambda val, map=map: \
               map.get(val, allowed_values[allowed_values.index(InsensitiveString(val))])
-  
-  return (key, help, default, validator, converter) 
+
+  return (key, help, default, validator, converter)
 
 
 # Add Configurable Variables
@@ -162,7 +162,7 @@ vars.AddVariables(
                     'none',
                     allowed_values = [ 'none', 'emblod' ] ),
   MatchEnumVariable('target',
-                    'build "regular" float lua, 32 bit integer-only "lualong" or 64-bit integer-only "lualonglong"', 
+                    'build "regular" float lua, 32 bit integer-only "lualong" or 64-bit integer-only "lualonglong"',
                     'lua',
                     allowed_values = [ 'lua', 'lualong', 'lualonglong' ] ),
   MatchEnumVariable('cpu',
@@ -339,7 +339,7 @@ if not GetOption( 'help' ):
     ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c legc.c"""
 
   lua_full_files = " " + " ".join( [ "src/lua/%s" % name for name in lua_files.split() ] )
-  
+
   comp.Append(CPPPATH = ['inc', 'inc/newlib',  'inc/remotefs', 'src/platform', 'src/lua'])
   if comp['target'] == 'lualong' or comp['target'] == 'lualonglong':
     conf.env.Append(CPPDEFINES = ['LUA_NUMBER_INTEGRAL'])
@@ -353,8 +353,8 @@ if not GetOption( 'help' ):
   local_libs = ''
 
   # Application files
-  app_files = """ src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/common_tmr.c src/buf.c src/elua_adc.c src/dlmalloc.c 
-                  src/salloc.c src/luarpc_elua_uart.c src/elua_int.c src/linenoise.c src/common_uart.c src/eluarpc.c src/elua_qei.c """
+  app_files = """ src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/common_tmr.c src/buf.c src/elua_adc.c src/dlmalloc.c
+                  src/salloc.c src/luarpc_elua_uart.c src/elua_int.c src/linenoise.c src/common_uart.c src/eluarpc.c """
 
   # Newlib related files
   newlib_files = " src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c"
@@ -369,7 +369,7 @@ if not GetOption( 'help' ):
   comp.Append(CPPPATH = ['src/fatfs'])
 
   # Lua module files
-  module_names = "pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c elua.c i2c.c qei.c"
+  module_names = "pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c elua.c i2c.c"
   module_files = " " + " ".join( [ "src/modules/%s" % name for name in module_names.split() ] )
 
   # Remote file system files
@@ -389,7 +389,7 @@ if not GetOption( 'help' ):
 
   # Complete file list
   source_files = Split( app_files + specific_files + newlib_files + uip_files + lua_full_files + module_files + rfs_files )
-  
+
   comp = conf.Finish()
 
   romfs_exclude = [ '.DS_Store' ]
@@ -406,10 +406,10 @@ if not GetOption( 'help' ):
     import mkfs
     mkfs.mkfs( "romfs", "romfiles", flist, comp['romfs'], compcmd )
     print
-    if os.path.exists( "inc/romfiles.h" ): 
+    if os.path.exists( "inc/romfiles.h" ):
       os.remove( "inc/romfiles.h" )
     shutil.move( "romfiles.h", "inc/" )
-    if os.path.exists( "src/fs.o" ): 
+    if os.path.exists( "src/fs.o" ):
       os.remove( "src/fs.o" )
 
   # comp.TargetSignatures( 'content' )

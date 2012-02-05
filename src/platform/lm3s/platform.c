@@ -12,7 +12,6 @@
 #include "uip_arp.h"
 #include "elua_uip.h"
 #include "elua_adc.h"
-#include "elua_qei.h"
 #include "uip-conf.h"
 #include "platform_conf.h"
 #include "common.h"
@@ -21,7 +20,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lrotable.h"
-#include "elua_int.h" 
+#include "elua_int.h"
 
 // Platform specific includes
 
@@ -45,6 +44,7 @@
 #include "buf.h"
 #include "rit128x96x4.h"
 #include "disp.h"
+#include "qei.h"
 #include "utils.h"
 
 #if defined( FORLM3S9B92 )
@@ -169,16 +169,16 @@ int platform_init()
 // 9B92 has 9 ports (Port J in addition to A-H)
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   static const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
-                                  GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE, 
+                                  GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE,
                                   GPIO_PORTJ_BASE };
-                                  
+
   static const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH,
                                     SYSCTL_PERIPH_GPIOJ };
 #else
   static const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
                                   GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE };
-  
+
   static const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH };
 #endif
@@ -293,7 +293,7 @@ void CANIntHandler(void)
 
 void cans_init( void )
 {
-  MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 ); 
+  MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 );
   MAP_CANInit( CAN0_BASE );
   CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, 500000);
   MAP_CANIntEnable( CAN0_BASE, CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
@@ -310,7 +310,7 @@ void cans_init( void )
 
 
 u32 platform_can_setup( unsigned id, u32 clock )
-{  
+{
   GPIOPinConfigure(GPIO_PD0_CAN0RX);
   GPIOPinConfigure(GPIO_PD1_CAN0TX);
   MAP_GPIOPinTypeCAN(GPIO_PORTD_BASE, GPIO_PIN_0 | GPIO_PIN_1);
@@ -331,10 +331,10 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   while( can_tx_flag == 1 );
 
   msg_tx.ulFlags = MSG_OBJ_TX_INT_ENABLE;
-  
+
   if( idtype == ELUA_CAN_ID_EXT )
     msg_tx.ulFlags |= MSG_OBJ_EXTENDED_ID;
-  
+
   msg_tx.ulMsgIDMask = 0;
   msg_tx.ulMsgID = canid;
   msg_tx.ulMsgLen = len;
@@ -721,7 +721,7 @@ void platform_pwm_stop( unsigned id )
                                     GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE,
                                     GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE,
                                     GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE };
-                                    
+
   const static u8 adc_pins[] =    { GPIO_PIN_7, GPIO_PIN_6, GPIO_PIN_5, GPIO_PIN_4,
                                     GPIO_PIN_7, GPIO_PIN_6, GPIO_PIN_5, GPIO_PIN_4,
                                     GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_4, GPIO_PIN_5,
@@ -748,10 +748,10 @@ void platform_adc_stop( unsigned id )
 {
   elua_adc_ch_state *s = adc_get_ch_state( id );
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   s->op_pending = 0;
   INACTIVATE_CHANNEL(d, id);
-  
+
   // If there are no more active channels, stop the sequencer
   if( d->ch_active == 0 )
   {
@@ -769,16 +769,16 @@ void ADCIntHandler( void )
 
   MAP_ADCIntClear( ADC_BASE, d->seq_id );
   MAP_ADCSequenceDataGet( ADC_BASE, d->seq_id, tmpbuff );
-  
+
   d->seq_ctr = 0;
-  
+
   // Update smoothing and/or write to buffer if needed
   while( d->seq_ctr < d->seq_len )
   {
     s = d->ch_state[ d->seq_ctr ];
     d->sample_buf[ d->seq_ctr ] = ( u16 )tmpbuff[ d->seq_ctr ];
     s->value_fresh = 1; // Mark sample as fresh
-    
+
     // Fill in smoothing buffer until warmed up
     if ( s->logsmoothlen > 0 && s->smooth_ready == 0)
       adc_smooth_data( s->id );
@@ -794,17 +794,17 @@ void ADCIntHandler( void )
     // If we have the number of requested samples, stop sampling
     if ( adc_samples_available( s->id ) >= s->reqsamples && s->freerunning == 0 )
       platform_adc_stop( s->id );
-    
+
     d->seq_ctr++;
   }
   d->seq_ctr = 0;
-  
+
   // Only attempt to refresh sequence order if still running
   // This allows us to "cache" an old sequence if all channels
   // finish at the same time
   if ( d->running == 1 )
     adc_update_dev_sequence( 0 );
-  
+
   if ( d->clocked == 0 && d->running == 1 )
   {
     // Need to manually fire off sample request in single sample mode
@@ -816,13 +816,13 @@ static void adcs_init()
 {
   unsigned id;
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC);
 
   // Try ramping up max sampling rate
   MAP_SysCtlADCSpeedSet(SYSCTL_ADCSPEED_500KSPS);
   MAP_SysCtlADCSpeedSet(SYSCTL_ADCSPEED_1MSPS);
-  
+
   for( id = 0; id < NUM_ADC; id ++ )
     adc_init_ch_state( id );
 
@@ -835,10 +835,10 @@ static void adcs_init()
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   // Make sure sequencer is disabled before making changes
   MAP_ADCSequenceDisable( ADC_BASE, d->seq_id );
-  
+
   if ( frequency > 0 )
   {
     d->clocked = 1;
@@ -855,19 +855,19 @@ u32 platform_adc_set_clock( unsigned id, u32 frequency )
     // Conversion will run back-to-back until required samples are acquired
     MAP_ADCSequenceConfigure( ADC_BASE, d->seq_id, ADC_TRIGGER_PROCESSOR, d->seq_id ) ;
   }
-    
+
   return frequency;
 }
 
 
 int platform_adc_update_sequence( )
-{  
+{
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   MAP_ADCSequenceDisable( ADC_BASE, d->seq_id );
-  
+
   // NOTE: seq ctr should have an incrementer that will wrap appropriately..
-  d->seq_ctr = 0; 
+  d->seq_ctr = 0;
   while( d->seq_ctr < d->seq_len-1 )
   {
     MAP_ADCSequenceStepConfigure( ADC_BASE, d->seq_id, d->seq_ctr, adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
@@ -881,17 +881,17 @@ int platform_adc_update_sequence( )
   MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
 #endif
   d->seq_ctr = 0;
-  
+
   MAP_ADCSequenceEnable( ADC_BASE, d->seq_id );
-      
+
   return PLATFORM_OK;
 }
 
 
 int platform_adc_start_sequence()
-{ 
+{
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
   if( d->running != 1 )
   {
     adc_update_dev_sequence( 0 );
@@ -909,14 +909,14 @@ int platform_adc_start_sequence()
       MAP_ADCProcessorTrigger( ADC_BASE, d->seq_id );
     }
   }
-  
+
   return PLATFORM_OK;
 }
 
 #endif // ifdef BUILD_ADC
 
 // ****************************************************************************
-// Support for specific onboard devices on 
+// Support for specific onboard devices on
 // Texas Instruments / Luminary Micro kits.
 //
 // FIXME: This was previously tied to the "disp" module but should be renamed in the future
@@ -1034,7 +1034,7 @@ static void eth_init()
 #else
   MAP_FlashUserGet(&user0, &user1);
 #endif
-  
+
 
   // Convert the 24/24 split MAC address from NV ram into a 32/16 split MAC
   // address needed to program the hardware registers, then program the MAC
@@ -1174,11 +1174,11 @@ unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulM
         // Nothing to do, already handled by USBBuffer
         break;
     }
-      
+
     default:
         break;
   }
-  
+
   return(0);
 }
 
@@ -1250,14 +1250,14 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
       break;
     }
 
-    
+
     // The host has disconnected.
-    
+
     case USB_EVENT_DISCONNECTED:
     {
       break;
     }
-    
+
     // Return the current serial communication parameters.
     case USBD_CDC_EVENT_GET_LINE_CODING:
     {
@@ -1270,7 +1270,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
       break;
     }
 
-    
+
     // Set the current serial communication parameters.
     case USBD_CDC_EVENT_SET_CONTROL_LINE_STATE:
     {
@@ -1319,7 +1319,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 // *********************************************************************
 // Support for Quadrature Encoder Interface (QEI)
 // FIXME: Tested on the lm3s8962 only
-#ifdef BUILD_QEI
+#ifdef ENABLE_QEI
 
 static u32 qei_capture[] = { QEI_CONFIG_CAPTURE_A, QEI_CONFIG_CAPTURE_A_B };
 static u32 qei_index[] = { QEI_CONFIG_NO_RESET, QEI_CONFIG_RESET_IDX };
@@ -1336,85 +1336,85 @@ static void qei_init()
     qei_flag = 0x00;                                    //Reset Flag
 }
 
-void platform_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
+void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
 {
-    /* -Configure each QE channel (0 or 1) to use either phase A or both A & B. 
+    /* -Configure each QE channel (0 or 1) to use either phase A or both A & B.
      * -LM3S8962 RevA2 Errata states that software cannot be relied upon
-     *  to disable the index pulse using QEI_CONFIG_NO_RESET. They 
+     *  to disable the index pulse using QEI_CONFIG_NO_RESET. They
      *  suggest you do not connect the index pulse if not needed. */
-    if( (enc_id & ELUA_QEI_CH0) == ELUA_QEI_CH0 )
+    if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
     {
-        MAP_QEIConfigure( QEI0_BASE, (qei_capture[ phase ] 
+        MAP_QEIConfigure( QEI0_BASE, (qei_capture[ phase ]
         | QEI_CONFIG_QUADRATURE | qei_swap[ swap ] | qei_index[ index ]),
         max_count);
     }
-    if( (enc_id & ELUA_QEI_CH1) == ELUA_QEI_CH1 )
+    if( (enc_id & LM3S_QEI_CH1) == LM3S_QEI_CH1 )
     {
-        MAP_QEIConfigure( QEI1_BASE, (qei_capture[ phase ] 
+        MAP_QEIConfigure( QEI1_BASE, (qei_capture[ phase ]
         | QEI_CONFIG_QUADRATURE | qei_swap[ swap ] | qei_index[ index ]),
         max_count);
     }
 }
 
-void platform_qei_vel_init( u8 enc_id, u32 vel_period )
+void lm3s_qei_vel_init( u8 enc_id, u32 vel_period )
 {
     vel_ticks = vel_period * (MAP_SysCtlClockGet()/1000000);
-    /* -Configures the QEI to compute the velocity. 
+    /* -Configures the QEI to compute the velocity.
      * -The velocity predivider is applied to the quadrature
      *  signal before it is counted. Set to QEI_VELDIV_1 aka div by 1 */
-    /* Enabled here but will not capture until the QEI is also 
-     * enabled using the platform_qei_enable() call. */
-    if( (enc_id & ELUA_QEI_CH0) == ELUA_QEI_CH0 )
+    /* Enabled here but will not capture until the QEI is also
+     * enabled using the lm3s_qei_enable() call. */
+    if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
     {
         MAP_QEIVelocityConfigure(QEI0_BASE, QEI_VELDIV_1, vel_ticks);
         MAP_QEIVelocityEnable(QEI0_BASE);
     }
-    if( (enc_id & ELUA_QEI_CH1) == ELUA_QEI_CH1 )
+    if( (enc_id & LM3S_QEI_CH1) == LM3S_QEI_CH1 )
     {
         MAP_QEIVelocityConfigure(QEI1_BASE, QEI_VELDIV_1, vel_ticks);
         MAP_QEIVelocityEnable(QEI1_BASE);
     }
 }
 
-void platform_qei_enable( u8 enc_id )
+void lm3s_qei_enable( u8 enc_id )
 {
-    if( (enc_id & ELUA_QEI_CH0) == ELUA_QEI_CH0 )
+    if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
         MAP_QEIEnable(QEI0_BASE);
-    if( (enc_id & ELUA_QEI_CH1) == ELUA_QEI_CH1 )
+    if( (enc_id & LM3S_QEI_CH1) == LM3S_QEI_CH1 )
         MAP_QEIEnable(QEI1_BASE);
 }
 
-void platform_qei_disable( u8 enc_id )
+void lm3s_qei_disable( u8 enc_id )
 {
-    if( (enc_id & ELUA_QEI_CH0) == ELUA_QEI_CH0 )
+    if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
         MAP_QEIDisable(QEI0_BASE);
-    if( (enc_id & ELUA_QEI_CH1) == ELUA_QEI_CH1 )
+    if( (enc_id & LM3S_QEI_CH1) == LM3S_QEI_CH1 )
         MAP_QEIDisable(QEI1_BASE);
 }
 
-u32 platform_qei_get_sys_clk()
+u32 lm3s_qei_get_sys_clk()
 {
     /* Returns processor clk speed. Will not work if usng ext clk src */
     return MAP_SysCtlClockGet();
 }
 
-u32 platform_qei_getPulses( u8 enc_id )
+u32 lm3s_qei_getPulses( u8 enc_id )
 {
-    /* Returns the number of pulses detected in the time period 
+    /* Returns the number of pulses detected in the time period
      * specified during velocity measurement configuration. */
-    u32 base = (enc_id==ELUA_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
+    u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     return MAP_QEIVelocityGet( base );
 }
 
-u32 platform_qei_getPosition( u8 enc_id )
+u32 lm3s_qei_getPosition( u8 enc_id )
 {
-    u32 base = (enc_id==ELUA_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
+    u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     return MAP_QEIPositionGet( base );
 }
 
-long platform_qei_getDirection( u8 enc_id)
+long lm3s_qei_getDirection( u8 enc_id)
 {
-    u32 base = (enc_id==ELUA_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
+    u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     return QEIDirectionGet( base );  /* 1=fwd, rev=-1 */
 }
 
@@ -1423,16 +1423,26 @@ long platform_qei_getDirection( u8 enc_id)
 // ****************************************************************************
 // Platform specific modules go here
 
-#ifdef ENABLE_DISP
+#if defined( ENABLE_DISP ) || defined( ENABLE_QEI )
 
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"
+#if defined( ENABLE_DISP )
 extern const LUA_REG_TYPE disp_map[];
+#endif
+#if defined( ENABLE_QEI )
+extern const LUA_REG_TYPE qei_map[];
+#endif
 
 const LUA_REG_TYPE platform_map[] =
 {
 #if LUA_OPTIMIZE_MEMORY > 0
+#if defined( ENABLE_DISP )
   { LSTRKEY( "disp" ), LROVAL( disp_map ) },
+#endif
+#if defined( ENABLE_QEI )
+  { LSTRKEY( "qei" ), LROVAL( qei_map ) },
+#endif
 #endif
   { LNILKEY, LNILVAL }
 };
@@ -1445,20 +1455,29 @@ LUALIB_API int luaopen_platform( lua_State *L )
   luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
 
   // Setup the new tables inside platform table
+
+#if defined( ENABLE_DISP )
   lua_newtable( L );
   luaL_register( L, NULL, disp_map );
   lua_setfield( L, -2, "disp" );
+#endif
+
+#if defined( ENABLE_QEI )
+  lua_newtable( L );
+  luaL_register( L, NULL, qei_map );
+  lua_setfield( L, -2, "qei" );
+#endif
 
   return 1;
 #endif // #if LUA_OPTIMIZE_MEMORY > 0
 }
 
-#else // #ifdef ENABLE_DISP
+#else // #if defined( ENABLE_DISP ) || defined( ENABLE_QEI )
 
 LUALIB_API int luaopen_platform( lua_State *L )
 {
   return 0;
 }
 
-#endif // #ifdef ENABLE_DISP
+#endif // #if defined( ENABLE_DISP ) || defined( ENABLE_QEI )
 
