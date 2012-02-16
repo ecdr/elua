@@ -19,7 +19,7 @@ if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[
   specific_files = specific_files + " rit128x96x4.c disp.c"
   comp.Append(CPPDEFINES = 'ENABLE_DISP')
 
-if comp[ 'board' ] == 'EK-LM3S8962':
+if comp[ 'board' ] == 'EK-LM3S8962' or comp[ 'board' ] == 'EK-LM3S6965':
   specific_files = specific_files + " qei.c"
   comp.Append(CPPDEFINES = 'ENABLE_QEI')
 
