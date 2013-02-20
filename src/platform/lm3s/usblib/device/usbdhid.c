@@ -2,7 +2,7 @@
 //
 // usbdhid.c - USB HID device class driver.
 //
-// Copyright (c) 2008-2011 Texas Instruments Incorporated.  All rights reserved.
+// Copyright (c) 2008-2012 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
 // Texas Instruments (TI) is supplying this software for use solely and
@@ -18,7 +18,7 @@
 // CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 // DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// This is part of revision 7611 of the Stellaris USB Library.
+// This is part of revision 9453 of the Stellaris USB Library.
 //
 //*****************************************************************************
 
@@ -1441,7 +1441,7 @@ HandleRequest(void *pvInstance, tUSBRequest *pUSBRequest)
                 // occur if you acknowledge before setting up to receive the
                 // request data.
                 //
-                MAP_USBDevEndpointDataAck(psInst->ulUSBBase, USB_EP_0, true);
+                MAP_USBDevEndpointDataAck(psInst->ulUSBBase, USB_EP_0, false);
             }
 
             break;
@@ -1917,7 +1917,6 @@ USBDHIDInit(unsigned long ulIndex, const tUSBDHIDDevice *psDevice)
     ASSERT(psDevice->psHIDDescriptor);
     ASSERT((psDevice->ucNumInputReports == 0) || psDevice->psReportIdle);
 
-
     USBDHIDCompositeInit(ulIndex, psDevice);
 
     //
@@ -2009,7 +2008,7 @@ USBDHIDCompositeInit(unsigned long ulIndex, const tUSBDHIDDevice *psDevice)
     // Slot the client's HID descriptor into our standard configuration
     // descriptor.
     //
-    g_sHIDDescriptorSection.ucSize = psDevice->psHIDDescriptor->bLength;
+    g_sHIDDescriptorSection.usSize = psDevice->psHIDDescriptor->bLength;
     g_sHIDDescriptorSection.pucData =
                                 (unsigned char *)psDevice->psHIDDescriptor;
 
@@ -2058,8 +2057,7 @@ USBDHIDCompositeInit(unsigned long ulIndex, const tUSBDHIDDevice *psDevice)
     //
     // Register our tick handler (this must be done after USBDCDInit).
     //
-    InternalUSBRegisterTickHandler(USB_TICK_HANDLER_DEVICE,
-                                   HIDTickHandler,
+    InternalUSBRegisterTickHandler(HIDTickHandler,
                                    (void *)psDevice);
 
     //

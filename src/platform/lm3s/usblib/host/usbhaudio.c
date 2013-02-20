@@ -2,7 +2,7 @@
 //
 // usbhaudio.c - USB host audio driver.
 //
-// Copyright (c) 2010-2011 Texas Instruments Incorporated.  All rights reserved.
+// Copyright (c) 2010-2012 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
 // Texas Instruments (TI) is supplying this software for use solely and
@@ -18,7 +18,7 @@
 // CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 // DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// This is part of revision 7611 of the Stellaris USB Library.
+// This is part of revision 9453 of the Stellaris USB Library.
 //
 //*****************************************************************************
 
@@ -118,8 +118,9 @@ typedef struct
     //
     // Holds the identifier for the Feature Unit for controlling volume.
     //
-    unsigned char ucVolumeIDOut;
-    unsigned char ucVolumeIDIn;
+    unsigned char ucVolumeID;
+    
+    tACFeatureUnit *pFeatureUnit;
 
     //
     // Holds what types of controls are enabled on the device.
@@ -235,7 +236,6 @@ AudioTerminalGet(tConfigDescriptor *pConfigDesc, unsigned long ulTerminal,
                  unsigned long ulTerminalType)
 {
     tACOutputTerminal *pOutput;
-    tACFeatureUnit *pFeature;
     tDescriptorHeader *pHeader;
     long lBytesRemaining;
 
@@ -271,12 +271,7 @@ AudioTerminalGet(tConfigDescriptor *pConfigDesc, unsigned long ulTerminal,
             }
             else if(pOutput->bDescriptorSubtype == USB_AI_FEATURE_UNIT)
             {
-                pFeature = (tACFeatureUnit *)pHeader;
-
-                if(pFeature->bUnitID == ulTerminalType)
-                {
-                    return(pHeader);
-                }
+                return(pHeader);
             }
         }
 
@@ -596,7 +591,7 @@ AudioGetInterface(tUSBHostAudioInstance *pAudioDevice,
                 //
                 g_AudioDevice.ulIsochInPipe =
                     USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_IN_DMA,
-                                        g_AudioDevice.pDevice->ulAddress,
+                                        g_AudioDevice.pDevice,
                                         pINEndpoint->wMaxPacketSize,
                                         PipeCallbackIN);
             }
@@ -612,7 +607,7 @@ AudioGetInterface(tUSBHostAudioInstance *pAudioDevice,
                 //
                 g_AudioDevice.ulIsochInPipe =
                     USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_IN_DMA,
-                                        g_AudioDevice.pDevice->ulAddress,
+                                        g_AudioDevice.pDevice,
                                         pINEndpoint->wMaxPacketSize,
                                         PipeCallbackIN);
 
@@ -647,14 +642,14 @@ AudioGetInterface(tUSBHostAudioInstance *pAudioDevice,
             // If there is no current pipe then just allocate a new one with
             // the settings for this interface.
             //
-            if(g_AudioDevice.ulIsochInPipe == 0)
+            if(g_AudioDevice.ulIsochOutPipe == 0)
             {
                 //
                 // Allocate the USB Pipe for this Isochronous OUT end point.
                 //
                 g_AudioDevice.ulIsochOutPipe =
-                    USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_OUT,
-                                        g_AudioDevice.pDevice->ulAddress,
+                    USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_OUT_DMA,
+                                        g_AudioDevice.pDevice,
                                         pOUTEndpoint->wMaxPacketSize,
                                         PipeCallbackOUT);
             }
@@ -670,7 +665,7 @@ AudioGetInterface(tUSBHostAudioInstance *pAudioDevice,
                 //
                 g_AudioDevice.ulIsochOutPipe =
                     USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_OUT_DMA,
-                                        g_AudioDevice.pDevice->ulAddress,
+                                        g_AudioDevice.pDevice,
                                         pOUTEndpoint->wMaxPacketSize,
                                         PipeCallbackOUT);
 
@@ -748,6 +743,13 @@ USBAudioOpen(tUSBHostDevice *pDevice)
                                               USB_AI_OUTPUT_TERMINAL,
                                               USB_TTYPE_STREAMING);
 
+    // 
+    // Find the feature unit.
+    g_AudioDevice.pFeatureUnit = 
+        (tACFeatureUnit *)AudioTerminalGet(pConfigDesc,
+                                           USB_AI_FEATURE_UNIT,
+                                           0);
+
     //
     // Need some kind of terminal to send or receive audio from.
     //
@@ -782,6 +784,14 @@ USBAudioOpen(tUSBHostDevice *pDevice)
                                          0, USBH_AUDIO_EVENT_OPEN);
     }
 
+    // 
+    // If a feature unit was found, save the ID 
+    //
+    if(g_AudioDevice.pFeatureUnit != 0) 
+    {
+        g_AudioDevice.ucVolumeID = g_AudioDevice.pFeatureUnit->bUnitID;
+    }
+
     //
     // Save the device pointer.
     //
@@ -792,7 +802,7 @@ USBAudioOpen(tUSBHostDevice *pDevice)
     //
     g_AudioDevice.ulIsochInPipe =
         USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_IN_DMA,
-                            g_AudioDevice.pDevice->ulAddress, 256,
+                            g_AudioDevice.pDevice, 256,
                             PipeCallbackIN);
     g_AudioDevice.usPipeSizeIn = 256;
 
@@ -800,8 +810,8 @@ USBAudioOpen(tUSBHostDevice *pDevice)
     // Allocate the USB Pipe for this Isochronous OUT end point.
     //
     g_AudioDevice.ulIsochOutPipe =
-        USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_OUT,
-                            g_AudioDevice.pDevice->ulAddress, 256,
+        USBHCDPipeAllocSize(0, USBHCD_PIPE_ISOC_OUT_DMA,
+                            g_AudioDevice.pDevice, 256,
                             PipeCallbackOUT);
     g_AudioDevice.usPipeSizeOut = 256;
 
@@ -815,7 +825,6 @@ USBAudioOpen(tUSBHostDevice *pDevice)
     //
     return(&g_AudioDevice);
 }
-
 
 //*****************************************************************************
 //
@@ -998,7 +1007,7 @@ VolumeSettingGet(unsigned long ulInstance, unsigned long ulInterface,
     //
     // Set the language ID.
     //
-    SetupPacket.wIndex = (pAudioDevice->ucVolumeIDOut << 8) |
+    SetupPacket.wIndex = (pAudioDevice->ucVolumeID << 8) |
                          (ulInterface & 0xff);
 
     //
@@ -1009,7 +1018,7 @@ VolumeSettingGet(unsigned long ulInstance, unsigned long ulInterface,
     //
     // Put the setup packet in the buffer.
     //
-    USBHCDControlTransfer(0, &SetupPacket, pAudioDevice->pDevice->ulAddress,
+    USBHCDControlTransfer(0, &SetupPacket, pAudioDevice->pDevice,
                           (unsigned char *)&ulValue, 4,
                           pAudioDevice->pDevice->DeviceDescriptor.bMaxPacketSize0);
 
@@ -1200,7 +1209,7 @@ USBHostAudioVolumeSet(unsigned long ulInstance, unsigned ulInterface,
     //
     // Set Volume control ID and interface to 0.
     //
-    SetupPacket.wIndex = pAudioDevice->ucVolumeIDOut << 8;
+    SetupPacket.wIndex = pAudioDevice->ucVolumeID << 8;
 
     //
     // Only request the space available.
@@ -1210,9 +1219,9 @@ USBHostAudioVolumeSet(unsigned long ulInstance, unsigned ulInterface,
     //
     // Put the setup packet in the buffer.
     //
-    USBHCDControlTransfer(0, &SetupPacket, pAudioDevice->pDevice->ulAddress,
-                       (unsigned char *)&ulValue, 2,
-                       pAudioDevice->pDevice->DeviceDescriptor.bMaxPacketSize0);
+    USBHCDControlTransfer(0, &SetupPacket, pAudioDevice->pDevice,
+            (unsigned char *)&ulValue, 2,
+            pAudioDevice->pDevice->DeviceDescriptor.bMaxPacketSize0);
 }
 
 //*****************************************************************************

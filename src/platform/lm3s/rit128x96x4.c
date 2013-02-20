@@ -2,26 +2,23 @@
 //
 // rit128x96x4.c - Driver for the RIT 128x96x4 graphical OLED display.
 //
-// Copyright (c) 2007-2008 Luminary Micro, Inc.  All rights reserved.
+// Copyright (c) 2007-2012 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
-// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
-// exclusively on LMI's microcontroller products.
+// Texas Instruments (TI) is supplying this software for use solely and
+// exclusively on TI's microcontroller products. The software is owned by
+// TI and/or its suppliers, and is protected under applicable copyright
+// laws. You may not combine this software with "viral" open-source
+// software in order to form a larger program.
 // 
-// The software is owned by LMI and/or its suppliers, and is protected under
-// applicable copyright laws.  All rights are reserved.  You may not combine
-// this software with "viral" open-source software in order to form a larger
-// program.  Any use in violation of the foregoing restrictions may subject
-// the user to criminal sanctions under applicable laws, as well as to civil
-// liability for the breach of the terms and conditions of this license.
+// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
+// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
+// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
+// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+// DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
-// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
-// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
-// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
-// 
-// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+// This is part of revision 9453 of the EK-LM3S6965 Firmware Package.
 //
 //*****************************************************************************
 
@@ -31,15 +28,15 @@
 //! @{
 //
 //*****************************************************************************
-          
-#include "hw_ssi.h"
-#include "hw_memmap.h"
-#include "hw_sysctl.h"
-#include "hw_types.h"
-#include "debug.h"
-#include "gpio.h"
-#include "ssi.h"
-#include "sysctl.h"
+
+#include "inc/hw_ssi.h"
+#include "inc/hw_memmap.h"
+#include "inc/hw_sysctl.h"
+#include "inc/hw_types.h"
+#include "driverlib/debug.h"
+#include "driverlib/gpio.h"
+#include "driverlib/ssi.h"
+#include "driverlib/sysctl.h"
 #include "rit128x96x4.h"
 
 //*****************************************************************************
@@ -48,29 +45,19 @@
 // panel control signal.
 //
 //*****************************************************************************
+#define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOC
+#define GPIO_OLEDDC_BASE            GPIO_PORTC_BASE
+#define GPIO_OLEDDC_PIN             GPIO_PIN_7
+#define GPIO_OLEDEN_PIN             GPIO_PIN_6
 
-#if defined(FORLM3S1968)
-  #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOH
-  #define GPIO_OLEDDC_BASE            GPIO_PORTH_BASE
-  #define GPIO_OLEDDC_PIN             GPIO_PIN_2
-  #define GPIO_OLEDEN_PIN             GPIO_PIN_3
-#elif defined(FORLM3S6965)
-  #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOC
-  #define GPIO_OLEDDC_BASE            GPIO_PORTC_BASE
-  #define GPIO_OLEDDC_PIN             GPIO_PIN_7
-  #define GPIO_OLEDEN_PIN             GPIO_PIN_6
-#else
-  #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOA
-  #define GPIO_OLEDDC_BASE            GPIO_PORTA_BASE
-  #define GPIO_OLEDDC_PIN             GPIO_PIN_6
-  #define GPIO_OLEDEN_PIN             GPIO_PIN_7
-#endif
 //*****************************************************************************
 //
-// Flag to indicate if SSI port is enabled for display usage.
+// Flags to indicate the state of the SSI interface to the display.
 //
 //*****************************************************************************
-static volatile tBoolean g_bSSIEnabled = false;
+static volatile unsigned long g_ulSSIFlags;
+#define FLAG_SSI_ENABLED        0
+#define FLAG_DC_HIGH            1
 
 //*****************************************************************************
 //
@@ -341,20 +328,33 @@ static const unsigned char g_pucRIT128x96x4Init[] =
 static void
 RITWriteCommand(const unsigned char *pucBuffer, unsigned long ulCount)
 {
-    unsigned long ulTemp;
-
     //
     // Return if SSI port is not enabled for RIT display.
     //
-    if(!g_bSSIEnabled)
+    if(!HWREGBITW(&g_ulSSIFlags, FLAG_SSI_ENABLED))
     {
         return;
     }
 
     //
-    // Clear the command/control bit to enable command mode.
+    // See if data mode is enabled.
     //
-    GPIOPinWrite(GPIO_OLEDDC_BASE, GPIO_OLEDDC_PIN, 0);
+    if(HWREGBITW(&g_ulSSIFlags, FLAG_DC_HIGH))
+    {
+        //
+        // Wait until the SSI is not busy, meaning that all previous data has
+        // been transmitted.
+        //
+        while(SSIBusy(SSI0_BASE))
+        {
+        }
+
+        //
+        // Clear the command/control bit to enable command mode.
+        //
+        GPIOPinWrite(GPIO_OLEDDC_BASE, GPIO_OLEDDC_PIN, 0);
+        HWREGBITW(&g_ulSSIFlags, FLAG_DC_HIGH) = 0;
+    }
 
     //
     // Loop while there are more bytes left to be transferred.
@@ -365,11 +365,6 @@ RITWriteCommand(const unsigned char *pucBuffer, unsigned long ulCount)
         // Write the next byte to the controller.
         //
         SSIDataPut(SSI0_BASE, *pucBuffer++);
-
-        //
-        // Dummy read to drain the fifo and time the GPIO signal.
-        //
-        SSIDataGet(SSI0_BASE, &ulTemp);
 
         //
         // Decrement the BYTE counter.
@@ -393,20 +388,33 @@ RITWriteCommand(const unsigned char *pucBuffer, unsigned long ulCount)
 static void
 RITWriteData(const unsigned char *pucBuffer, unsigned long ulCount)
 {
-    unsigned long ulTemp;
-
     //
     // Return if SSI port is not enabled for RIT display.
     //
-    if(!g_bSSIEnabled)
+    if(!HWREGBITW(&g_ulSSIFlags, FLAG_SSI_ENABLED))
     {
         return;
     }
 
     //
-    // Set the command/control bit to enable data mode.
+    // See if command mode is enabled.
     //
-    GPIOPinWrite(GPIO_OLEDDC_BASE, GPIO_OLEDDC_PIN, GPIO_OLEDDC_PIN);
+    if(!HWREGBITW(&g_ulSSIFlags, FLAG_DC_HIGH))
+    {
+        //
+        // Wait until the SSI is not busy, meaning that all previous commands
+        // have been transmitted.
+        //
+        while(SSIBusy(SSI0_BASE))
+        {
+        }
+
+        //
+        // Set the command/control bit to enable data mode.
+        //
+        GPIOPinWrite(GPIO_OLEDDC_BASE, GPIO_OLEDDC_PIN, GPIO_OLEDDC_PIN);
+        HWREGBITW(&g_ulSSIFlags, FLAG_DC_HIGH) = 1;
+    }
 
     //
     // Loop while there are more bytes left to be transferred.
@@ -417,11 +425,6 @@ RITWriteData(const unsigned char *pucBuffer, unsigned long ulCount)
         // Write the next byte to the controller.
         //
         SSIDataPut(SSI0_BASE, *pucBuffer++);
-
-        //
-        // Dummy read to drain the fifo and time the GPIO signal.
-        //
-        SSIDataGet(SSI0_BASE, &ulTemp);
 
         //
         // Decrement the BYTE counter.
@@ -436,10 +439,6 @@ RITWriteData(const unsigned char *pucBuffer, unsigned long ulCount)
 //!
 //! This function will clear the display RAM.  All pixels in the display will
 //! be turned off.
-//!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
 //!
 //! \return None.
 //
@@ -507,10 +506,6 @@ RIT128x96x4Clear(void)
 //! If the drawing of the string reaches the right edge of the display, no more
 //! characters will be drawn.  Therefore, special care is not required to avoid
 //! supplying a string that is ``too long'' to display.
-//!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
 //!
 //! \note Because the OLED display packs 2 pixels of data in a single byte, the
 //! parameter \e ulX must be an even column number (for example, 0, 2, 4, and
@@ -666,10 +661,6 @@ RIT128x96x4StringDraw(const char *pcStr, unsigned long ulX,
 //!     +---------+---------+---------+---------+---------+---------+
 //! \endverbatim
 //!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
-//!
 //! \return None.
 //
 //*****************************************************************************
@@ -728,18 +719,12 @@ RIT128x96x4ImageDraw(const unsigned char *pucImage, unsigned long ulX,
 //!
 //! This function initializes the SSI interface to the OLED display.
 //!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
-//!
 //! \return None.
 //
 //*****************************************************************************
 void
 RIT128x96x4Enable(unsigned long ulFrequency)
 {
-    unsigned long ulTemp;
-
     //
     // Disable the SSI port.
     //
@@ -748,7 +733,7 @@ RIT128x96x4Enable(unsigned long ulFrequency)
     //
     // Configure the SSI0 port for master mode.
     //
-    SSIConfigSetExpClk(SSI0_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_2,
+    SSIConfigSetExpClk(SSI0_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_3,
                        SSI_MODE_MASTER, ulFrequency, 8);
 
     //
@@ -764,16 +749,9 @@ RIT128x96x4Enable(unsigned long ulFrequency)
     SSIEnable(SSI0_BASE);
 
     //
-    // Drain the receive fifo.
-    //
-    while(SSIDataGetNonBlocking(SSI0_BASE, &ulTemp) != 0)
-    {
-    }
-
-    //
     // Indicate that the RIT driver can use the SSI Port.
     //
-    g_bSSIEnabled = true;
+    HWREGBITW(&g_ulSSIFlags, FLAG_SSI_ENABLED) = 1;
 }
 
 //*****************************************************************************
@@ -781,10 +759,6 @@ RIT128x96x4Enable(unsigned long ulFrequency)
 //! Enable the SSI component of the OLED display driver.
 //!
 //! This function initializes the SSI interface to the OLED display.
-//!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
 //!
 //! \return None.
 //
@@ -797,7 +771,14 @@ RIT128x96x4Disable(void)
     //
     // Indicate that the RIT driver can no longer use the SSI Port.
     //
-    g_bSSIEnabled = false;
+    HWREGBITW(&g_ulSSIFlags, FLAG_SSI_ENABLED) = 0;
+
+    //
+    // Wait until the SSI port is no longer busy.
+    //
+    while(SSIBusy(SSI0_BASE))
+    {
+    }
 
     //
     // Drain the receive fifo.
@@ -828,10 +809,6 @@ RIT128x96x4Disable(void)
 //!
 //! This function initializes the SSI interface to the OLED display and
 //! configures the SSD1329 controller on the panel.
-//!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
 //!
 //! \return None.
 //
@@ -864,6 +841,7 @@ RIT128x96x4Init(unsigned long ulFrequency)
                      GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD);
     GPIOPinWrite(GPIO_OLEDDC_BASE, GPIO_OLEDDC_PIN | GPIO_OLEDEN_PIN,
                  GPIO_OLEDDC_PIN | GPIO_OLEDEN_PIN);
+    HWREGBITW(&g_ulSSIFlags, FLAG_DC_HIGH) = 1;
 
     //
     // Configure and enable the SSI0 port for master mode.
@@ -897,10 +875,6 @@ RIT128x96x4Init(unsigned long ulFrequency)
 //! This function will turn on the OLED display, causing it to display the
 //! contents of its internal frame buffer.
 //!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
-//!
 //! \return None.
 //
 //*****************************************************************************
@@ -932,10 +906,6 @@ RIT128x96x4DisplayOn(void)
 //! of the panel and turn off the on-chip DC-DC converter, preventing damage to
 //! the panel due to burn-in (it has similar characters to a CRT in this
 //! respect).
-//!
-//! This function is contained in <tt>rit128x96x4.c</tt>, with
-//! <tt>rit128x96x4.h</tt> containing the API definition for use by
-//! applications.
 //!
 //! \return None.
 //
