@@ -157,7 +157,7 @@ toolchain_list[ 'devkitarm' ] = toolchain_list[ 'arm-eabi-gcc' ]
 local platform_list =
 {
   at91sam7x = { cpus = { 'AT91SAM7X256', 'AT91SAM7X512' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' }, big_endian = false },
-  lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' }, big_endian = false },
+  lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92', 'LM4F120' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' }, big_endian = false },
   str9 = { cpus = { 'STR912FAW44' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' }, big_endian = false },
   i386 = { cpus = { 'I386' }, toolchains = { 'i686-gcc' }, big_endian = false },
   sim = { cpus = { 'LINUX' }, toolchains = { 'i686-gcc' }, big_endian = false },
@@ -194,6 +194,7 @@ local board_list =
   [ 'MIZAR32' ]         = { 'AT32UC3A0256', 'AT32UC3A0512', 'AT32UC3A0128' },
   [ 'NETDUINO' ]        = { 'AT91SAM7X512' },
   [ 'EK-LM3S9D92' ]     = { 'LM3S9D92' }
+  [ 'EK-LM4F120XL' ]    = { 'LM4F120' },
 }
 
 -- Build the CPU list starting from the above list
@@ -493,7 +494,7 @@ builder:set_exe_extension( ".elf" )
 
 -- Create the ROM file system
 make_romfs()
--- Creaate executable targets
+-- Create executable targets
 odeps = builder:create_compile_targets( source_files )
 exetarget = builder:link_target( output, odeps )
 -- This is also the default target
