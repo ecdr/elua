@@ -1,11 +1,12 @@
--- Configuration file for the LM3S microcontroller
+-- Configuration file for the LM3S and LM4F microcontroller
 
 addi( sf( 'src/platform/%s/inc', platform ) )
 addi( sf( 'src/platform/%s/driverlib', platform ) )
+addi( sf( 'src/platform/%s/drivers', platform ) )
 local cpu = comp.board:upper()
 
 -- Only include USB headers/paths for boards which support it
-if cpu == 'LM3S9B92' or board == 'LM3S9D92' then
+if cpu == 'LM3S9B92' or board == 'LM3S9D92' or cpu == 'LM4F120' then
   addi( sf( 'src/platform/%s/usblib', platform ) )
   addi( sf( 'src/platform/%s/usblib/device', platform ) )
 end
@@ -26,7 +27,7 @@ if board == 'EAGLE-100' then
   addlf '-Wl,-Ttext,0x2000'
 end
 
-if cpu == 'LM3S9B92' or cpu == 'LM3S9D92' then
+if cpu == 'LM3S9B92' or cpu == 'LM3S9D92' or cpu == 'LM4F120' then
    fwlib_files = fwlib_files .. " " .. utils.get_files( "src/platform/" .. platform .. "/usblib", ".*%.c$" ) 
    fwlib_files = fwlib_files .. " " .. utils.get_files( "src/platform/" .. platform .. "/usblib/device", ".*%.c$" )
    specific_files = specific_files .. "  usb_serial_structs.c"
@@ -36,6 +37,8 @@ if board == 'EK-LM3S9B92'  then
    ldscript = "lm3s-9b92.ld"
 elseif board == 'SOLDERCORE' or board == "EK-LM3S9D92" then
    ldscript = "lm3s-9d92.ld"
+elseif cpu == 'LM4F120' then
+   ldscript = "lm4f.ld"
 else
    ldscript = "lm3s.ld"
 end
@@ -45,7 +48,11 @@ specific_files = fwlib_files .. " " .. utils.prepend_path( specific_files, "src/
 specific_files = specific_files .. " src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c"
 ldscript = sf( "src/platform/%s/%s", platform, ldscript )
 
-addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
+if cpu == 'LM4F120' then
+    addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M4' }
+else
+    addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
+end
 
 -- Standard GCC flags
 addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
@@ -53,7 +60,12 @@ addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,-
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }
 addlib{ 'c','gcc','m' }
 
-local target_flags =  {'-mcpu=cortex-m3','-mthumb' }
+-- Todo: turn on FPU
+if cpu == 'LM4F120' then
+    local target_flags =  {'-mcpu=cortex-m4','-mthumb' }
+else
+    local target_flags =  {'-mcpu=cortex-m3','-mthumb' }
+end
 
 -- Configure general flags for target
 addcf{ target_flags, '-mlittle-endian' }

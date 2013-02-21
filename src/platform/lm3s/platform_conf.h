@@ -1,4 +1,5 @@
 // eLua platform configuration
+// LM3S and LM4F
 
 #ifndef __PLATFORM_CONF_H__
 #define __PLATFORM_CONF_H__
@@ -8,12 +9,39 @@
 #include "inc/hw_types.h"
 #include "stacks.h"
 #include "driverlib/sysctl.h"
+#include "driverlib/rom_map.h"
 #include "elua_int.h"
 #include "flash_conf.h"
-#include "rom_map.h"
+
+
+#if defined( FORLM4F120 ) || defined( ELUA_BOARD_SOLDERCORE )
+#define USE_PIN_MUX
+#endif
 
 // *****************************************************************************
 // Define here what components you want for this platform
+
+#define BUILD_ADC
+
+// ToDo: Add simulated PWMs for LM4F
+#if !defined(FORLM3S6918) && !defined(FORLM4F120)
+#define BUILD_PWM
+#endif
+
+#if defined( FORLM3S8962 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined(FORLM4F120)
+#define BUILD_CAN
+#endif
+
+// ToDo: working on I2C
+#if defined ( FORLM4F120 ) || defined( FORLM3S8962 )
+#define BUILD_I2C
+#endif
+
+// ToDo: working on comparators
+// #if defined ( FORLM4F120 )
+// #define BUILD_COMP
+// #endif
+
 //#if !defined( ELUA_BOARD_SOLDERCORE )
   #define BUILD_XMODEM
   #define BUILD_TERM
@@ -21,29 +49,32 @@
 
 #define BUILD_SHELL
 #define BUILD_ROMFS
-#ifndef ELUA_BOARD_EKLM3S9D92
+
+// Exclude MMCFS for EKLM3S9D92 and LM4F120 - define BUILD_MMCFS externally for SD shield
+#if !defined( ELUA_BOARD_EKLM3S9D92 ) && !defined ( FORLM4F120 )
 #define BUILD_MMCFS
 #endif
 
+// ToDo: Maybe build USB CDC for LM4F120?
 #if defined( ELUA_BOARD_SOLDERCORE )
   #define BUILD_USB_CDC
 #endif
 
-#if !defined( FORLM3S1968 ) && !defined( ELUA_BOARD_EKLM3S9D92 )
+// Exclude network for LM4F120 also
+#if !defined( FORLM3S1968 ) && !defined( ELUA_BOARD_EKLM3S9D92 ) && !defined ( FORLM4F120 )
   #define BUILD_UIP
   #define BUILD_DHCPC
   #define BUILD_DNS
 #endif
 
-#define BUILD_LINENOISE
-
-#define BUILD_ADC
 #define BUILD_RPC
+
 //#if defined( ELUA_BOARD_SOLDERCORE )
 //  #define BUILD_CON_TCP
 //#else
   #define BUILD_CON_GENERIC
 //#endif
+
 #define BUILD_C_INT_HANDLERS
 #ifdef ELUA_BOARD_EKLM3S9D92
 #define BUILD_LUA_INT_HANDLERS
@@ -53,11 +84,14 @@
 #define PLATFORM_HAS_SYSTIMER
 #define PLATFORM_TMR_COUNTS_DOWN
 
+// FIXME: BUILD_WOFS also defined below
 #ifdef INTERNAL_FLASH_CONFIGURED // this comes from flash_conf.h
 #define BUILD_WOFS
 #endif
 
 #define ENABLE_LM3S_GPIO
+
+#define BUILD_LINENOISE
 
 #define LINENOISE_HISTORY_SIZE_LUA    30
 #define LINENOISE_HISTORY_SIZE_SHELL  10
@@ -84,17 +118,16 @@
 #define PS_LIB_TABLE_NAME   "lm3s"
 #endif
 
-#if defined( FORLM3S8962 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+#ifdef BUILD_CAN
 #define CANLINE  _ROM( AUXLIB_CAN, luaopen_can, can_map )
-#define BUILD_CAN
 #else
 #define CANLINE
 #endif
 
-#ifdef FORLM3S6918
-#define PWMLINE
-#else
+#ifdef BUILD_PWM
 #define PWMLINE  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )
+#else
+#define PWMLINE
 #endif
 
 #ifdef BUILD_UIP
@@ -102,6 +135,12 @@
 #else
 #define NETLINE
 #endif
+
+#ifdef BUILD_I2C
+#define I2CLINE  _ROM( AUXLIB_I2C, luaopen_i2c, i2c_map )
+#else
+#define I2CLINE
+#endif  
 
 #ifdef BUILD_ADC
 #define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
@@ -139,6 +178,7 @@
   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+  I2CLINE\
   PWMLINE\
   TERMLINE\
   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
@@ -185,46 +225,140 @@
 #define VTMR_FREQ_HZ          5
 
 // Number of resources (0 if not available/not implemented)
+// NUM_PIO Maximum 8
 #if defined(FORLM3S1968)
   #define NUM_PIO             8
 #elif defined(FORLM3S9B92) || defined( FORLM3S9D92 )
   #define NUM_PIO             9
+#elif defined(FORLM4F120)
+  #define NUM_PIO             6
 #else
   #define NUM_PIO             7
 #endif
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+
+// NUM_SPI - Max 2, unless LM4F120
+#ifndef NUM_SPI
+#ifdef FORLM4F120
+  #define NUM_SPI             4
+#elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_SPI            2
 #else
   #define NUM_SPI            1
 #endif
+#endif
+
+
+// UART - Max 3 unless LM4F120
+// Define in configuration script if want to use different number
+#ifndef NUM_UART
 #if defined( FORLM3S6965 )
   #define NUM_UART            3
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_UART            3
+#elif defined (FORLM4F120)
+  #define NUM_UART            4
+  #define MAX_UART            8		// Todo: add checking if comes in from config script
+//  LM4F actually has 7, but UART number 6 uses same pins as USB
 #else
   #define NUM_UART            2
 #endif
-#define NUM_TIMER             4
-#if defined( FORLM3S6918 )
+#endif
+
+#if NUM_UART > MAX_UART
+#warning Too many UART, maximum is MAX_UART
+#define NUM_UART MAX_UART
+#endif
+
+
+// NUM_TIMERS - Max 4 unless LM4F120
+#ifndef NUM_TIMER
+#ifdef FORLM4F120
+  #define NUM_TIMER             6
+// LM4F120 actually has 12 (6 normal, 6 wide)
+  #define MAX_TIMER            12
+#else
+  #define NUM_TIMER             4
+#define MAX_TIMER               4
+#endif
+#endif
+
+#if NUM_TIMER > MAX_TIMER
+#warning Too many TIMER, maximum is MAX_TIMER
+#define NUM_TIMER MAX_TIMER
+#endif
+
+
+#if defined( FORLM3S6918 ) || defined (FORLM4F120)
   #define NUM_PWM             0
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_PWM             8
 #else
   #define NUM_PWM             6
 #endif  
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
-#define NUM_ADC               16
+
+
+#if defined( BUILD_I2C )
+#ifdef FORLM4F120
+  #define NUM_I2C             4
+#elif defined( FORLM6918 ) || defined( FORLM6965 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+  #define NUM_I2C             2
+#elif defined( FORLM8962 )
+  #define NUM_I2C             1
 #else
-#define NUM_ADC               4
+  #define NUM_I2C             0		
 #endif
+#endif // ifdef Build_I2C
+
+
+#ifdef BUILD_COMP
+#ifdef FORLM4F120
+  #define NUM_COMP            2
+#elif defined( FORLM8962 )
+  #define NUM_COMP            1
+#else
+  #define NUM_COMP            0
+// FIXME: Fill in number comparators for lm3s...
+#endif
+#endif
+
+#ifdef BUILD_ADC
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+  #define NUM_ADC             16
+#elif defined( FORLM4F120 )
+  #define NUM_ADC             2
+#else
+  #define NUM_ADC             4
+#endif
+#endif // BUILD_ADC
+
+/* 
+// ToDo: Add support for USB
+#ifdef FORLM4F120
+  #define NUM_USB             1
+#else
+  #define NUM_USB             0
+// FIXME: Need to fill in number USB for lm3s...
+#endif
+*/
+
+// CAN - Maximum is 1
+#ifdef BUILD_CAN
 #define NUM_CAN               1
+#else
+#define NUM_CAN               0
+#endif
+
 
 // Enable RX buffering on UART
 #define BUF_ENABLE_UART
 #define CON_BUF_SIZE          BUF_SIZE_128
 
-// ADC Configuration Params
-#define ADC_BIT_RESOLUTION    10
+// ADC Configuration Parameters
+#ifdef FORLM4F120
+  #define ADC_BIT_RESOLUTION    12
+#else
+  #define ADC_BIT_RESOLUTION    10
+#endif  
 #define BUF_ENABLE_ADC
 #define ADC_BUF_SIZE          BUF_SIZE_2
 
@@ -275,13 +409,21 @@
   #define PIO_PIN_ARRAY         { 8, 8, 8, 4, 4, 8, 8, 4}
 #elif defined(FORLM3S9B92) || defined( FORLM3S9D92 )
   #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 8, 6, 8, 8, 8 }
+#elif defined( FORLM4F120 )
+  #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 6, 5 }
 #else
   #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 4, 4, 2 }
 #endif
 //                                A, B, C, D, E, F, G, H, J
 
+
+// *****************************************************************************
+// Memory
+
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define SRAM_SIZE ( 0x18000 )
+#elif defined( FORLM4F120 )
+  #define SRAM_SIZE ( 0x08000 )
 #else
   #define SRAM_SIZE ( 0x10000 )
 #endif
@@ -292,6 +434,8 @@
 #define INTERNAL_FLASH_WRITE_UNIT_SIZE  4
 #define INTERNAL_FLASH_SECTOR_SIZE      1024
 #define INTERNAL_FLASH_START_ADDRESS    0
+
+//FIXME: BUILD_WOFS also set above - should only set in one place
 #define BUILD_WOFS
 #endif // #ifdef ELUA_CPU_LM3S8962
 
@@ -311,6 +455,46 @@
 // CPU constants that should be exposed to the eLua "cpu" module
 
 #include "hw_ints.h"
+
+// Does the order matter here? (look almost in order, except not sure what INT_UART_RX is
+
+#if defined( FORLM4F120 )
+// Made additions in order from hw_ints.h
+// Could add more timers (added some, but not full number from lm4F120)
+
+#define EXTRA_CPU_CONSTANTS\
+  _C( INT_SSI2 ),\
+  _C( INT_SSI3 ),\
+  _C( INT_UART3 ),\
+  _C( INT_UART4 ),\
+  _C( INT_UART5 ),\
+  _C( INT_UART6 ),\
+  _C( INT_UART7 ),\
+  _C( INT_I2C2 ),\
+  _C( INT_I2C3 ),\
+  _C( INT_TIMER4A ),\
+  _C( INT_TIMER4B ),\
+  _C( INT_TIMER5A ),\
+  _C( INT_TIMER5B ),
+
+/*  These would handle the wide timers on LM4F120 - add if needed
+  _C( INT_WTIMER0A ),\
+  _C( INT_WTIMER0B ),\
+  _C( INT_WTIMER1A ),\
+  _C( INT_WTIMER1B ),\
+  _C( INT_WTIMER2A ),\
+  _C( INT_WTIMER2B ),\
+  _C( INT_WTIMER3A ),\
+  _C( INT_WTIMER3B ),\
+  _C( INT_WTIMER4A ),\
+  _C( INT_WTIMER4B ),\
+  _C( INT_WTIMER5A ),\
+  _C( INT_WTIMER5B ),\  */
+
+#else
+#define EXTRA_CPU_CONSTANTS
+#endif
+
 
 #define PLATFORM_CPU_CONSTANTS\
   _C( INT_GPIOA ),\
@@ -361,9 +545,12 @@
   _C( INT_PWM3 ),\
   _C( INT_UDMA ),\
   _C( INT_UDMAERR ),\
+  EXTRA_CPU_CONSTANTS \
   _C( INT_UART_RX ),\
   _C( INT_GPIO_POSEDGE ),\
   _C( INT_GPIO_NEGEDGE ),\
   _C( INT_TMR_MATCH )
+
+
 
 #endif // #ifndef __PLATFORM_CONF_H__

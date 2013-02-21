@@ -28,6 +28,33 @@
 
 //*****************************************************************************
 //
+// startup_gcc.c - Startup code for use with GNU tools.
+//
+// Copyright (c) 2012 Texas Instruments Incorporated.  All rights reserved.
+// Software License Agreement
+// 
+// Texas Instruments (TI) is supplying this software for use solely and
+// exclusively on TI's microcontroller products. The software is owned by
+// TI and/or its suppliers, and is protected under applicable copyright
+// laws. You may not combine this software with "viral" open-source
+// software in order to form a larger program.
+// 
+// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
+// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
+// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
+// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+// DAMAGES, FOR ANY REASON WHATSOEVER.
+// 
+// This is part of revision 9453 of the EK-LM4F120XL Firmware Package.
+//
+//*****************************************************************************
+
+#include "inc/hw_nvic.h"
+#include "inc/hw_types.h"
+
+//*****************************************************************************
+//
 // Forward declaration of the default fault handlers.
 //
 //*****************************************************************************
@@ -36,39 +63,30 @@ static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
 
-// External interrupt handlers
-extern void EthernetIntHandler();
-extern void SysTickIntHandler();
-extern void ADCIntHandler();
-extern void UARTIntHandler();
+// eLua
 
+// External interrupt handlers
+//extern void UARTIntHandler();	// TODO remove, doesn't appear to exist
 
 #include "hw_memmap.h"
 #include "platform_conf.h"
 
+// Handlers in platform.c
+extern void EthernetIntHandler(void);
+extern void SysTickIntHandler(void);
+extern void ADCIntHandler(void);
+
 #if defined( BUILD_CAN )
-extern void CANIntHandler();
+extern void CANIntHandler(void);
 #endif
 
-extern void uart0_handler();
-extern void uart1_handler();
-extern void uart2_handler();
-extern void gpioa_handler();
-extern void gpiob_handler();
-extern void gpioc_handler();
-extern void gpiod_handler();
-extern void gpioe_handler();
-extern void gpiof_handler();
-extern void gpiog_handler();
-extern void gpioh_handler();
-extern void gpioj_handler();
-extern void tmr0_handler();
-extern void tmr1_handler();
-extern void tmr2_handler();
-extern void tmr3_handler();
+// Handlers from usblib (usbdevice.h)
 #if defined( BUILD_USB_CDC )
 extern void USB0DeviceIntHandler(void);
 #endif
+
+// Handlers in platform_int.c
+#include "platform_int.h"
 
 
 //*****************************************************************************
@@ -84,7 +102,15 @@ extern int main(void);
 // ensure that it ends up at physical address 0x0000.0000.
 //
 //*****************************************************************************
-__attribute__ ((section(".isr_vector")))
+
+#if defined( ccs )		// Put at 0 for CCS
+#pragma DATA_SECTION(g_pfnVectors, ".intvecs")
+#define PUT_ME_AT_0
+#else					// Put at 0 for gcc
+#define PUT_ME_AT_0 __attribute__ ((section(".isr_vector")))
+#endif
+
+PUT_ME_AT_0
 void (* const g_pfnVectors[])(void) =
 {
     (void (*) (void))( SRAM_BASE + SRAM_SIZE ),
@@ -126,8 +152,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // PWM Generator 1
     IntDefaultHandler,                      // PWM Generator 2
     IntDefaultHandler,                      // Quadrature Encoder 0
-#ifdef BUILD_ADC
-    ADCIntHandler,	                        // ADC Sequence 0
+#if defined( BUILD_ADC )
+    ADCIntHandler,	                    // ADC Sequence 0
     ADCIntHandler,                          // ADC Sequence 1
     ADCIntHandler,                          // ADC Sequence 2
     ADCIntHandler,                          // ADC Sequence 3
@@ -170,7 +196,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // CAN1
     IntDefaultHandler,                      // CAN2
     EthernetIntHandler,                     // Ethernet
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
     IntDefaultHandler,                      // Hibernate
 #if defined( BUILD_USB_CDC )
     USB0DeviceIntHandler,                   // USB0
@@ -186,10 +212,115 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // ADC1 Sequence 3
     IntDefaultHandler,                      // I2S0
     IntDefaultHandler,                      // External Bus Interface 0
+// suppress comma unless LM4F120
+#ifndef FORLM4F120 
     gpioj_handler                           // GPIO Port J    
-#else // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+#else
+    gpioj_handler,                          // GPIO Port J    
+#endif
+#else // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
     IntDefaultHandler                       // Hibernate
-#endif // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+#endif // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
+
+#if defined( FORLM4F120 )
+    IntDefaultHandler,                      // GPIO Port K
+    IntDefaultHandler,                      // GPIO Port L
+    IntDefaultHandler,                      // SSI2 Rx and Tx
+    IntDefaultHandler,                      // SSI3 Rx and Tx
+#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
+    uart3_handler,                          // UART3 Rx and Tx
+#else
+    IntDefaultHandler,
+#endif
+#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
+    uart4_handler,                          // UART4 Rx and Tx
+#else
+    IntDefaultHandler,
+#endif
+#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
+    uart5_handler,                          // UART5 Rx and Tx
+#else
+    IntDefaultHandler,
+#endif
+    IntDefaultHandler,                      // UART6 Rx and Tx
+    IntDefaultHandler,                      // UART7 Rx and Tx
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    IntDefaultHandler,                      // I2C2 Master and Slave
+    IntDefaultHandler,                      // I2C3 Master and Slave
+    tmr4_handler,                           // Timer 4 subtimer A
+    IntDefaultHandler,                      // Timer 4 subtimer B
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    0,                                      // Reserved
+    tmr5_handler,                           // Timer 5 subtimer A
+    IntDefaultHandler,                      // Timer 5 subtimer B
+    IntDefaultHandler,                      // Wide Timer 0 subtimer A
+    IntDefaultHandler,                      // Wide Timer 0 subtimer B
+    IntDefaultHandler,                      // Wide Timer 1 subtimer A
+    IntDefaultHandler,                      // Wide Timer 1 subtimer B
+    IntDefaultHandler,                      // Wide Timer 2 subtimer A
+    IntDefaultHandler,                      // Wide Timer 2 subtimer B
+    IntDefaultHandler,                      // Wide Timer 3 subtimer A
+    IntDefaultHandler,                      // Wide Timer 3 subtimer B
+    IntDefaultHandler,                      // Wide Timer 4 subtimer A
+    IntDefaultHandler,                      // Wide Timer 4 subtimer B
+    IntDefaultHandler,                      // Wide Timer 5 subtimer A
+    IntDefaultHandler,                      // Wide Timer 5 subtimer B
+    IntDefaultHandler,                      // FPU
+    IntDefaultHandler,                      // PECI 0
+    IntDefaultHandler,                      // LPC 0
+    IntDefaultHandler,                      // I2C4 Master and Slave
+    IntDefaultHandler,                      // I2C5 Master and Slave
+    IntDefaultHandler,                      // GPIO Port M
+    IntDefaultHandler,                      // GPIO Port N
+    IntDefaultHandler,                      // Quadrature Encoder 2
+    IntDefaultHandler,                      // Fan 0
+    0,                                      // Reserved
+    IntDefaultHandler,                      // GPIO Port P (Summary or P0)
+    IntDefaultHandler,                      // GPIO Port P1
+    IntDefaultHandler,                      // GPIO Port P2
+    IntDefaultHandler,                      // GPIO Port P3
+    IntDefaultHandler,                      // GPIO Port P4
+    IntDefaultHandler,                      // GPIO Port P5
+    IntDefaultHandler,                      // GPIO Port P6
+    IntDefaultHandler,                      // GPIO Port P7
+    IntDefaultHandler,                      // GPIO Port Q (Summary or Q0)
+    IntDefaultHandler,                      // GPIO Port Q1
+    IntDefaultHandler,                      // GPIO Port Q2
+    IntDefaultHandler,                      // GPIO Port Q3
+    IntDefaultHandler,                      // GPIO Port Q4
+    IntDefaultHandler,                      // GPIO Port Q5
+    IntDefaultHandler,                      // GPIO Port Q6
+    IntDefaultHandler,                      // GPIO Port Q7
+    IntDefaultHandler,                      // GPIO Port R
+    IntDefaultHandler,                      // GPIO Port S
+    IntDefaultHandler,                      // PWM 1 Generator 0
+    IntDefaultHandler,                      // PWM 1 Generator 1
+    IntDefaultHandler,                      // PWM 1 Generator 2
+    IntDefaultHandler,                      // PWM 1 Generator 3
+    IntDefaultHandler                       // PWM 1 Fault
+#endif // FORLM4F120
+
 };
 
 //*****************************************************************************
@@ -243,6 +374,27 @@ ResetISR(void)
           "        strlt   r2, [r0], #4\n"
           "        blt     zero_loop");
 
+#if defined( FORLM4F120 )
+// FIXME: incorporate FPU into eLua
+    //
+    // Enable the floating-point unit.  This must be done here to handle the
+    // case where main() uses floating-point and the function prologue saves
+    // floating-point registers (which will fault if floating-point is not
+    // enabled).  Any configuration of the floating-point unit using DriverLib
+    // APIs must be done here prior to the floating-point unit being enabled.
+    //
+    // Note that this does not use DriverLib since it might not be included in
+    // this project.
+    //
+
+#if !defined( ccs )  // This will not actually work with CCS, just suppress some errors
+    HWREG(NVIC_CPAC) = ((HWREG(NVIC_CPAC) &
+                         ~(NVIC_CPAC_CP10_M | NVIC_CPAC_CP11_M)) |
+                        NVIC_CPAC_CP10_FULL | NVIC_CPAC_CP11_FULL);
+
+#endif // ccs
+#endif // FORLM4F120
+
     //
     // Call the application's entry point.
     //
@@ -253,13 +405,12 @@ ResetISR(void)
 
 // Platform specific includes
 #include "hw_ints.h"
-#include "hw_memmap.h"
-#include "hw_types.h"
-#include "debug.h"
-#include "gpio.h"
-#include "interrupt.h"
-#include "sysctl.h"
-#include "uart.h"
+#include "hw_memmap.h"	//TODO: Remove - duplicate
+#include "driverlib/debug.h"
+#include "driverlib/gpio.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/uart.h"
 
 //*****************************************************************************
 //
