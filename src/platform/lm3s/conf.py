@@ -38,7 +38,7 @@ elif comp[ 'board' ] == 'SOLDERCORE' or comp[ 'board' ] == 'EK-LM3S9D92':
   ldscript = "lm3s-9d92.ld"
 elif comp[ 'cpu' ] == 'LM4F120':
   ldscript = "lm4f.ld"
-else
+else:
   ldscript = "lm3s.ld"
 
 # Prepend with path
@@ -50,7 +50,7 @@ comp.Append(CPPDEFINES = ["FOR" + comp[ 'cpu' ],'gcc'])
 
 if comp[ 'cpu' ] == 'LM4F120':
   comp.Append(CPPDEFINES = ['CORTEX_M4'])
-else
+else:
   comp.Append(CPPDEFINES = ['CORTEX_M3'])
 
 
@@ -62,7 +62,7 @@ comp.Append(LIBS = ['c','gcc','m'])
 
 if comp[ 'cpu' ] == 'LM4F120':
   TARGET_FLAGS = ['-mcpu=cortex-m4','-mthumb']
-else
+else:
   TARGET_FLAGS = ['-mcpu=cortex-m3','-mthumb']
 
 
