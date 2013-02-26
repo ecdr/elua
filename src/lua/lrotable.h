@@ -6,7 +6,6 @@
 #include "lua.h"
 #include "llimits.h"
 #include "lobject.h"
-#include "luaconf.h"
 
 /* Macros one can use to define rotable entries */
 #ifndef LUA_PACK_VALUE

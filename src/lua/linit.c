@@ -13,7 +13,6 @@
 #include "lualib.h"
 #include "lauxlib.h"
 #include "lrotable.h"
-#include "luaconf.h"
 #include "platform_conf.h"
 
 extern int luaopen_platform( lua_State *L );
