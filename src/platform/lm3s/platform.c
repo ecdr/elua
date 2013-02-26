@@ -44,10 +44,12 @@
 #include "elua_net.h"
 #include "dhcpc.h"
 #include "buf.h"
+
 #ifdef ENABLE_DISP
 #include "rit128x96x4.h"
 #include "disp.h"
 #endif
+
 #include "utils.h"
 
 #if defined( FORLM3S9B92 )
@@ -873,14 +875,14 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 #ifdef FORLM4F120
 const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
 					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, 
-					TIMER6_BASE, TIMER7_BASE, TIMER8_BASE, 
-					TIMER9_BASE, TIMER10_BASE, TIMER11_BASE };
+					WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
+					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
 	SYSCTL_PERIPH_TIMER3, SYSCTL_PERIPH_TIMER4, SYSCTL_PERIPH_TIMER5, 
-	SYSCTL_PERIPH_TIMER6, SYSCTL_PERIPH_TIMER7, SYSCTL_PERIPH_TIMER8, 
-	SYSCTL_PERIPH_TIMER9, SYSCTL_PERIPH_TIMER10, SYSCTL_PERIPH_TIMER11 };
+	SYSCTL_PERIPH_WTIMER0, SYSCTL_PERIPH_WTIMER1, SYSCTL_PERIPH_WTIMER2,
+	SYSCTL_PERIPH_WTIMER3, SYSCTL_PERIPH_WTIMER4, SYSCTL_PERIPH_WTIMER5 };
 
 #else
 // Same on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (4 timers)
@@ -1368,6 +1370,8 @@ int platform_adc_start_sequence()
 // ****************************************************************************
 // Analog comparator
 //
+// TODO: Add code for comparators
+
 #ifdef BUILD_COMP
 
 // LM4F120 - 2 comparators
