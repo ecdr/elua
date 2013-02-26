@@ -25,6 +25,8 @@
 
 // Platform specific includes
 
+
+#include "driverlib/pin_map.h"
 #include "driverlib/debug.h"
 #include "driverlib/gpio.h"
 #include "driverlib/can.h"
@@ -42,8 +44,10 @@
 #include "elua_net.h"
 #include "dhcpc.h"
 #include "buf.h"
+#ifdef ENABLE_DISP
 #include "rit128x96x4.h"
 #include "disp.h"
+#endif
 #include "utils.h"
 
 #if defined( FORLM3S9B92 )
@@ -66,6 +70,7 @@
 
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
+
 
 // USB CDC Stuff
 #if defined( BUILD_USB_CDC )
