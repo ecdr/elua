@@ -46,7 +46,7 @@
 
 
 /*
-@@ LUA_USE_POSIX includes all functionallity listed as X/Open System
+@@ LUA_USE_POSIX includes all functionality listed as X/Open System
 @* Interfaces Extension (XSI).
 ** CHANGE it (define it) if your system is XSI compatible.
 */
@@ -866,9 +866,12 @@ union luai_Cast { double l_d; long l_l; };
 ** without modifying the main part of the file.
 */
 
+//FIXME: Why is this redefining types that are already defined?
 #if !defined(LUA_CROSS_COMPILER)
+#ifndef _STDINT_H_
 typedef short int16_t;
 typedef long int32_t;
+#endif
 #endif
 
 /* If you define the next macro you'll get the ability to set rotables as
