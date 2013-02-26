@@ -74,7 +74,10 @@ static void IntDefaultHandler(void);
 // Handlers in platform.c
 extern void EthernetIntHandler(void);
 extern void SysTickIntHandler(void);
+
+#if defined( BUILD_ADC )
 extern void ADCIntHandler(void);
+#endif
 
 #if defined( BUILD_CAN )
 extern void CANIntHandler(void);
