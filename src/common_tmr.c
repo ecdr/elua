@@ -1,9 +1,9 @@
 // Common code, timer section
 // Also implements virtual timers
 
+#include "type.h"
 #include "platform.h"
 #include "platform_conf.h"
-#include "type.h"
 #include "common.h"
 #include "elua_int.h"
 #include "utils.h"

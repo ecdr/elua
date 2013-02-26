@@ -5,7 +5,6 @@
 
 #include "type.h"
 #include "devman.h"
-// #include <stdint.h>		// Redundant (type.h includes stdint.h)
 
 // ARM Semihosting Commands
 #define SYS_OPEN   (0x1)

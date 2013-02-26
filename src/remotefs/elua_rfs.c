@@ -1,8 +1,8 @@
 // eLua remote file system support functions
 
+#include "type.h"
 #include "devman.h"
 #include "platform_conf.h"
-#include "type.h"
 #include "platform.h"
 #include "remotefs.h"
 #include "eluarpc.h"

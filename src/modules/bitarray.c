@@ -1,9 +1,9 @@
   // Module that implements a fixed size bit array
 
+#include "type.h"
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-#include "type.h"
 #include "auxmods.h"
 #include "lrotable.h"
 #include <string.h>

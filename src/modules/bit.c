@@ -7,10 +7,10 @@
 
 #include <limits.h>
 
+#include "type.h"
 #include "lua.h"
 #include "lauxlib.h"
 #include "auxmods.h"
-#include "type.h"
 #include "lrotable.h"
 
 /* FIXME: Assume size_t is an unsigned lua_Integer */

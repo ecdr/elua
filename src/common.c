@@ -1,8 +1,8 @@
 // Common code for all backends
 
+#include "type.h"
 #include "platform.h"
 #include "platform_conf.h"
-#include "type.h"
 #include "genstd.h"
 #include "common.h"
 #include "buf.h"

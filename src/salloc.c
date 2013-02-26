@@ -5,9 +5,10 @@
 
 #include <stddef.h>
 #include <string.h>
+#include "type.h"
 #include "platform.h"
 #include "platform_conf.h"
-#include "type.h"
+
 
 // Macros for the dynamic size allocator
 // Dynamic structure: pointer to next, pointer to prev

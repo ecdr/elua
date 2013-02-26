@@ -866,6 +866,9 @@ union luai_Cast { double l_d; long l_l; };
 ** without modifying the main part of the file.
 */
 
+// On some systems this defines int16_t and int32_t
+#include "type.h"
+
 //FIXME: Why is this redefining types that are already defined?
 #if !defined(LUA_CROSS_COMPILER)
 #ifndef _STDINT_H_

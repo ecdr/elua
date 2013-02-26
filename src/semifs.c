@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include "ioctl.h"
 #include "semifs.h"
-// #include <stdint.h>  // Redundant - type.h calls stdint.h
 #include <fcntl.h>
 
 #include "platform_conf.h"
