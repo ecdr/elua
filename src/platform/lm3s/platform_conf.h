@@ -21,14 +21,18 @@
 // *****************************************************************************
 // Define here what components you want for this platform
 
+// ToDo: ADC turned off for testing - needs work on pinmux code
+#if !defined(FORLM4F120)
 #define BUILD_ADC
+#endif
 
 // ToDo: Add simulated PWMs for LM4F
 #if !defined(FORLM3S6918) && !defined(FORLM4F120)
 #define BUILD_PWM
 #endif
 
-#if defined( FORLM3S8962 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined(FORLM4F120)
+// ToDo: LM4F has CAN, but disabled until get other things working
+#if defined( FORLM3S8962 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) // || defined(FORLM4F120)
 #define BUILD_CAN
 #endif
 
@@ -55,12 +59,12 @@
 #define BUILD_MMCFS
 #endif
 
-// ToDo: Maybe build USB CDC for LM4F120?
+// ToDo: Maybe build USB CDC for LM4F120?  (but probably not enough RAM)
 #if defined( ELUA_BOARD_SOLDERCORE )
   #define BUILD_USB_CDC
 #endif
 
-// Exclude network for LM4F120 also
+// Network
 #if !defined( FORLM3S1968 ) && !defined( ELUA_BOARD_EKLM3S9D92 ) && !defined ( FORLM4F120 )
   #define BUILD_UIP
   #define BUILD_DHCPC
