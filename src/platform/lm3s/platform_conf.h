@@ -7,12 +7,12 @@
 #include "auxmods.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
+#include "inc/hw_ints.h"
 #include "stacks.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/rom_map.h"
 #include "elua_int.h"
 #include "flash_conf.h"
-
 
 #if defined( FORLM4F120 ) || defined( ELUA_BOARD_SOLDERCORE )
 #define USE_PIN_MUX
@@ -454,7 +454,7 @@
 // *****************************************************************************
 // CPU constants that should be exposed to the eLua "cpu" module
 
-#include "hw_ints.h"
+
 
 // Does the order matter here? (look almost in order, except not sure what INT_UART_RX is
 

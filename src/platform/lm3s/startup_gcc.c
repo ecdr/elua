@@ -52,6 +52,8 @@
 
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
+#include "inc/hw_memmap.h"
+
 
 //*****************************************************************************
 //
@@ -68,13 +70,12 @@ static void IntDefaultHandler(void);
 // External interrupt handlers
 //extern void UARTIntHandler();	// TODO remove, doesn't appear to exist
 
-#include "hw_memmap.h"
+
 #include "platform_conf.h"
 
 // Handlers in platform.c
 extern void EthernetIntHandler(void);
 extern void SysTickIntHandler(void);
-
 #if defined( BUILD_ADC )
 extern void ADCIntHandler(void);
 #endif
@@ -407,8 +408,8 @@ ResetISR(void)
 }
 
 // Platform specific includes
-#include "hw_ints.h"
-#include "hw_memmap.h"	//TODO: Remove - duplicate
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"	//TODO: Remove - duplicate
 #include "driverlib/debug.h"
 #include "driverlib/gpio.h"
 #include "driverlib/interrupt.h"
