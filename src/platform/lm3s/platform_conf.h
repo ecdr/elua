@@ -34,7 +34,7 @@
 
 // ToDo: working on I2C
 #if defined ( FORLM4F120 ) || defined( FORLM3S8962 )
-#define BUILD_I2C
+//#define BUILD_I2C
 #endif
 
 // ToDo: working on comparators
