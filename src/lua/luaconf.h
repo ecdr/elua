@@ -840,7 +840,7 @@ union luai_Cast { double l_d; long l_l; };
 /*
 @@ LUA_INTFRMLEN is the length modifier for integer conversions
 @* in 'string.format'.
-@@ LUA_INTFRM_T is the integer type correspoding to the previous length
+@@ LUA_INTFRM_T is the integer type corresponding to the previous length
 @* modifier.
 ** CHANGE them if your system supports long long or does not support long.
 */
