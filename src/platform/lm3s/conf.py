@@ -8,7 +8,8 @@ comp.Append(CPPPATH = ['src/platform/%s/driverlib' % platform])
 # comp.Append(CPPPATH = ['src/platform/%s/drivers' % platform])
 
 # Only include USB headers/paths for boards which support it
-if comp[ 'cpu' ] == 'LM3S9B92' or comp[ 'cpu' ] == 'LM3S9D92' or comp[ 'cpu' ] == 'LM4F120':
+# TODO: LM4F120 has USB, but disable for testing (and may not have enough RAM)
+if comp[ 'cpu' ] == 'LM3S9B92' or comp[ 'cpu' ] == 'LM3S9D92' # or comp[ 'cpu' ] == 'LM4F120':
   comp.Append(CPPPATH = ['src/platform/%s/usblib' % platform])
   comp.Append(CPPPATH = ['src/platform/%s/usblib/device' % platform])
 
@@ -26,7 +27,9 @@ if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[
 if comp[ 'board' ] == 'EAGLE-100':
   comp.Append(LINKFLAGS = ['-Wl,-Ttext,0x2000'])
 
-if comp[ 'cpu' ] == 'LM3S9B92' or comp[ 'cpu' ] == 'LM3S9D92' or comp[ 'cpu' ] == 'LM4F120':
+# Only build USB files for boards which support it
+# TODO: LM4F120 has USB, but disable for testing (and may not have enough RAM)
+if comp[ 'cpu' ] == 'LM3S9B92' or comp[ 'cpu' ] == 'LM3S9D92' # or comp[ 'cpu' ] == 'LM4F120':
   fwlib_files = fwlib_files + " " + " ".join(glob.glob("src/platform/%s/usblib/*.c" % platform))
   fwlib_files = fwlib_files + " " + " ".join(glob.glob("src/platform/%s/usblib/device/*.c" % platform))
   specific_files = specific_files + " usb_serial_structs.c"
@@ -82,3 +85,12 @@ def progfunc_lm3s( target, source, env ):
   os.system( "%s -O binary %s %s.bin" % ( toolset[ 'bin' ], outname, output ) )
 
 tools[ 'lm3s' ][ 'progfunc' ] = progfunc_lm3s
+
+
+# From am_m
+# FIXME: 
+#tools[ 'lm4f' ] = {}
+#tools[ 'lm4f' ][ 'cccom' ] = "%s -mcpu=cortex-m4 -mthumb -mlittle-endian %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET" % ( toolset[ 'compile' ], opt, cdefs )
+#tools[ 'lm4f' ][ 'linkcom' ] = "%s -mthumb -mlittle-endian -mcpu=cortex-m4 -nostartfiles -T %s %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s" % ( toolset[ 'compile' ], ldscript, linkopts, local_libs )
+#tools[ 'lm4f' ][ 'ascom' ] = "%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=cortex-m4 -mthumb -mlittle-endian%s -Wall -c $SOURCE -o $TARGET" % ( toolset[ 'compile' ],  cdefs )
+
