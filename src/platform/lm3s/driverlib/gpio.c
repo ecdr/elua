@@ -2,23 +2,38 @@
 //
 // gpio.c - API for GPIO ports
 //
-// Copyright (c) 2005-2011 Texas Instruments Incorporated.  All rights reserved.
+// Copyright (c) 2005-2012 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
+//   Redistribution and use in source and binary forms, with or without
+//   modification, are permitted provided that the following conditions
+//   are met:
 // 
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
+//   Redistributions of source code must retain the above copyright
+//   notice, this list of conditions and the following disclaimer.
 // 
-// This is part of revision 7611 of the Stellaris Peripheral Driver Library.
+//   Redistributions in binary form must reproduce the above copyright
+//   notice, this list of conditions and the following disclaimer in the
+//   documentation and/or other materials provided with the  
+//   distribution.
+// 
+//   Neither the name of Texas Instruments Incorporated nor the names of
+//   its contributors may be used to endorse or promote products derived
+//   from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// This is part of revision 9453 of the Stellaris Peripheral Driver Library.
 //
 //*****************************************************************************
 
@@ -55,6 +70,12 @@ static const unsigned long g_pulGPIOBaseAddrs[] =
     GPIO_PORTG_BASE, GPIO_PORTG_AHB_BASE,
     GPIO_PORTH_BASE, GPIO_PORTH_AHB_BASE,
     GPIO_PORTJ_BASE, GPIO_PORTJ_AHB_BASE,
+    GPIO_PORTK_BASE, GPIO_PORTK_BASE,
+    GPIO_PORTL_BASE, GPIO_PORTL_BASE,
+    GPIO_PORTM_BASE, GPIO_PORTM_BASE,
+    GPIO_PORTN_BASE, GPIO_PORTN_BASE,
+    GPIO_PORTP_BASE, GPIO_PORTP_BASE,
+    GPIO_PORTQ_BASE, GPIO_PORTQ_BASE,
 };
 
 //*****************************************************************************
@@ -82,7 +103,10 @@ GPIOBaseValid(unsigned long ulPort)
            (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
            (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
            (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE) ||
-           (ulPort == GPIO_PORTJ_BASE) || (ulPort == GPIO_PORTJ_AHB_BASE));
+           (ulPort == GPIO_PORTJ_BASE) || (ulPort == GPIO_PORTJ_AHB_BASE) ||
+           (ulPort == GPIO_PORTK_BASE) || (ulPort == GPIO_PORTL_BASE) ||
+           (ulPort == GPIO_PORTM_BASE) || (ulPort == GPIO_PORTN_BASE) ||
+           (ulPort == GPIO_PORTP_BASE) || (ulPort == GPIO_PORTQ_BASE));
 }
 #endif
 
@@ -93,7 +117,8 @@ GPIOBaseValid(unsigned long ulPort)
 //!
 //! \param ulPort is the base address of the GPIO port.
 //!
-//! Given a GPIO base address, returns the corresponding interrupt number.
+//! Given a GPIO base address, this function returns the corresponding
+//! interrupt number.
 //!
 //! \return Returns a GPIO interrupt number, or -1 if \e ulPort is invalid.
 //
@@ -171,6 +196,42 @@ GPIOGetIntNumber(unsigned long ulPort)
             break;
         }
 
+        case GPIO_PORTK_BASE:
+        {
+            lInt = INT_GPIOK;
+            break;
+        }
+
+        case GPIO_PORTL_BASE:
+        {
+            lInt = INT_GPIOL;
+            break;
+        }
+
+        case GPIO_PORTM_BASE:
+        {
+            lInt = INT_GPIOM;
+            break;
+        }
+
+        case GPIO_PORTN_BASE:
+        {
+            lInt = INT_GPION;
+            break;
+        }
+
+        case GPIO_PORTP_BASE:
+        {
+            lInt = INT_GPIOP0;
+            break;
+        }
+
+        case GPIO_PORTQ_BASE:
+        {
+            lInt = INT_GPIOQ0;
+            break;
+        }
+
         default:
         {
             return(-1);
@@ -191,8 +252,8 @@ GPIOGetIntNumber(unsigned long ulPort)
 //! \param ucPins is the bit-packed representation of the pin(s).
 //! \param ulPinIO is the pin direction and/or mode.
 //!
-//! This function will set the specified pin(s) on the selected GPIO port
-//! as either an input or output under software control, or it will set the
+//! This function configures the specified pin(s) on the selected GPIO port
+//! as either input or output under software control, or it configures the
 //! pin to be under hardware control.
 //!
 //! The parameter \e ulPinIO is an enumerated data type that can be one of
@@ -202,11 +263,10 @@ GPIOGetIntNumber(unsigned long ulPort)
 //! - \b GPIO_DIR_MODE_OUT
 //! - \b GPIO_DIR_MODE_HW
 //!
-//! where \b GPIO_DIR_MODE_IN specifies that the pin will be programmed as
-//! a software controlled input, \b GPIO_DIR_MODE_OUT specifies that the pin
-//! will be programmed as a software controlled output, and
-//! \b GPIO_DIR_MODE_HW specifies that the pin will be placed under
-//! hardware control.
+//! where \b GPIO_DIR_MODE_IN specifies that the pin is programmed as a
+//! software controlled input, \b GPIO_DIR_MODE_OUT specifies that the pin is
+//! programmed as a software controlled output, and \b GPIO_DIR_MODE_HW
+//! specifies that the pin is placed under hardware control.
 //!
 //! The pin(s) are specified using a bit-packed byte, where each bit that is
 //! set identifies the pin to be accessed, and where bit 0 of the byte
@@ -300,10 +360,18 @@ GPIODirModeGet(unsigned long ulPort, unsigned char ucPin)
 //! - \b GPIO_BOTH_EDGES
 //! - \b GPIO_LOW_LEVEL
 //! - \b GPIO_HIGH_LEVEL
+//! - \b GPIO_DISCRETE_INT
 //!
 //! where the different values describe the interrupt detection mechanism
 //! (edge or level) and the particular triggering event (falling, rising,
 //! or both edges for edge detect, low or high for level detect).
+//!
+//! Some devices also support discrete interrupts for each pin on a GPIO port,
+//! giving each pin a separate interrupt vector.  To use this feature, the
+//! \b GPIO_DISCRETE_INT can be included to enable an interrupt per pin.  The
+//! \b GPIO_DISCRETE_INT is not available on all devices or all GPIO ports,
+//! consult the data sheet to ensure that the device and the GPIO port supports
+//! discrete interrupts.
 //!
 //! The pin(s) are specified using a bit-packed byte, where each bit that is
 //! set identifies the pin to be accessed, and where bit 0 of the byte
@@ -350,9 +418,9 @@ GPIOIntTypeSet(unsigned long ulPort, unsigned char ucPins,
 //! \param ucPin is the pin number.
 //!
 //! This function gets the interrupt type for a specified pin on the selected
-//! GPIO port.  The pin can be configured as a falling edge, rising edge, or
-//! both edge detected interrupt, or it can be configured as a low level or
-//! high level detected interrupt.  The type of interrupt detection mechanism
+//! GPIO port.  The pin can be configured as a falling-edge, rising-edge, or
+//! both-edges detected interrupt, or it can be configured as a low-level or
+//! high-level detected interrupt.  The type of interrupt detection mechanism
 //! is returned as an enumerated data type.
 //!
 //! \return Returns one of the enumerated data types described for
@@ -410,6 +478,9 @@ GPIOIntTypeGet(unsigned long ulPort, unsigned char ucPin)
 //! strength, and \b GPIO_OUT_STRENGTH_8MA_SC specifies 8 mA output drive with
 //! slew control.
 //!
+//! Some Stellaris devices also support output drive strengths of 6, 10, and 12
+//! mA.
+//!
 //! The parameter \e ulPinType can be one of the following values:
 //!
 //! - \b GPIO_PIN_TYPE_STD
@@ -422,8 +493,8 @@ GPIOIntTypeGet(unsigned long ulPort, unsigned char ucPin)
 //!
 //! where \b GPIO_PIN_TYPE_STD* specifies a push-pull pin, \b GPIO_PIN_TYPE_OD*
 //! specifies an open-drain pin, \b *_WPU specifies a weak pull-up, \b *_WPD
-//! specifies a weak pull-down, and \b GPIO_PIN_TYPE_ANALOG specifies an
-//! analog input.
+//! specifies a weak pull-down, and \b GPIO_PIN_TYPE_ANALOG specifies an analog
+//! input.
 //!
 //! The pin(s) are specified using a bit-packed byte, where each bit that is
 //! set identifies the pin to be accessed, and where bit 0 of the byte
@@ -450,7 +521,7 @@ GPIOPadConfigSet(unsigned long ulPort, unsigned char ucPins,
            (ulPinType == GPIO_PIN_TYPE_OD) ||
            (ulPinType == GPIO_PIN_TYPE_OD_WPU) ||
            (ulPinType == GPIO_PIN_TYPE_OD_WPD) ||
-           (ulPinType == GPIO_PIN_TYPE_ANALOG))
+           (ulPinType == GPIO_PIN_TYPE_ANALOG));
 
     //
     // Set the output drive strength.
@@ -518,7 +589,7 @@ void
 GPIOPadConfigGet(unsigned long ulPort, unsigned char ucPin,
                  unsigned long *pulStrength, unsigned long *pulPinType)
 {
-    unsigned long ulTemp1, ulTemp2, ulTemp3, ulTemp4;
+    unsigned long ulPinType, ulStrength;
 
     //
     // Check the arguments.
@@ -534,22 +605,20 @@ GPIOPadConfigGet(unsigned long ulPort, unsigned char ucPin,
     //
     // Get the drive strength for this pin.
     //
-    ulTemp1 = HWREG(ulPort + GPIO_O_DR2R);
-    ulTemp2 = HWREG(ulPort + GPIO_O_DR4R);
-    ulTemp3 = HWREG(ulPort + GPIO_O_DR8R);
-    ulTemp4 = HWREG(ulPort + GPIO_O_SLR);
-    *pulStrength = (((ulTemp1 & ucPin) ? 1 : 0) | ((ulTemp2 & ucPin) ? 2 : 0) |
-                    ((ulTemp3 & ucPin) ? 4 : 0) | ((ulTemp4 & ucPin) ? 8 : 0));
+    ulStrength = ((HWREG(ulPort + GPIO_O_DR2R) & ucPin) ? 1 : 0);
+    ulStrength |= ((HWREG(ulPort + GPIO_O_DR4R) & ucPin) ? 2 : 0);
+    ulStrength |= ((HWREG(ulPort + GPIO_O_DR8R) & ucPin) ? 4 : 0);
+    ulStrength |= ((HWREG(ulPort + GPIO_O_SLR) & ucPin) ? 8 : 0);
+    *pulStrength = ulStrength;
 
     //
     // Get the pin type.
     //
-    ulTemp1 = HWREG(ulPort + GPIO_O_ODR);
-    ulTemp2 = HWREG(ulPort + GPIO_O_PUR);
-    ulTemp3 = HWREG(ulPort + GPIO_O_PDR);
-    ulTemp4 = HWREG(ulPort + GPIO_O_DEN);
-    *pulPinType = (((ulTemp1 & ucPin) ? 1 : 0) | ((ulTemp2 & ucPin) ? 2 : 0) |
-                   ((ulTemp3 & ucPin) ? 4 : 0) | ((ulTemp4 & ucPin) ? 8 : 0));
+    ulPinType = ((HWREG(ulPort + GPIO_O_ODR) & ucPin) ? 1 : 0);
+    ulPinType |= ((HWREG(ulPort + GPIO_O_PUR) & ucPin) ? 2 : 0);
+    ulPinType |= ((HWREG(ulPort + GPIO_O_PDR) & ucPin) ? 4 : 0);
+    ulPinType |= ((HWREG(ulPort + GPIO_O_DEN) & ucPin) ? 8 : 0);
+    *pulPinType = ulPinType;
 }
 
 //*****************************************************************************
@@ -621,7 +690,7 @@ GPIOPinIntDisable(unsigned long ulPort, unsigned char ucPins)
 //! returned.
 //!
 //! If \e bMasked is set as \b true, then the masked interrupt status is
-//! returned; otherwise, the raw interrupt status will be returned.
+//! returned; otherwise, the raw interrupt status is returned.
 //!
 //! \return Returns a bit-packed byte, where each bit that is set identifies
 //! an active masked or raw interrupt, and where bit 0 of the byte
@@ -663,7 +732,7 @@ GPIOPinIntStatus(unsigned long ulPort, tBoolean bMasked)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note Because there is a write buffer in the Cortex-M3 processor, it may
+//! \note Because there is a write buffer in the Cortex-M processor, it may
 //! take several clock cycles before the interrupt source is actually cleared.
 //! Therefore, it is recommended that the interrupt source be cleared early in
 //! the interrupt handler (as opposed to the very last action) to avoid
@@ -697,9 +766,9 @@ GPIOPinIntClear(unsigned long ulPort, unsigned char ucPins)
 //! \param pfnIntHandler is a pointer to the GPIO port interrupt handling
 //! function.
 //!
-//! This function will ensure that the interrupt handler specified by
+//! This function ensures that the interrupt handler specified by
 //! \e pfnIntHandler is called when an interrupt is detected from the selected
-//! GPIO port.  This function will also enable the corresponding GPIO interrupt
+//! GPIO port.  This function also enables the corresponding GPIO interrupt
 //! in the interrupt controller; individual pin interrupts and interrupt
 //! sources must be enabled with GPIOPinIntEnable().
 //!
@@ -739,8 +808,8 @@ GPIOPortIntRegister(unsigned long ulPort, void (*pfnIntHandler)(void))
 //!
 //! \param ulPort is the base address of the GPIO port.
 //!
-//! This function will unregister the interrupt handler for the specified
-//! GPIO port.  This function will also disable the corresponding
+//! This function unregisters the interrupt handler for the specified
+//! GPIO port.  This function also disables the corresponding
 //! GPIO port interrupt in the interrupt controller; individual GPIO interrupts
 //! and interrupt sources must be disabled with GPIOPinIntDisable().
 //!
@@ -849,15 +918,16 @@ GPIOPinWrite(unsigned long ulPort, unsigned char ucPins, unsigned char ucVal)
 //! \param ucPins is the bit-packed representation of the pin(s).
 //!
 //! The analog-to-digital converter input pins must be properly configured
-//! to function correctly on DustDevil-class devices.  This function provides
-//! the proper configuration for those pin(s).
+//! to function correctly on devices that are not Sandstorm- or Fury-class.
+//! This function provides the proper configuration for those pin(s).
 //!
 //! The pin(s) are specified using a bit-packed byte, where each bit that is
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into an ADC input; it only
-//! configures an ADC input pin for proper operation.
+//! \note This function cannot be used to turn any pin into an ADC input; it
+//! only configures an ADC input pin for proper operation.  Devices with
+//! flexible pin muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -897,8 +967,9 @@ GPIOPinTypeADC(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a CAN pin; it only
-//! configures a CAN pin for proper operation.
+//! \note This function cannot be used to turn any pin into a CAN pin; it only
+//! configures a CAN pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -937,8 +1008,10 @@ GPIOPinTypeCAN(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into an analog comparator input;
-//! it only configures an analog comparator pin for proper operation.
+//! \note This function cannot be used to turn any pin into an analog comparator
+//! input; it only configures an analog comparator pin for proper operation.
+//! Devices with flexible pin muxing also require a GPIOPinConfigure()
+//! function call.
 //!
 //! \return None.
 //
@@ -979,9 +1052,10 @@ GPIOPinTypeComparator(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into an external peripheral
-//! interface pin; it only configures an external peripheral interface pin for
-//! proper operation.
+//! \note This function cannot be used to turn any pin into an external
+//! peripheral interface pin; it only configures an external peripheral
+//! interface pin for proper operation.  Devices with flexible pin muxing also
+//! require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1020,8 +1094,9 @@ GPIOPinTypeEPI(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into an Ethernet LED pin; it only
-//! configures an Ethernet LED pin for proper operation.
+//! \note This function cannot be used to turn any pin into an Ethernet LED
+//! pin; it only configures an Ethernet LED pin for proper operation.  Devices
+//! with flexible pin muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1060,8 +1135,9 @@ GPIOPinTypeEthernetLED(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into an Ethernet MII pin; it only
-//! configures an Ethernet MII pin for proper operation.
+//! \note This function cannot be used to turn any pin into an Ethernet MII
+//! pin; it only configures an Ethernet MII pin for proper operation.  Devices
+//! with flexible pin muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1083,6 +1159,48 @@ GPIOPinTypeEthernetMII(unsigned long ulPort, unsigned char ucPins)
     // Set the pad(s) for standard push-pull operation.
     //
     GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD);
+}
+
+//*****************************************************************************
+//
+//! Configures pin(s) for use by the fan module.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! The fan pins must be properly configured for the fan controller to function
+//! correctly.  This function provides a typical configuration for those
+//! pin(s); other configurations may work as well depending upon the board
+//! setup (for example, using the on-chip pull-ups).
+//!
+//! The pin(s) are specified using a bit-packed byte, where each bit that is
+//! set identifies the pin to be accessed, and where bit 0 of the byte
+//! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
+//!
+//! \note This function cannot be used to turn any pin into a fan pin; it only
+//! configures a fan pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOPinTypeFan(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Make the pin(s) be peripheral controlled.
+    //
+    GPIODirModeSet(ulPort, ucPins, GPIO_DIR_MODE_HW);
+
+    //
+    // Set the pad(s) for standard push-pull operation.
+    //
+    GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD);
 }
 
 //*****************************************************************************
@@ -1214,8 +1332,9 @@ GPIOPinTypeGPIOOutputOD(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into an I2C pin; it only
-//! configures an I2C pin for proper operation.
+//! \note This function cannot be used to turn any pin into an I2C pin; it
+//! only configures an I2C pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1241,6 +1360,56 @@ GPIOPinTypeI2C(unsigned long ulPort, unsigned char ucPins)
 
 //*****************************************************************************
 //
+//! Configures pin(s) for use as SCL by the I2C peripheral.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! The I2C pins must be properly configured for the I2C peripheral to function
+//! correctly.  This function provides the proper configuration for the SCL
+//! pin(s).
+//!
+//! The pin(s) are specified using a bit-packed byte, where each bit that is
+//! set identifies the pin to be accessed, and where bit 0 of the byte
+//! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
+//!
+//! \note This function should only be used for Blizzard-class devices.  It
+//! cannot be used to turn any pin into an I2C SCL pin; it only configures an
+//! I2C SCL pin for proper operation.  Devices with flexible pin muxing also
+//! require a GPIOPinConfigure() function call.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOPinTypeI2CSCL(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Make the pin(s) be peripheral controlled.
+    //
+    GPIODirModeSet(ulPort, ucPins, GPIO_DIR_MODE_HW);
+
+    //
+    // Set the pad(s) for open-drain operation with a weak pull-up.
+    //
+    if(CLASS_IS_SANDSTORM || CLASS_IS_FURY || CLASS_IS_DUSTDEVIL ||
+       CLASS_IS_TEMPEST || CLASS_IS_FIRESTORM)
+    {
+        GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_OD);
+    }
+    else
+    {
+        GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD);
+    }
+}
+
+//*****************************************************************************
+//
 //! Configures pin(s) for use by the I2S peripheral.
 //!
 //! \param ulPort is the base address of the GPIO port.
@@ -1255,8 +1424,9 @@ GPIOPinTypeI2C(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a I2S pin; it only
-//! configures a I2S pin for proper operation.
+//! \note This function cannot be used to turn any pin into a I2S pin; it only
+//! configures a I2S pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1282,6 +1452,130 @@ GPIOPinTypeI2S(unsigned long ulPort, unsigned char ucPins)
 
 //*****************************************************************************
 //
+//! Configures pin(s) for use by the LPC module.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! The LPC pins must be properly configured for the LPC module to function
+//! correctly.  This function provides a typical configuration for those
+//! pin(s); other configurations may work as well depending upon the board
+//! setup (for example, using the on-chip pull-ups).
+//!
+//! The pin(s) are specified using a bit-packed byte, where each bit that is
+//! set identifies the pin to be accessed, and where bit 0 of the byte
+//! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
+//!
+//! \note This function cannot be used to turn any pin into an LPC pin; it only
+//! configures an LPC pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOPinTypeLPC(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Make the pin(s) be peripheral controlled.
+    //
+    GPIODirModeSet(ulPort, ucPins, GPIO_DIR_MODE_HW);
+
+    //
+    // Set the pad(s) for standard push-pull operation.
+    //
+    GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD);
+}
+
+//*****************************************************************************
+//
+//! Configures a pin for receive use by the PECI module.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! The PECI receive pin must be properly configured for the PECI module to
+//! function correctly.  This function provides a typical configuration for
+//! that pin.
+//!
+//! The pin is specified using a bit-packed byte, where each bit that is set
+//! identifies the pin to be accessed, and where bit 0 of the byte represents
+//! GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
+//!
+//! \note This function cannot be used to turn any pin into a PECI receive pin;
+//! it only configures a PECI receive pin for proper operation.  Devices with
+//! flexible pin muxing also require a GPIOPinConfigure() function call.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOPinTypePECIRx(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Make the pin(s) be inputs.
+    //
+    GPIODirModeSet(ulPort, ucPins, GPIO_DIR_MODE_IN);
+
+    //
+    // Set the pad(s) for analog operation.
+    //
+    GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_ANALOG);
+}
+
+//*****************************************************************************
+//
+//! Configures a pin for transmit use by the PECI module.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! The PECI transmit pin must be properly configured for the PECI module to
+//! function correctly.  This function provides a typical configuration for
+//! that pin.
+//!
+//! The pin is specified using a bit-packed byte, where each bit that is set
+//! identifies the pin to be accessed, and where bit 0 of the byte represents
+//! GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
+//!
+//! \note This function cannot be used to turn any pin into a PECI transmit
+//! pin; it only configures a PECI transmit pin for proper operation.  Devices
+//! with flexible pin muxing also require a GPIOPinConfigure() function call.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOPinTypePECITx(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Make the pin(s) be inputs.
+    //
+    GPIODirModeSet(ulPort, ucPins, GPIO_DIR_MODE_HW);
+
+    //
+    // Set the pad(s) for analog operation.
+    //
+    GPIOPadConfigSet(ulPort, ucPins, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD);
+}
+
+//*****************************************************************************
+//
 //! Configures pin(s) for use by the PWM peripheral.
 //!
 //! \param ulPort is the base address of the GPIO port.
@@ -1296,8 +1590,9 @@ GPIOPinTypeI2S(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a PWM pin; it only
-//! configures a PWM pin for proper operation.
+//! \note This function cannot be used to turn any pin into a PWM pin; it only
+//! configures a PWM pin for proper operation.  Devices wtih flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1337,8 +1632,9 @@ GPIOPinTypePWM(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a QEI pin; it only
-//! configures a QEI pin for proper operation.
+//! \note This function cannot be used to turn any pin into a QEI pin; it only
+//! configures a QEI pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1378,8 +1674,9 @@ GPIOPinTypeQEI(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a SSI pin; it only
-//! configures a SSI pin for proper operation.
+//! \note This function cannot be used to turn any pin into a SSI pin; it only
+//! configures a SSI pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1419,8 +1716,9 @@ GPIOPinTypeSSI(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a timer pin; it only
-//! configures a timer pin for proper operation.
+//! \note This function cannot be used to turn any pin into a timer pin; it
+//! only configures a timer pin for proper operation.  Devices with flexible
+//! pin muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1460,8 +1758,9 @@ GPIOPinTypeTimer(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a UART pin; it only
-//! configures a UART pin for proper operation.
+//! \note This function cannot be used to turn any pin into a UART pin; it
+//! only configures a UART pin for proper operation.  Devices with flexible
+//! pin muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1501,8 +1800,9 @@ GPIOPinTypeUART(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a USB pin; it only
-//! configures a USB pin for proper operation.
+//! \note This function cannot be used to turn any pin into a USB pin; it only
+//! configures a USB pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1546,8 +1846,9 @@ GPIOPinTypeUSBAnalog(unsigned long ulPort, unsigned char ucPins)
 //! set identifies the pin to be accessed, and where bit 0 of the byte
 //! represents GPIO port pin 0, bit 1 represents GPIO port pin 1, and so on.
 //!
-//! \note This cannot be used to turn any pin into a USB pin; it only
-//! configures a USB pin for proper operation.
+//! \note This function cannot be used to turn any pin into a USB pin; it only
+//! configures a USB pin for proper operation.  Devices with flexible pin
+//! muxing also require a GPIOPinConfigure() function call.
 //!
 //! \return None.
 //
@@ -1582,9 +1883,17 @@ GPIOPinTypeUSBDigital(unsigned long ulPort, unsigned char ucPins)
 //! associated with a particular GPIO pin.  Only one peripheral function at a
 //! time can be associated with a GPIO pin, and each peripheral function should
 //! only be associated with a single GPIO pin at a time (despite the fact that
-//! many of them can be associated with more than one GPIO pin).
+//! many of them can be associated with more than one GPIO pin). To fully
+//! configure a pin, a GPIOPinType*() function should also be called.
 //!
-//! \note This function is only valid on Tempest-class devices.
+//! The available mappings are supplied on a per-device basis in
+//! <tt>pin_map.h</tt>.  The \b PART_IS_<partno> define enables the
+//! appropriate set of defines for the device that is being used.
+//!
+//! \note This function is not valid on Sandstorm, Fury, and Dustdevil-class
+//! devices. Also, if the same signal is assigned to two different GPIO port
+//! pins, the signal is assigned to the port with the lowest letter and the
+//! assignment to the higher letter port is ignored.
 //!
 //! \return None.
 //
@@ -1597,7 +1906,7 @@ GPIOPinConfigure(unsigned long ulPinConfig)
     //
     // Check the argument.
     //
-    ASSERT(((ulPinConfig >> 16) & 0xff) < 9);
+    ASSERT(((ulPinConfig >> 16) & 0xff) < 15);
     ASSERT(((ulPinConfig >> 8) & 0xe3) == 0);
 
     //
@@ -1629,7 +1938,134 @@ GPIOPinConfigure(unsigned long ulPinConfig)
     HWREG(ulBase + GPIO_O_PCTL) = ((HWREG(ulBase + GPIO_O_PCTL) &
                                     ~(0xf << ulShift)) |
                                    ((ulPinConfig & 0xf) << ulShift));
+}
 
+//*****************************************************************************
+//
+//! Enables a GPIO pin as a trigger to start a DMA transaction.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! This function enables a GPIO pin to be used as a trigger to start a uDMA
+//! transaction.  Any GPIO pin can be configured to be an external trigger for
+//! the uDMA.  The GPIO pin still generates interrupts if the interrupt is
+//! enabled for the selected pin.
+//!
+//! \note This function is not available on all devices, consult the data sheet
+//! to ensure that the device you are using supports GPIO DMA Control.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIODMATriggerEnable(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Set the pin as a DMA trigger.
+    //
+    HWREG(ulPort + GPIO_O_DMACTL) |= ucPins;
+}
+
+//*****************************************************************************
+//
+//! Disables a GPIO pin as a trigger to start a DMA transaction.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! This function disables a GPIO pin from being used as a trigger to start a
+//! uDMA transaction.  This function can be used to disable this feature if it
+//! was enabled via a call to GPIODMATriggerEnable().
+//!
+//! \note This function is not available on all devices, consult the data sheet
+//! to ensure that the device you are using supports GPIO DMA Control.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIODMATriggerDisable(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Set the pin as a DMA trigger.
+    //
+    HWREG(ulPort + GPIO_O_DMACTL) &= (~ucPins);
+}
+
+//*****************************************************************************
+//
+//! Enables a GPIO pin as a trigger to start an ADC capture.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! This function enables a GPIO pin to be used as a trigger to start an ADC
+//! sequence.  Any GPIO pin can be configured to be an external trigger for
+//! an ADC sequence.  The GPIO pin still generates interrupts if the
+//! interrupt is enabled for the selected pin. To enable the use of a GPIO pin
+//! to trigger the ADC module, the ADCSequenceConfigure() function must be called
+//! with the ADC_TRIGGER_EXTERNAL parameter.
+//!
+//! \note This function is not available on all devices, consult the data sheet
+//! to ensure that the device you are using supports GPIO ADC Control.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOADCTriggerEnable(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Set the pin as a DMA trigger.
+    //
+    HWREG(ulPort + GPIO_O_ADCCTL) |= ucPins;
+}
+
+//*****************************************************************************
+//
+//! Disable a GPIO pin as a trigger to start an ADC capture.
+//!
+//! \param ulPort is the base address of the GPIO port.
+//! \param ucPins is the bit-packed representation of the pin(s).
+//!
+//! This function disables a GPIO pin to be used as a trigger to start an ADC
+//! sequence.  This function can be used to disable this feature if it was
+//! enabled via a call to GPIOADCTriggerEnable().
+//!
+//! \note This function is not available on all devices, consult the data sheet
+//! to ensure that the device you are using supports GPIO ADC Control.
+//!
+//! \return None.
+//
+//*****************************************************************************
+void
+GPIOADCTriggerDisable(unsigned long ulPort, unsigned char ucPins)
+{
+    //
+    // Check the arguments.
+    //
+    ASSERT(GPIOBaseValid(ulPort));
+
+    //
+    // Set the pin as a DMA trigger.
+    //
+    HWREG(ulPort + GPIO_O_ADCCTL) &= (~ucPins);
 }
 
 //*****************************************************************************

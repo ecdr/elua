@@ -2,23 +2,38 @@
 //
 // hw_comp.h - Macros used when accessing the comparator hardware.
 //
-// Copyright (c) 2005-2011 Texas Instruments Incorporated.  All rights reserved.
+// Copyright (c) 2005-2012 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
+//   Redistribution and use in source and binary forms, with or without
+//   modification, are permitted provided that the following conditions
+//   are met:
 // 
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
+//   Redistributions of source code must retain the above copyright
+//   notice, this list of conditions and the following disclaimer.
 // 
-// This is part of revision 7611 of the Stellaris Firmware Development Package.
+//   Redistributions in binary form must reproduce the above copyright
+//   notice, this list of conditions and the following disclaimer in the
+//   documentation and/or other materials provided with the  
+//   distribution.
+// 
+//   Neither the name of Texas Instruments Incorporated nor the names of
+//   its contributors may be used to endorse or promote products derived
+//   from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// This is part of revision 9453 of the Stellaris Firmware Development Package.
 //
 //*****************************************************************************
 
@@ -44,6 +59,8 @@
 #define COMP_O_ACCTL1           0x00000044  // Analog Comparator Control 1
 #define COMP_O_ACSTAT2          0x00000060  // Analog Comparator Status 2
 #define COMP_O_ACCTL2           0x00000064  // Analog Comparator Control 2
+#define COMP_O_PP               0x00000FC0  // Analog Comparator Peripheral
+                                            // Properties
 
 //*****************************************************************************
 //
@@ -103,7 +120,6 @@
 #define COMP_ACCTL0_ASRCP_PIN   0x00000000  // Pin value of Cn+
 #define COMP_ACCTL0_ASRCP_PIN0  0x00000200  // Pin value of C0+
 #define COMP_ACCTL0_ASRCP_REF   0x00000400  // Internal voltage reference
-                                            // (VIREF)
 #define COMP_ACCTL0_TSLVAL      0x00000080  // Trigger Sense Level Value
 #define COMP_ACCTL0_TSEN_M      0x00000060  // Trigger Sense
 #define COMP_ACCTL0_TSEN_LEVEL  0x00000000  // Level sense, see TSLVAL
@@ -181,6 +197,18 @@
 #define COMP_ACCTL2_ISEN_RISE   0x00000008  // Rising edge
 #define COMP_ACCTL2_ISEN_BOTH   0x0000000C  // Either edge
 #define COMP_ACCTL2_CINV        0x00000002  // Comparator Output Invert
+
+//*****************************************************************************
+//
+// The following are defines for the bit fields in the COMP_O_PP register.
+//
+//*****************************************************************************
+#define COMP_PP_C2O             0x00040000  // Comparator Output 2 Present
+#define COMP_PP_C1O             0x00020000  // Comparator Output 1 Present
+#define COMP_PP_C0O             0x00010000  // Comparator Output 0 Present
+#define COMP_PP_CMP2            0x00000004  // Comparator 2 Present
+#define COMP_PP_CMP1            0x00000002  // Comparator 1 Present
+#define COMP_PP_CMP0            0x00000001  // Comparator 0 Present
 
 //*****************************************************************************
 //
