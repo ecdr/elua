@@ -1,12 +1,14 @@
-# Configuration file for the LM3S microcontroller
+# Configuration file for the LM3S and LM4F microcontroller
 import fnmatch
 import glob
 import os
 
 comp.Append(CPPPATH = ['src/platform/%s/inc' % platform])
 comp.Append(CPPPATH = ['src/platform/%s/driverlib' % platform])
+# comp.Append(CPPPATH = ['src/platform/%s/drivers' % platform])
 
 # Only include USB headers/paths for boards which support it
+# TODO: LM4F120 has USB, but disable for testing (and may not have enough RAM)
 if comp[ 'cpu' ] == 'LM3S9B92' or comp[ 'cpu' ] == 'LM3S9D92':
   comp.Append(CPPPATH = ['src/platform/%s/usblib' % platform])
   comp.Append(CPPPATH = ['src/platform/%s/usblib/device' % platform])
@@ -25,6 +27,8 @@ if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[
 if comp[ 'board' ] == 'EAGLE-100':
   comp.Append(LINKFLAGS = ['-Wl,-Ttext,0x2000'])
 
+# Only build USB files for boards which support it
+# TODO: LM4F120 has USB, but disable for testing (and may not have enough RAM)  or comp[ 'cpu' ] == 'LM4F120'
 if comp[ 'cpu' ] == 'LM3S9B92' or comp[ 'cpu' ] == 'LM3S9D92':
   fwlib_files = fwlib_files + " " + " ".join(glob.glob("src/platform/%s/usblib/*.c" % platform))
   fwlib_files = fwlib_files + " " + " ".join(glob.glob("src/platform/%s/usblib/device/*.c" % platform))
@@ -35,6 +39,8 @@ if comp[ 'board' ] == 'EK-LM3S9B92':
   ldscript = "lm3s-9b92.ld"
 elif comp[ 'board' ] == 'SOLDERCORE' or comp[ 'board' ] == 'EK-LM3S9D92':
   ldscript = "lm3s-9d92.ld"
+elif comp[ 'cpu' ] == 'LM4F120':
+  ldscript = "lm4f.ld"
 else:
   ldscript = "lm3s.ld"
 
@@ -44,7 +50,12 @@ specific_files += " src/platform/cortex_utils.s src/platform/arm_cortex_interrup
 ldscript = "src/platform/%s/%s" % ( platform, ldscript )
 
 comp.Append(CPPDEFINES = ["FOR" + comp[ 'cpu' ],'gcc'])
-comp.Append(CPPDEFINES = ['CORTEX_M3'])
+
+if comp[ 'cpu' ] == 'LM4F120':
+  comp.Append(CPPDEFINES = ['CORTEX_M4'])
+else:
+  comp.Append(CPPDEFINES = ['CORTEX_M3'])
+
 
 # Standard GCC Flags
 comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
@@ -52,7 +63,11 @@ comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sec
 comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
 comp.Append(LIBS = ['c','gcc','m'])
 
-TARGET_FLAGS = ['-mcpu=cortex-m3','-mthumb']
+if comp[ 'cpu' ] == 'LM4F120':
+  TARGET_FLAGS = ['-mcpu=cortex-m4','-mthumb']
+else:
+  TARGET_FLAGS = ['-mcpu=cortex-m3','-mthumb']
+
 
 # Configure General Flags for Target
 comp.Prepend(CCFLAGS = [TARGET_FLAGS,'-mlittle-endian'])
@@ -70,3 +85,12 @@ def progfunc_lm3s( target, source, env ):
   os.system( "%s -O binary %s %s.bin" % ( toolset[ 'bin' ], outname, output ) )
 
 tools[ 'lm3s' ][ 'progfunc' ] = progfunc_lm3s
+
+
+# From am_m
+# FIXME:
+#tools[ 'lm4f' ] = {}
+#tools[ 'lm4f' ][ 'cccom' ] = "%s -mcpu=cortex-m4 -mthumb -mlittle-endian %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET" % ( toolset[ 'compile' ], opt, cdefs )
+#tools[ 'lm4f' ][ 'linkcom' ] = "%s -mthumb -mlittle-endian -mcpu=cortex-m4 -nostartfiles -T %s %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s" % ( toolset[ 'compile' ], ldscript, linkopts, local_libs )
+#tools[ 'lm4f' ][ 'ascom' ] = "%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=cortex-m4 -mthumb -mlittle-endian%s -Wall -c $SOURCE -o $TARGET" % ( toolset[ 'compile' ],  cdefs )
+
