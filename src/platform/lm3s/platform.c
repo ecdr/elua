@@ -1,4 +1,5 @@
-// Platform-dependent functions
+// eLua - Platform-dependent functions
+// LM3S and LM4F 
 
 #include "platform.h"
 #include "type.h"
@@ -24,6 +25,8 @@
 
 // Platform specific includes
 
+
+#include "driverlib/pin_map.h"
 #include "driverlib/debug.h"
 #include "driverlib/gpio.h"
 #include "driverlib/can.h"
@@ -41,8 +44,12 @@
 #include "elua_net.h"
 #include "dhcpc.h"
 #include "buf.h"
+
+#ifdef ENABLE_DISP
 #include "rit128x96x4.h"
 #include "disp.h"
+#endif
+
 #include "utils.h"
 
 #if defined( FORLM3S9B92 )
@@ -59,24 +66,35 @@
   #include "lm3s6965.h"
 #elif defined( FORLM3S6918 )
   #include "lm3s6918.h"
+#elif defined( FORLM4F120 )
+  #include "lm4f120h5qr.h"
 #endif
 
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
 
+
 // USB CDC Stuff
+#if defined( BUILD_USB_CDC )
 #include "driverlib/usb.h"
 #include "usblib/usblib.h"
 #include "usblib/usbcdc.h"
 #include "usblib/device/usbdevice.h"
 #include "usblib/device/usbdcdc.h"
 #include "usb_serial_structs.h"
+#endif
 
 // UIP sys tick data
 // NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
 // same value, as they're served by the same timer (the systick)
 #define SYSTICKHZ               5
 #define SYSTICKMS               (1000 / SYSTICKHZ)
+
+
+// Arrays of structs might be clearer and less error prone (keep all information about a port or peripheral together)
+// typedef struct { u32 base, sysctl; }  peripheral; // consider naming - is this clear name?
+// typedef struct { u32 base; u8 pins; } gpio_pins;
+
 
 // ****************************************************************************
 // Platform initialization
@@ -91,11 +109,14 @@ static void eth_init();
 static void adcs_init();
 static void cans_init();
 static void usb_init();
+static void comps_init();
+static void i2cs_init();
 
 int platform_init()
 {
   // Set the clocking to run from PLL
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined ( FORLM4F120 )
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 #else
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_8MHZ);
@@ -113,8 +134,20 @@ int platform_init()
   // Setup timers
   timers_init();
 
+#ifdef BUILD_I2C
+  // Setup I2Cs
+  i2cs_init();
+#endif // ifdef BUILD_I2C
+
+#ifdef BUILD_PWM
   // Setup PWMs
   pwms_init();
+#endif
+
+#ifdef BUILD_COMP
+  // Setup comparators
+  comps_init();
+#endif
 
 #ifdef BUILD_ADC
   // Setup ADCs
@@ -135,8 +168,10 @@ int platform_init()
   cmn_systimer_set_base_freq( MAP_SysCtlClockGet() );
   cmn_systimer_set_interrupt_freq( SYSTICKHZ );
 
+#ifdef BUILD_UIP
   // Setup ethernet (TCP/IP)
   eth_init();
+#endif
 
   // Common platform initialization code
   cmn_platform_init();
@@ -161,6 +196,8 @@ int platform_init()
 // PIO
 // Same configuration on LM3S8962, LM3S6965, LM3S6918 (8 ports)
 // 9B92 has 9 ports (Port J in addition to A-H)
+// LM4F120 has 6 ports
+
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
                                   GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE, 
@@ -169,6 +206,13 @@ int platform_init()
   const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH,
                                     SYSCTL_PERIPH_GPIOJ };
+#elif defined( FORLM4F120 )
+  const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
+                                  GPIO_PORTE_BASE, GPIO_PORTF_BASE };
+                                  
+  const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
+                                    SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF };
+
 #else
   const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
                                   GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE };
@@ -245,26 +289,87 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 #if defined( BUILD_CAN )
 
+// Added handle different port mapping (So far this assumed fixed ports PORTD)
+
+#if defined( FORLM4F120 )
+
+// PIN information from LM4F120H5QR Datasheet
+// TODO: Look at pin overlap, is there preference for which port to use by default?
+
+#define CAN_PORT_BASE	GPIO_PORTB_BASE
+#define CAN_PORT_PINS	( GPIO_PIN_4 | GPIO_PIN_5 )
+
+#define PIN_CAN0RX	GPIO_PB4_CAN0RX
+#define PIN_CAN0TX	GPIO_PB5_CAN0TX
+
+// Pick one of 3 sets of possible pins for CAN
+// BASE			PINS					PIN_CAN0RX			PIN_CAN0TX
+// GPIO_PORTB_BASE 	GPIO_PIN_4 | GPIO_PIN_5 	GPIO_PB4_CAN0RX		GPIO_PB5_CAN0TX
+// GPIO_PORTE_BASE	GPIO_PIN_4 | GPIO_PIN_5		GPIO_PE4_CAN0RX         GPIO_PE5_CAN0TX         
+// GPIO_PORTF_BASE	GPIO_PIN_0 | GPIO_PIN_3		GPIO_PF0_CAN0RX         GPIO_PF3_CAN0TX         
+
+#else
+
+#define CAN_PORT_BASE	GPIO_PORTD_BASE
+#define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_1 )
+
+// Check this - does it work on 8962?  (Not sure that GPIO_PD0_CAN0RX, TX are defined on that platform)
+#define PIN_CAN0RX	GPIO_PD0_CAN0RX
+#define PIN_CAN0TX	GPIO_PD1_CAN0TX
+
+// For multiple CANs:
+// static const u32 can_gpio_base[] = { GPIO_PORTD_BASE };
+// static const u8 can_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1 };
+#endif
+
+/* This assumes that RX and TX pins will be on same port.  
+Stellarisware defines the following for some CPUs (e.g. 8962)
+#define CAN0RX_PERIPH           SYSCTL_PERIPH_GPIOD
+#define CAN0RX_PORT             GPIO_PORTD_BASE
+#define CAN0RX_PIN              GPIO_PIN_0
+
+#define CAN0TX_PERIPH           SYSCTL_PERIPH_GPIOD
+#define CAN0TX_PORT             GPIO_PORTD_BASE
+#define CAN0TX_PIN              GPIO_PIN_1
+*/
+
+
+// TODO: generalize to multiple CANs 
+
+// static const u32 can_base[] = { CAN0_BASE };
+// static const u32 can_sysctl[] = { SYSCTL_PERIPH_CAN0 };
+// static const peripheral cans[] = { {CAN0_BASE, SYSCTL_PERIPH_CAN0} };
+
+// static const u32 can_int[] = { INT_CAN0 };
+// Would also need to make can data fields into array
+// typedef struct {u32 rx_flag, tx_flag, err_flag; char tx_buf[8]; tCANMsgObject msg_rx;} can_status;
+// can_status can_stat[NUM_CAN];
+
+
 volatile u32 can_rx_flag = 0;
 volatile u32 can_tx_flag = 0;
 volatile u32 can_err_flag = 0;
 char can_tx_buf[8];
 tCANMsgObject can_msg_rx;
 
-// LM3S9Bxx MCU CAN seems to run off of system clock, LM3S8962 has 8 MHz clock
+// LM3S9Bxx and LM4F120 MCU CAN seems to run off of system clock, LM3S8962 has 8 MHz clock
+
 #if defined( FORLM3S8962 )
 #define LM3S_CAN_CLOCK  8000000
 #else
 #define LM3S_CAN_CLOCK  SysCtlClockGet()
 #endif
 
+
 void CANIntHandler(void)
 {
   u32 status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
 
+// ToDO: Why not use a switch statement?
   if(status == CAN_INT_INTID_STATUS)
   {
     status = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
+// Why is the status fetched but not used?
     can_err_flag = 1;
     can_tx_flag = 0;
   }
@@ -302,12 +407,11 @@ void cans_init( void )
   MAP_CANMessageSet(CAN0_BASE, 1, &can_msg_rx, MSG_OBJ_TYPE_RX);
 }
 
-
 u32 platform_can_setup( unsigned id, u32 clock )
 {  
-  GPIOPinConfigure(GPIO_PD0_CAN0RX);
-  GPIOPinConfigure(GPIO_PD1_CAN0TX);
-  MAP_GPIOPinTypeCAN(GPIO_PORTD_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+  GPIOPinConfigure(PIN_CAN0RX);
+  GPIOPinConfigure(PIN_CAN0TX);
+  MAP_GPIOPinTypeCAN(CAN_PORT_BASE, CAN_PORT_PINS);
 
   MAP_CANDisable(CAN0_BASE);
   CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, clock );
@@ -361,12 +465,41 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 #endif
 
+
 // ****************************************************************************
 // SPI
-// Same configuration on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (2 SPI ports)
 
+// FORLM4F120 has 4 SPIs - need way to specify how many to use
+
+// Think I fixed the defines, but haven't looked at the code to figure out
+// Whether might work on LM4F or if needs more fixing.
+// LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
+//
+
+#ifdef FORLM4F120
+static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE, SSI2_BASE, SSI3_BASE };
+static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1, 
+                                  SYSCTL_PERIPH_SSI2, SYSCTL_PERIPH_SSI3};
+
+// PIN information from LM4F120H5QR Datasheet
+static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, 
+                                     GPIO_PORTB_BASE, GPIO_PORTD_BASE };
+static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
+                                    GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_0 | GPIO_PIN_1,
+                                    GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7,
+                                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
+ };
+//                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
+static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
+static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_2, GPIO_PIN_4, GPIO_PIN_0};
+
+#else
+
+// Same configuration on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (2 SPI ports)
 // All possible LM3S SPIs defs
+
 // FIXME this anticipates support for a platform with 2 SPI port
+
 //  PIN info extracted from LM3S6950 and 5769 datasheets
 static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE };
 static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
@@ -387,7 +520,35 @@ static const u8 spi_gpio_pins[] = { GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
 static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE };
 static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
 #endif
+#endif
 
+
+#if defined( ELUA_BOARD_SOLDERCORE )
+
+static const u32 ssi_pin_rx[] =  { GPIO_PF4_SSI1RX };
+static const u32 ssi_pin_tx[] =  { GPIO_PF5_SSI1TX };
+static const u32 ssi_pin_clk[] = { GPIO_PH4_SSI1CLK };
+// static const u32 ssi_pin_fss[] = {  };
+
+// ToDo: Need general pin mux handling
+#elif defined( FORLM4F120 )
+
+static const u32 ssi_rx_pin[] =  {GPIO_PA4_SSI0RX,  GPIO_PD3_SSI1TX,  GPIO_PB7_SSI2TX,  GPIO_PD3_SSI3TX };
+static const u32 ssi_tx_pin[] =  {GPIO_PA5_SSI0TX,  GPIO_PD2_SSI1RX,  GPIO_PB6_SSI2RX,  GPIO_PD2_SSI3RX };
+static const u32 ssi_clk_pin[] = {GPIO_PA2_SSI0CLK, GPIO_PD0_SSI1CLK, GPIO_PB4_SSI2CLK, GPIO_PD0_SSI3CLK};
+static const u32 ssi_fss_pin[] = {GPIO_PA3_SSI0FSS, GPIO_PD1_SSI1FSS, GPIO_PB5_SSI2FSS, GPIO_PD1_SSI3FSS};
+
+#endif
+
+/*
+GPIO_PB4_SSI2CLK  (also CAN0RX)
+GPIO_PB5_SSI2FSS  (also CAN0TX)
+
+GPIO_PF0_SSI1RX   (also CAN0RX)
+GPIO_PF1_SSI1TX 
+GPIO_PF2_SSI1CLK
+GPIO_PF3_SSI1FSS  (also CAN0TX)
+*/
 
 static void spis_init()
 {
@@ -397,6 +558,17 @@ static void spis_init()
   GPIOPinConfigure( GPIO_PH4_SSI1CLK );
   GPIOPinConfigure( GPIO_PF4_SSI1RX );
   GPIOPinConfigure( GPIO_PF5_SSI1TX );
+#else
+// TODO: fix Pin Mux
+#ifdef USE_PIN_MUX
+
+  for( i = 0; i < NUM_SPI; i ++ ){
+    GPIOPinConfigure(ssi_rx_pin[i]);
+    GPIOPinConfigure(ssi_tx_pin[i]);
+    GPIOPinConfigure(ssi_clk_pin[i]);
+//    GPIOPinConfigure(ssi_fss_pin[i]);
+  };
+#endif
 #endif
 
   for( i = 0; i < NUM_SPI; i ++ )
@@ -440,16 +612,191 @@ void platform_spi_select( unsigned id, int is_select )
   is_select = is_select;
 }
 
+
+// ****************************************************************************
+// I2C
+
+// Testing - code exists up in elua, there is platform code in AVR32, STR9
+// TODO: Code here is incomplete (doesn't handle ACK, doesn't handle burst transfers)
+
+#ifdef BUILD_I2C
+
+#ifdef FORLM4F120
+const u32 i2c_base[] = { I2C0_MASTER_BASE, I2C1_MASTER_BASE, I2C2_MASTER_BASE, I2C3_MASTER_BASE };
+static const u32 i2c_sysctl[] = { SYSCTL_PERIPH_I2C0, SYSCTL_PERIPH_I2C1, SYSCTL_PERIPH_I2C2, SYSCTL_PERIPH_I2C3 };
+static const u32 i2c_gpio_base[] = { GPIO_PORTB_BASE, GPIO_PORTA_BASE, GPIO_PORTE_BASE, GPIO_PORTD_BASE };
+static const u8 i2c_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_0 | GPIO_PIN_1 };
+
+static const i2c_scl_pin[] = { GPIO_PB2_I2C0SCL, GPIO_PA6_I2C1SCL, GPIO_PE4_I2C2SCL, GPIO_PD0_I2C3SCL };
+static const i2c_sda_pin[] = { GPIO_PB3_I2C0SDA, GPIO_PA7_I2C1SDA, GPIO_PE5_I2C2SDA, GPIO_PD1_I2C3SDA };
+
+
+#elif defined( FORLM6918 ) || defined( FORLM6965 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
+//FIXME: Fill in base, pins, etc - have 2 I2C (though may not all use same ports)
+
+#elif defined( FORLM8962 )
+//FIXME: Fill in base, pins, etc. (1 I2C)
+
+
+const u32 i2c_base[] = { I2C_MASTER_BASE };
+static const u32 i2c_sysctl[] = { SYSCTL_PERIPH_I2C0 };
+//FIXME: needs pin mux data (or suppress that behavior)
+static const u32 i2c_gpio_base[] = {};
+static const u8 i2c_gpio_pins[] = {};
+
+static const i2c_scl_pin[] = {};
+static const i2c_sda_pin[] = {};
+#endif
+
+
+// FIXME: just copied from others, need to check documents
+static void I2Cs_init()
+{
+  unsigned i;
+  for( i = 0; i < NUM_I2C; i ++ )
+    MAP_SysCtlPeripheralEnable(i2c_sysctl[ i ]);
+}
+
+
+// Platform specific
+// Not finished - needs to enable I2C, needs to figure out speed, clock should be from cache
+u32 platform_i2c_setup( unsigned id, u32 speed )
+{
+  //FIXME: Pin mux - may not need for all parts
+
+#ifdef USE_PIN_MUX
+  GPIOPinConfigure(i2c_scl_pin[ id ]);
+  GPIOPinConfigure(i2c_sda_pin[ id ]);
+#endif
+
+  MAP_GPIOPinTypeI2C( i2c_gpio_base [ id ], i2c_gpio_pins[ id ] );
+
+  MAP_I2CMasterInitExpClk( i2c_base[id], MAP_SysCtlClockGet(),  
+                    speed == PLATFORM_I2C_SPEED_SLOW);
+  //FIXME: Needs to return speed actually set
+};
+
+
+// Address is 0..127, direction - from enum, return is boolean
+int platform_i2c_send_address( unsigned id, u16 address, int direction )
+{
+	BOOL bReceive = (direction == PLATFORM_I2C_DIRECTION_RECEIVER);
+
+  MAP_I2CMasterSlaveAddrSet( i2c_base[id], address, receive	);
+
+  if (bReceive) I2CMasterControl(i2c_base[id], I2C_MASTER_CMD_SINGLE_RECEIVE);
+  // Dummy receive so don't get junk on first read
+
+  // FIXME: Not finished - needs to return boolean
+}; // Returns boolean  - need to figure out semantics for return
+
+// FIXME: Arbitrarily defined - just number of loops, should be based on time
+#define I2C_MAX_WAIT	100000
+
+//TODO: Current code waits until done, not sure if that is desired semantics
+int platform_i2c_send_byte( unsigned id, u8 data )
+{
+  u32 i;
+  tBoolean busy;
+
+  //FIXME: Timeout should probably be based on time, not just loop cycles
+  for(i=0; i<I2C_MAX_WAIT && busy = MAP_I2CMasterBusBusy( i2c_base[id] ); i++) {}; // Wait until bus free
+  if(busy)
+	  return 0;	// Still busy - return error
+  MAP_I2CMasterDataPut( i2c_base[id], data);
+  MAP_I2CMasterControl( i2c_base[id], I2C_MASTER_CMD_SINGLE_SEND);
+
+  //FIXME: Timeout should probably be based on time, not just loop cycles
+  for(i=0; i<I2C_MAX_WAIT && MAP_I2CMasterBusBusy( i2c_base[id] ); i++) {};		// Wait until sent
+
+  // Return 0 for problem, 1 for success
+  return (MAP_I2CMasterError( i2c_base[id] ) == I2C_MASTER_ERR_NONE) ? 1 : 0;
+};
+
+//FIXME: what should this do?
+void platform_i2c_send_start( unsigned id )
+{
+};
+
+//FIXME: Just a guess at what this might do
+void platform_i2c_send_stop( unsigned id )
+{
+	MAP_I2CMasterControl( i2c_base[id], I2C_MASTER_CMD_BURST_SEND_FINISH );
+};
+
+
+// return byte read, or -1, ack is true except for last item read
+// (ack is acknowledge bit to send 1 to acknowledge, 0 to reject/stop)
+
+int platform_i2c_recv_byte( unsigned id, int ack )
+{
+    I2CMasterControl( i2c_base[id], I2C_MASTER_CMD_SINGLE_RECEIVE);
+
+	return MAP_I2CMasterDataGet( i2c_base[id] );
+	// FIXME: this doesn't check for errors, doesn't use ack
+};
+
+
+
+/*
+From AVR:
+
+int platform_i2c_send_address( unsigned id, u16 address, int direction )
+{
+  // Convert enum codes to R/w bit value.
+  // If TX == 0 and RX == 1, this test will be removed by the compiler
+  if ( ! ( PLATFORM_I2C_DIRECTION_TRANSMITTER == 0 &&
+           PLATFORM_I2C_DIRECTION_RECEIVER == 1 ) ) {
+    direction = ( direction == PLATFORM_I2C_DIRECTION_TRANSMITTER ) ? 0 : 1;
+  }
+
+  // Low-level returns nack (0=acked); we return ack (1=acked).
+  return ! i2c_write_byte( (address << 1) | direction );
+}
+
+*/
+
+#endif	// BUILD_I2C
+
+
 // ****************************************************************************
 // UART
 // Different configurations for LM3S8962, LM3S6918 (2 UARTs) and LM3S6965, LM3S9B92 (3 UARTs)
 
-// All possible LM3S uarts defs
+// FIXME FORLM4F120 has 8 UART - need way to specify how many want to use
+// If implement USB, then remove UART6 - since it uses PD4,5 (so put UART6 last)
+
+#ifdef FORLM4F120
+const u32 uart_base[] = { 	UART0_BASE, UART1_BASE, UART2_BASE, UART3_BASE, 
+      				UART4_BASE, UART5_BASE, UART7_BASE, UART6_BASE };
+static const u32 uart_sysctl[] = { 
+	SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2, SYSCTL_PERIPH_UART3, 
+	SYSCTL_PERIPH_UART4, SYSCTL_PERIPH_UART5, SYSCTL_PERIPH_UART7, SYSCTL_PERIPH_UART6 };
+
+static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, 
+      GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTD_BASE };
+static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1, 
+	GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_6 | GPIO_PIN_7, 
+	GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_4 | GPIO_PIN_5, 
+	GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_4 | GPIO_PIN_5 };
+
+// Not really sure what this does, or if filled it in right
+// Looks like this is really 2 fields per UUART (should be in a struct) with GPIO_PORTs and PINs
+static const u32 uart_gpiofunc[] = {
+	GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PB0_U1RX, GPIO_PB1_U1TX,
+	GPIO_PD6_U2RX, GPIO_PD7_U2TX, GPIO_PC6_U3RX, GPIO_PC7_U3TX, 
+	GPIO_PC4_U4RX, GPIO_PC5_U4TX, GPIO_PE4_U5RX, GPIO_PE5_U5TX,
+	GPIO_PE0_U7RX, GPIO_PE1_U7TX, GPIO_PD4_U6RX, GPIO_PD5_U6TX };
+
+#else
+
+// All possible LM3S uart defs
 const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
 static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2 };
 static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
 static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
 static const u32 uart_gpiofunc[] = { GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PD2_U1RX, GPIO_PD3_U1TX, GPIO_PG0_U2RX, GPIO_PG1_U2TX };
+#endif
 
 static void uarts_init()
 {
@@ -519,13 +866,31 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
   return PLATFORM_ERR;
 }
 
+
 // ****************************************************************************
 // Timers
+
+// FIXME FORLM4F120 has 12 timers (6 32 and 6 64 bit)
+
+#ifdef FORLM4F120
+const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
+					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, 
+					WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
+					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
+
+static const u32 timer_sysctl[] = { 
+	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
+	SYSCTL_PERIPH_TIMER3, SYSCTL_PERIPH_TIMER4, SYSCTL_PERIPH_TIMER5, 
+	SYSCTL_PERIPH_WTIMER0, SYSCTL_PERIPH_WTIMER1, SYSCTL_PERIPH_WTIMER2,
+	SYSCTL_PERIPH_WTIMER3, SYSCTL_PERIPH_WTIMER4, SYSCTL_PERIPH_WTIMER5 };
+
+#else
 // Same on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (4 timers)
 
 // All possible LM3S timers defs
 const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
 static const u32 timer_sysctl[] = { SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, SYSCTL_PERIPH_TIMER3 };
+#endif // FORLM4F120
 
 static void timers_init()
 {
@@ -632,27 +997,57 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // Similar on LM3S8962 and LM3S6965
 // LM3S6918 has no PWM
 
+#ifdef BUILD_PWM
+// FIXME FORLM4F120 has no PWM, but so many timers should devote some as PWM
+
 // SYSCTL div data and actual div factors
-const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, 
+	SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+
 const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
+
 // Port/pin information for all channels
 #if defined(FORLM3S1968)
-  const static u32 pwm_ports[] =  { GPIO_PORTG_BASE, GPIO_PORTD_BASE, GPIO_PORTH_BASE, GPIO_PORTH_BASE, GPIO_PORTF_BASE, GPIO_PORTF_BASE };
+
+  const static u32 pwm_ports[] =  { GPIO_PORTG_BASE, GPIO_PORTD_BASE, GPIO_PORTH_BASE, 
+						GPIO_PORTH_BASE, GPIO_PORTF_BASE, GPIO_PORTF_BASE };
   const static u8 pwm_pins[] = { GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
+
 #elif defined(FORLM3S6965)
-  const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTD_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
+
+  const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTD_BASE, GPIO_PORTB_BASE, 
+						GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
   const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+
 #elif defined( ELUA_BOARD_SOLDERCORE ) && defined( FORLM3S9D92 )
-  const static u32 pwm_ports[] =  { GPIO_PORTG_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
-  const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_6, GPIO_PIN_7,  GPIO_PIN_4,  GPIO_PIN_6 };
-  const static u32 pwm_configs[] = { GPIO_PG0_PWM0, GPIO_PD1_PWM1, GPIO_PD2_PWM2, GPIO_PD3_PWM3, GPIO_PE6_PWM4, GPIO_PE7_PWM5, GPIO_PC4_PWM6, GPIO_PC6_PWM7 };
+
+  const static u32 pwm_ports[] =  { GPIO_PORTG_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, 
+						GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
+  const static u8 pwm_pins[] = { 	GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, 
+						GPIO_PIN_6, GPIO_PIN_7,  GPIO_PIN_4,  GPIO_PIN_6 };
+  const static u32 pwm_configs[] = { GPIO_PG0_PWM0, GPIO_PD1_PWM1, GPIO_PD2_PWM2, GPIO_PD3_PWM3, 
+						GPIO_PE6_PWM4, GPIO_PE7_PWM5, GPIO_PC4_PWM6, GPIO_PC6_PWM7 };
+
 #elif defined( FORLM3S9B92 ) || ( defined(FORLM3S9D92) && !defined( ELUA_BOARD_SOLDERCORE ) )
-  const static u32 pwm_ports[] =  { GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
-  const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_6, GPIO_PIN_7,  GPIO_PIN_4,  GPIO_PIN_6 };
-  const static u32 pwm_configs[] = { GPIO_PD0_PWM0, GPIO_PD1_PWM1, GPIO_PD2_PWM2, GPIO_PD3_PWM3, GPIO_PE6_PWM4, GPIO_PE7_PWM5, GPIO_PC4_PWM6, GPIO_PC6_PWM7 };
+
+  const static u32 pwm_ports[] =  { GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, 
+						GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
+  const static u8 pwm_pins[] = { 	GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, 
+						GPIO_PIN_6, GPIO_PIN_7,  GPIO_PIN_4,  GPIO_PIN_6 };
+  const static u32 pwm_configs[] = { GPIO_PD0_PWM0, GPIO_PD1_PWM1, GPIO_PD2_PWM2, GPIO_PD3_PWM3, 
+						GPIO_PE6_PWM4, GPIO_PE7_PWM5, GPIO_PC4_PWM6, GPIO_PC6_PWM7 };
+
+#elif defined( FORLM4F120 ) || defined( FORLM3S6918 )
+  const static u32 pwm_ports[] = {};
+  const static u8 pwm_pins[] = {};
+
 #else
-  const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
+
+
+  const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, 
+						GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
   const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+
 #endif
 
 // PWM generators
@@ -664,11 +1059,14 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 // PWM outputs
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
-const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7};
+const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
+					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7};
 #else
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
 #endif
 
+
+// TODO: What do these do on a system with no PWMs?
 static void pwms_init()
 {
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
@@ -735,6 +1133,8 @@ void platform_pwm_stop( unsigned id )
   MAP_PWMOutputState( PWM_BASE, 1 << id, false );
   MAP_PWMGenDisable( PWM_BASE, pwm_gens[ id >> 1 ] );
 }
+#endif // BUILD_PWM
+
 
 // *****************************************************************************
 // ADC specific functions and variables
@@ -759,11 +1159,36 @@ void platform_pwm_stop( unsigned id )
                                   ADC_CTL_CH12, ADC_CTL_CH13, ADC_CTL_CH14, ADC_CTL_CH15 };
 
   #define ADC_PIN_CONFIG
+#elif defined( FORLM4F120 )
+
+// 11 Pins - AIN0 .. AIN 11
+// ToDo: Maybe add Temperature sensor?
+// Not sure that ports/pins are set up way code is designed
+//   (It may assume one port per ADC, rather than having a choice of ports for each ADC)
+
+  const static u32 adc_ports[] =  { GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE,
+                                    GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE,
+                                    GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE };
+                                    
+  const static u8 adc_pins[] =    { GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0,
+                                    GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0,
+                                    GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_4, GPIO_PIN_5, };
+
+  // FIXME: Not sure what this does
+  #define ADC_PIN_CONFIG
+
+// 2 ADC
+  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1 };
+
+// ToDo: Probably should make adc_ints only have 2 items also.
+
 #else
+
 const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3 };
 #endif
 
 const static u32 adc_ints[] = { INT_ADC0, INT_ADC1, INT_ADC2, INT_ADC3 };
+
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
 {
@@ -941,6 +1366,40 @@ int platform_adc_start_sequence()
 
 #endif // ifdef BUILD_ADC
 
+
+// ****************************************************************************
+// Analog comparator
+//
+// TODO: Add code for comparators
+
+#ifdef BUILD_COMP
+
+// LM4F120 - 2 comparators
+// C0, positive input PC6, negative input, PC7, output PF0
+// C1, positive input PC5, negative input, PC4, output PF1
+
+#ifdef FORLM4F120
+
+const static u32 comp_in_ports[] =  { GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
+const static u8 comp_in_pins[] =    { GPIO_PIN_6, GPIO_PIN_7, GPIO_PIN_5, GPIO_PIN_4 };
+
+const static u32 comp_out_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTF_BASE };
+const static u8 comp_out_pins[] =    { GPIO_PIN_0, GPIO_PIN_1 };
+
+const static u32 comp_ctls[] = { 0, 1 };
+// all comparators use same base - COMP_BASE
+
+const static u32 comp_ints[] = { INT_COMP0, INT_COMP1 };
+
+#endif // FORLM4F120
+
+static void comps_init()
+{
+}
+
+#endif // ifdef BUILD_COMP
+
+
 // ****************************************************************************
 // Support for specific onboard devices on 
 // Texas Instruments / Luminary Micro kits.
@@ -948,6 +1407,7 @@ int platform_adc_start_sequence()
 // FIXME: This was previously tied to the "disp" module but should be renamed in the future
 //        to include support for initialization of other onboard devices of the EK-LM3Sxxxx kits.
 //        Note that not all kits have all devices available.
+#ifdef ENABLE_DISP
 
 void lm3s_disp_init( unsigned long freq )
 {
@@ -991,6 +1451,7 @@ void lm3s_disp_displayOff()
   RIT128x96x4DisplayOff();
 }
 
+#endif
 
 // ****************************************************************************
 // Ethernet functions
@@ -1019,7 +1480,7 @@ static void eth_init()
   MAP_SysTickEnable();
   MAP_SysTickIntEnable();
 
-  // Intialize the Ethernet Controller and disable all Ethernet Controller interrupt sources.
+  // Initialize the Ethernet Controller and disable all Ethernet Controller interrupt sources.
   MAP_EthernetIntDisable(ETH_BASE, (ETH_INT_PHY | ETH_INT_MDIO | ETH_INT_RXER |
                      ETH_INT_RXOF | ETH_INT_TX | ETH_INT_TXER | ETH_INT_RX));
   temp = MAP_EthernetIntStatus(ETH_BASE, false);
@@ -1077,7 +1538,7 @@ static void eth_init()
 
   // Initialize the eLua uIP layer
   elua_uip_init( &sTempAddr );
-#endif
+#endif // BUILD_UIP
 }
 
 #ifdef BUILD_UIP
@@ -1137,7 +1598,7 @@ void EthernetIntHandler()
   elua_uip_mainloop();
 }
 
-#else  // #ifdef ELUA_UIP
+#else  // #ifdef BUILD_UIP
 
 void SysTickIntHandler()
 {
@@ -1150,7 +1611,7 @@ void SysTickIntHandler()
 void EthernetIntHandler()
 {
 }
-#endif // #ifdef ELUA_UIP
+#endif // #ifdef BUILD_UIP
 
 // ****************************************************************************
 // USB functions
