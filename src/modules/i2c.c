@@ -1,13 +1,14 @@
 // Module for interfacing with the I2C interface
 
+#include <string.h>
+#include <ctype.h>
+
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "platform.h"
 #include "auxmods.h"
 #include "lrotable.h"
-#include <string.h>
-#include <ctype.h>
 
 // Lua: speed = i2c.setup( id, speed )
 static int i2c_setup( lua_State *L )

@@ -1,5 +1,9 @@
 // Module for interfacing with UART
 
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -8,9 +12,6 @@
 #include "lrotable.h"
 #include "common.h"
 #include "sermux.h"
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
 #include "platform_conf.h"
 
 // Modes for the UART read function

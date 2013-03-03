@@ -1,5 +1,9 @@
 // Module for interfacing with timers
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -8,9 +12,6 @@
 #include "platform_conf.h"
 #include "common.h"
 #include "lrotable.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define MAX_VTIMER_NAME_LEN     6
 #define MIN_VTIMER_NAME_LEN     5

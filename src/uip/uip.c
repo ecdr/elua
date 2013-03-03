@@ -1,3 +1,4 @@
+#include "type.h"
 #include "platform_conf.h"
 #ifdef BUILD_UIP
 
@@ -266,7 +267,7 @@ void uip_log(char *msg);
 
 #if ! UIP_ARCH_ADD32 && UIP_TCP
 
-#include "type.h"
+
 
 void
 uip_add32(u8_t *op32, u16_t op16)

@@ -1,5 +1,9 @@
 // Module for interfacing with PIO
 
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -7,9 +11,6 @@
 #include "auxmods.h"
 #include "lrotable.h"
 #include "platform_conf.h"
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
 
 // PIO public constants
 #define PIO_DIR_OUTPUT      0
