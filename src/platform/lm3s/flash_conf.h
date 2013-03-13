@@ -11,6 +11,12 @@
 #define INTERNAL_FLASH_WRITE_UNIT_SIZE  4
 #define INTERNAL_FLASH_START_ADDRESS    0
 
+#ifdef ELUA_CPU_LM4F120
+#define INTERNAL_FLASH_SIZE             ( 256 * 1024 )
+//TODO: Enabling FLASH_CONFIGURED will turn on WOFS - wait until get base running
+//#define INTERNAL_FLASH_CONFIGURED
+#endif
+
 #ifdef ELUA_CPU_LM3S8962
 #define INTERNAL_FLASH_SIZE             ( 256 * 1024 )
 #define INTERNAL_FLASH_CONFIGURED

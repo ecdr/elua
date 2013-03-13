@@ -4,13 +4,13 @@
 #ifndef __PLATFORM_CONF_H__
 #define __PLATFORM_CONF_H__
 
-#include "auxmods.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
 #include "inc/hw_ints.h"
-#include "stacks.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/rom_map.h"
+#include "auxmods.h"
+#include "stacks.h"
 #include "elua_int.h"
 #include "flash_conf.h"
 
@@ -88,7 +88,7 @@
 #define PLATFORM_HAS_SYSTIMER
 #define PLATFORM_TMR_COUNTS_DOWN
 
-// FIXME: BUILD_WOFS also defined below
+// FIXME: BUILD_WOFS also defined below (should set in 1 place)
 #ifdef INTERNAL_FLASH_CONFIGURED // this comes from flash_conf.h
 #define BUILD_WOFS
 #endif
@@ -253,6 +253,12 @@
 
 
 // UART - Max 3 unless LM4F120
+#if defined (FORLM4F120)
+  #define MAX_UART            8
+#else
+  #define MAX_UART 		3
+#endif
+
 // Define in configuration script if want to use different number
 #ifndef NUM_UART
 #if defined( FORLM3S6965 )
@@ -261,8 +267,7 @@
   #define NUM_UART            3
 #elif defined (FORLM4F120)
   #define NUM_UART            4
-  #define MAX_UART            8		// Todo: add checking if comes in from config script
-//  LM4F actually has 7, but UART number 6 uses same pins as USB
+//  LM4F120 actually has 8, but UART number 6 uses same pins as USB
 #else
   #define NUM_UART            2
 #endif
@@ -275,15 +280,17 @@
 
 
 // NUM_TIMERS - Max 4 unless LM4F120
-#ifndef NUM_TIMER
 #ifdef FORLM4F120
-  #define NUM_TIMER             6
-// LM4F120 actually has 12 (6 normal, 6 wide)
   #define MAX_TIMER            12
 #else
-  #define NUM_TIMER             4
-#define MAX_TIMER               4
+  #define MAX_TIMER             4
 #endif
+
+#ifndef NUM_TIMER
+  #define NUM_TIMER             6
+// LM4F120 actually has 12 (6 normal, 6 wide), but haven't added all of code to handle wide timers
+#else
+  #define NUM_TIMER             4
 #endif
 
 #if NUM_TIMER > MAX_TIMER
@@ -292,6 +299,7 @@
 #endif
 
 
+//TODO: Use timers for PWM on LM4F
 #if defined( FORLM3S6918 ) || defined (FORLM4F120)
   #define NUM_PWM             0
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
@@ -302,6 +310,7 @@
 
 
 #if defined( BUILD_I2C )
+#warning I2C support not written for LM3/4 
 #ifdef FORLM4F120
   #define NUM_I2C             4
 #elif defined( FORLM6918 ) || defined( FORLM6965 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
@@ -315,13 +324,14 @@
 
 
 #ifdef BUILD_COMP
+#warning Comparators not written yet for eLua or for platform
 #ifdef FORLM4F120
   #define NUM_COMP            2
 #elif defined( FORLM8962 )
   #define NUM_COMP            1
 #else
   #define NUM_COMP            0
-// FIXME: Fill in number comparators for lm3s...
+// FIXME: Fill in number comparators for other lm3s...
 #endif
 #endif
 
@@ -333,6 +343,8 @@
 #else
   #define NUM_ADC             4
 #endif
+#else
+  #define NUM_ADC 			  0
 #endif // BUILD_ADC
 
 /* 
@@ -341,7 +353,7 @@
   #define NUM_USB             1
 #else
   #define NUM_USB             0
-// FIXME: Need to fill in number USB for lm3s...
+// FIXME: Need to fill in number USB for other lm3s...
 #endif
 */
 
@@ -366,7 +378,7 @@
 #define BUF_ENABLE_ADC
 #define ADC_BUF_SIZE          BUF_SIZE_2
 
-// These should be adjusted to support multiple ADC devices
+// TODO: These should be adjusted to support multiple ADC devices
 #define ADC_TIMER_FIRST_ID    0
 #define ADC_NUM_TIMERS        NUM_TIMER  
 
@@ -420,6 +432,8 @@
 #endif
 //                                A, B, C, D, E, F, G, H, J
 
+// FIXME: check NUM_PIO versus PIO_PIN_ARRAY
+
 
 // *****************************************************************************
 // Memory
@@ -434,10 +448,6 @@
 
 // Flash data (only for LM3S8962 for now)
 #ifdef ELUA_CPU_LM3S8962
-#define INTERNAL_FLASH_SIZE             ( 256 * 1024 )
-#define INTERNAL_FLASH_WRITE_UNIT_SIZE  4
-#define INTERNAL_FLASH_SECTOR_SIZE      1024
-#define INTERNAL_FLASH_START_ADDRESS    0
 
 //FIXME: BUILD_WOFS also set above - should only set in one place
 #define BUILD_WOFS
@@ -448,7 +458,10 @@
 #define MEM_START_ADDRESS     { ( void* )end }
 #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
 
+
 // Interrupt list
+// Must have a 1-to-1 correspondence with the interrupt table in platform_int.c!
+// (See doc/en/arch_ints.txt)
 #define INT_UART_RX           ELUA_INT_FIRST_ID
 #define INT_GPIO_POSEDGE      ( ELUA_INT_FIRST_ID + 1 )
 #define INT_GPIO_NEGEDGE      ( ELUA_INT_FIRST_ID + 2 )
