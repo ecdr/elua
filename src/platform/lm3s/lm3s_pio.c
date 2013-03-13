@@ -16,6 +16,7 @@
 #endif
 
 // Alternate function setting is not available on all CPUs
+// FIXME: Suspect this needs to be defined/extended to support LM4F120 (which has alternate PIO)
 #if defined( ELUA_CPU_LM3S9B92 ) || defined( ELUA_CPU_LM3S9D92 )
 #define LM3S_HAS_ALTERNATE_PIO
 #endif
@@ -26,6 +27,117 @@
 #ifdef LM3S_HAS_ALTERNATE_PIO
 
 // List all alternative pin functions here. Long live gpio.h...
+#if defined( FOR_LM4F120 )
+
+// Although the comment says to list "all" suspect mean for the individual chip
+//   Nevertheless, noted which ones are not in other list, to ease merging if
+//   supposed to put lists together somehow.
+
+#define LM3S_ALTERNATE_FUNCTIONS\
+  _M( PA0_U0RX ),\
+  _M( PA1_U0TX ),\
+  _M( PA2_SSI0CLK ),\
+  _M( PA3_SSI0FSS ),\
+  _M( PA4_SSI0RX ),\
+  _M( PA5_SSI0TX ),\
+  _M( PA6_I2C1SCL ),\
+  _M( PA7_I2C1SDA ),\
+  _M( PB0_U1RX ),\
+  _M( PB0_T2CCP0 ),\	//New
+  _M( PB1_U1TX ),\
+  _M( PB1_T2CCP1 ),\	//New
+  _M( PB2_I2C0SCL ),\
+  _M( PB2_T3CCP0 ),\	//New
+  _M( PB3_I2C0SDA ),\
+  _M( PB3_T3CCP0 ),\	//New
+  _M( PB4_CAN0RX ),\
+  _M( PB4_SSI2CLK ),\	//New
+  _M( PB4_T1CCP0 ),\	//New
+  _M( PB5_CAN0TX ),\
+  _M( PB5_SSI2FSS ),\	//New
+  _M( PB5_T1CCP1 ),\	//New
+  _M( PB6_T0CCP0 ),\	//New
+  _M( PB6_SSI2RX ),\	//New
+  _M( PB7_SSI2TX ),\	//New
+  _M( PB7_T0CCP1 ),\	//New
+  _M( PC0_TCK ),\
+  _M( PC0_SWCLK ),\	//New
+  _M( PC0_T4CCP0 ),\	//New
+  _M( PC1_TMS ),\
+  _M( PC1_SWDIO ),\	//New
+  _M( PC1_T4CCP1 ),\	//New
+  _M( PC2_TDI ),\
+  _M( PC2_T5CCP0 ),\	//New
+  _M( PC3_TDO ),\
+  _M( PC3_SWO ),\		//Everything from here down is new
+  _M( PC3_T5CCP1 ),\
+  _M( PC4_U4RX ),\
+  _M( PC4_U1RX ),\
+  _M( PC4_WT0CCP0 ),\
+  _M( PC4_U1RTS ),\
+  _M( PC5_U4TX ),\
+  _M( PC5_U1TX ),\
+  _M( PC5_WT0CCP1 ),\
+  _M( PC5_U1CTS ),\
+  _M( PC6_U3RX ),\
+  _M( PC6_WT1CCP0 ),\
+  _M( PC7_U3TX ),\
+  _M( PC7_WT1CCP0 ),\
+  _M( PD0_SSI3CLK ),\
+  _M( PD0_SSI1CLK ),\
+  _M( PD0_I2C3SCL ),\
+  _M( PD0_WT2CCP0 ),\
+  _M( PD1_SSI3FSS ),\
+  _M( PD1_SSI1FSS ),\
+  _M( PD1_I2C3SDA ),\
+  _M( PD1_WT2CCP1 ),\
+  _M( PD2_SSI3RX ),\
+  _M( PD2_SSI1RX ),\
+  _M( PD2_WT3CCP0 ),\
+  _M( PD3_SSI3TX ),\
+  _M( PD3_SSI1TX ),\
+  _M( PD3_WT3CCP1 ),\
+  _M( PD4_U6RX ),\
+  _M( PD4_WT4CCP0 ),\
+  _M( PD5_U6TX ),\
+  _M( PD5_WT4CCP1 ),\
+  _M( PD6_U2RX ),\
+  _M( PD6_WT5CCP0 ),\
+  _M( PD7_U2TX ),\
+  _M( PD7_WT5CCP1 ),\
+  _M( PD7_NMI ),\	
+  _M( PE0_U7RX ),\
+  _M( PE1_U7TX ),\
+  _M( PE4_U5RX ),\
+  _M( PE4_I2C2SCL ),\
+  _M( PE4_CAN0RX ),\
+  _M( PE5_U5TX ),\
+  _M( PE5_I2C2SDA ),\
+  _M( PE5_CAN0TX ),\
+  _M( PF0_U1RTS ),\
+  _M( PF0_SSI1RX ),\
+  _M( PF0_CAN0RX ),\
+  _M( PF0_T0CCP0 ),\
+  _M( PF0_NMI ),\
+  _M( PF0_C0O ),\
+  _M( PF0_TRD2 ),\
+  _M( PF1_U1CTS ),\
+  _M( PF1_SSI1TX ),\
+  _M( PF1_T0CCP1 ),\
+  _M( PF1_C1O ),\
+  _M( PF1_U1CTS ),\
+  _M( PF2_T1CCP0 ),\
+  _M( PF2_SSI1CLK ),\
+  _M( PF2_TRD0 ),\
+  _M( PF3_CAN0TX ),\
+  _M( PF3_SSI1FSS ),\
+  _M( PF3_T1CCP1 ),\
+  _M( PF3_TRCLK ),\
+  _M( PF4_T2CCP0 ),\
+
+
+#else
+
 #define LM3S_ALTERNATE_FUNCTIONS\
   _M( PA0_U0RX ),\
   _M( PA0_I2C1SCL ),\
@@ -383,6 +495,9 @@
   _M( PJ7_U1DTR ),\
   _M( PJ7_CCP0 ),
 
+#endif // FOR_LM4F120
+
+
 typedef struct
 {
   const char *name;
@@ -390,6 +505,7 @@ typedef struct
 } LM3S_PIN_DATA;
 
 #define _M( x )   { #x, GPIO_##x }
+
 static const LM3S_PIN_DATA lm3s_pin_data[] = 
 {
   LM3S_ALTERNATE_FUNCTIONS

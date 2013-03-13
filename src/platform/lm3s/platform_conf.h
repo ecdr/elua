@@ -14,13 +14,25 @@
 #include "elua_int.h"
 #include "flash_conf.h"
 
-#if defined( FORLM4F120 )	// Needed for pin_map.h	- TODO: probably need for other CPU that use pinmux
+// *****************************************************************************
+// Support for chips that have alternative pin mappings 
+// TODO: probably need for other CPU that use pinmux - suspect applies to ELUA_CPU_LM3S9B92 and ELUA_CPU_LM3S9D92
+
+// PART_ - Needed for pin_map.h
+#if defined( FORLM4F120 )
 #define PART_LM4F120H5QR
 #endif
 
 #if defined( FORLM4F120 ) || defined( ELUA_BOARD_SOLDERCORE )
 #define USE_PIN_MUX
 #endif
+
+// lm3s_pio.c has specifics for alternative pin mapping in eLua
+
+
+// Include LM3S GPIO functions in platform map
+#define ENABLE_LM3S_GPIO
+
 
 // *****************************************************************************
 // Define here what components you want for this platform
@@ -96,8 +108,6 @@
 #ifdef INTERNAL_FLASH_CONFIGURED // this comes from flash_conf.h
 #define BUILD_WOFS
 #endif
-
-#define ENABLE_LM3S_GPIO
 
 #define BUILD_LINENOISE
 
@@ -324,7 +334,7 @@
 #else
   #define NUM_I2C             0		
 #endif
-#endif // ifdef Build_I2C
+#endif // BUILD_I2C
 
 
 #ifdef BUILD_COMP
@@ -337,7 +347,8 @@
   #define NUM_COMP            0
 // FIXME: Fill in number comparators for other lm3s...
 #endif
-#endif
+#endif // BUILD_COMP
+
 
 #ifdef BUILD_ADC
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
@@ -386,10 +397,13 @@
 #define ADC_TIMER_FIRST_ID    0
 #define ADC_NUM_TIMERS        NUM_TIMER  
 
+
 // RPC boot options
 #define RPC_UART_ID           CON_UART_ID
 #define RPC_UART_SPEED        CON_UART_SPEED
 
+
+// MMC File System
 #if defined( ELUA_BOARD_EKLM3S6965 )
   // EK-LM3S6965
   #define MMCFS_CS_PORT                3
