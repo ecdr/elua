@@ -51,6 +51,9 @@ ldscript = "src/platform/%s/%s" % ( platform, ldscript )
 
 comp.Append(CPPDEFINES = ["FOR" + comp[ 'cpu' ],'gcc'])
 
+# For debugging - turn on assertions in library code
+comp.Append(CPPDEFINES = ["DEBUG"])
+
 if comp[ 'cpu' ] == 'LM4F120':
   comp.Append(CPPDEFINES = ['CORTEX_M4'])
 else:
