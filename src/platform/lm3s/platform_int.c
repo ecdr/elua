@@ -1,4 +1,5 @@
-// AVR32 interrupt support
+// lm3s interrupt support
+
 
 #include "platform_conf.h"
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
@@ -23,17 +24,20 @@
   #include "lm3s6965.h"
 #elif defined( FORLM3S6918 )
   #include "lm3s6918.h"
+#elif defined( FORLM4F120 )
+  #include "lm4f120h5qr.h"
 #endif
 
-#include "rom.h"
-#include "rom_map.h"
-#include "hw_ints.h"
-#include "hw_gpio.h"
-#include "hw_timer.h"
-#include "gpio.h"
-#include "uart.h"
-#include "interrupt.h"
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
+#include "inc/hw_ints.h"
+#include "inc/hw_gpio.h"
+#include "inc/hw_timer.h"
+#include "driverlib/gpio.h"
+#include "driverlib/uart.h"
+#include "driverlib/interrupt.h"
 #include "driverlib/timer.h"
+#include "driverlib/debug.h"
 
 #define GPIO_INT_POSEDGE_ENABLED        1
 #define GPIO_INT_NEGEDGE_ENABLED        2
@@ -42,6 +46,9 @@
 // ****************************************************************************
 // Interrupt handlers
 
+// FIXME: So why are the interrupt IDs here, rather than with the other information about the various sources?
+// FIXME: Why are some of the interrupt handlers here, and some in platform.c (CAN, ADC, EtherNet, SysTick)
+
 extern const u32 uart_base[];
 extern const u32 pio_base[];
 static const int uart_int_mask = UART_INT_RX | UART_INT_RT;
@@ -49,7 +56,18 @@ static const u8 gpio_int_ids[] = { INT_GPIOA, INT_GPIOB, INT_GPIOC, INT_GPIOD, I
                                    INT_GPIOG, INT_GPIOH, INT_GPIOJ };
 extern const u32 timer_base[];
 extern u8 lm3s_timer_int_periodic_flag[ NUM_TIMER ];
-static const u8 timer_int_ids[] = { INT_TIMER0A, INT_TIMER1A, INT_TIMER2A, INT_TIMER3A };
+
+#ifdef FORLM4F140
+  static const u8 timer_int_ids[] = { INT_TIMER0A, INT_TIMER1A, INT_TIMER2A, INT_TIMER3A, INT_TIMER4A, INT_TIMER5A };
+  // INT_WTIMER0A, INT_WTIMER1A, INT_WTIMER2A, INT_WTIMER3A, INT_WTIMER4A, INT_WTIMER5A
+  static const u8 uart_int_ids = { INT_UART0, INT_UART1, INT_UART2, INT_UART3, INT_UART4, INT_UART5, INT_UART7, INT_UART6 };
+
+#else
+  static const u8 timer_int_ids[] = { INT_TIMER0A, INT_TIMER1A, INT_TIMER2A, INT_TIMER3A };
+  static const u8 uart_int_ids[] = { INT_UART0, INT_UART1, INT_UART2 };
+
+#endif
+
 
 // ----------------------------------------------------------------------------
 // UART_RX interrupt
@@ -76,6 +94,35 @@ void uart2_handler()
   uart_common_rx_handler( 2 );
 }
 
+#ifdef FORLM4F120
+
+void uart3_handler()
+{
+  uart_common_rx_handler( 3 );
+}
+
+void uart4_handler()
+{
+  uart_common_rx_handler( 4 );
+}
+
+void uart5_handler()
+{
+  uart_common_rx_handler( 5 );
+}
+
+void uart6_handler()
+{
+  uart_common_rx_handler( 6 );
+}
+
+void uart7_handler()
+{
+  uart_common_rx_handler( 7 );
+}
+
+#endif
+
 // ----------------------------------------------------------------------------
 // GPIO interrupts (POSEDGE/NEGEDGE)
 
@@ -87,6 +134,9 @@ static void gpio_common_handler( int port )
   u32 iev = HWREG( base + GPIO_O_IEV );
 
   // Check each pin in turn
+// FIXME: pin should probably run up to number of pins on port, rather than 8 (see wherever PIO_PIN_ARRAY is used)
+//   (Assuming that the pins are assigned from low to high, if not then ...)
+//   Or - why not use PINS_PER_PORT instead of assuming 8
   for( pin = 0, pinmask = 1; pin < 8; pin ++, pinmask <<= 1 )
     if( HWREG( base + GPIO_O_MIS ) & pinmask ) // interrupt on pin
     {
@@ -146,6 +196,8 @@ void gpioj_handler()
 // ----------------------------------------------------------------------------
 // Timer interrupts
 
+// FIXME: More timers -> more timer ISRs
+
 static void tmr_common_handler( elua_int_resnum id )
 {
   u32 base = timer_base[ id ];
@@ -178,6 +230,17 @@ void tmr3_handler()
 {
   tmr_common_handler( 3 );
 }
+
+void tmr4_handler()
+{
+  tmr_common_handler( 4 );
+}
+
+void tmr5_handler()
+{
+  tmr_common_handler( 5 );
+}
+
 
 // ****************************************************************************
 // Helpers
@@ -398,12 +461,16 @@ void platform_int_init()
 {
   unsigned i;
 
-  MAP_IntEnable( INT_UART0 );
-  MAP_IntEnable( INT_UART1 );
-  MAP_IntEnable( INT_UART2 );
-  for( i = 0; i < sizeof( gpio_int_ids ) / sizeof( u8 ); i ++ )
+  ASSERT(NUM_UART <= sizeof( uart_int_ids ) / sizeof( u8 ) );
+  for( i = 0; i < NUM_UART ; i ++ )
+    MAP_IntEnable( uart_int_ids[ i ] ) ;
+
+  ASSERT(NUM_PORTS <= sizeof( gpio_int_ids ) / sizeof( u8 ) );
+  for( i = 0; i < NUM_PIO; i ++ )
     MAP_IntEnable( gpio_int_ids[ i ] ) ;
-  for( i = 0; i < sizeof( timer_int_ids ) / sizeof( u8 ); i ++ )
+
+  ASSERT(NUM_TIMER <= sizeof( timer_int_ids ) / sizeof( u8 ) );
+  for( i = 0; i < NUM_TIMER; i ++ )
     MAP_IntEnable( timer_int_ids[ i ] );
 }
 
