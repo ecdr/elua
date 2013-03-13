@@ -14,6 +14,10 @@
 #include "elua_int.h"
 #include "flash_conf.h"
 
+#if defined( FORLM4F120 )	// Needed for pin_map.h	- TODO: probably need for other CPU that use pinmux
+#define PART_LM4F120H5QR
+#endif
+
 #if defined( FORLM4F120 ) || defined( ELUA_BOARD_SOLDERCORE )
 #define USE_PIN_MUX
 #endif

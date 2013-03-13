@@ -104,13 +104,33 @@ static void timers_init();
 static void uarts_init();
 static void spis_init();
 static void pios_init();
+#ifdef BUILD_PWM
 static void pwms_init();
+#endif
+
+#ifdef BUILD_UIP
 static void eth_init();
+#endif
+
+#ifdef BUILD_ADC
 static void adcs_init();
+#endif
+
+#ifdef BUILD_CAN
 static void cans_init();
+#endif
+
+#ifdef BUILD_USB_CDC
 static void usb_init();
+#endif
+
+#ifdef BUILD_COMP
 static void comps_init();
+#endif
+
+#ifdef BUILD_I2C
 static void i2cs_init();
+#endif
 
 int platform_init()
 {
@@ -1064,7 +1084,6 @@ const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3,
 #else
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
 #endif
-
 
 // TODO: What do these do on a system with no PWMs?
 static void pwms_init()

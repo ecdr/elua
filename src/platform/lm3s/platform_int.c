@@ -9,6 +9,17 @@
 #include "elua_int.h"
 #include "common.h"
 
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
+#include "inc/hw_ints.h"
+#include "inc/hw_gpio.h"
+#include "inc/hw_timer.h"
+#include "driverlib/gpio.h"
+#include "driverlib/uart.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/timer.h"
+#include "driverlib/debug.h"
+
 // Platform includes
 #if defined( FORLM3S9B92 )
   #define TARGET_IS_TEMPEST_RB1
@@ -25,19 +36,8 @@
 #elif defined( FORLM3S6918 )
   #include "lm3s6918.h"
 #elif defined( FORLM4F120 )
-  #include "lm4f120h5qr.h"
+  #include "lm4f120h5qr.h"	// Has to be after hw_gpio.h because it overrides some values
 #endif
-
-#include "driverlib/rom.h"
-#include "driverlib/rom_map.h"
-#include "inc/hw_ints.h"
-#include "inc/hw_gpio.h"
-#include "inc/hw_timer.h"
-#include "driverlib/gpio.h"
-#include "driverlib/uart.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/timer.h"
-#include "driverlib/debug.h"
 
 #define GPIO_INT_POSEDGE_ENABLED        1
 #define GPIO_INT_NEGEDGE_ENABLED        2
