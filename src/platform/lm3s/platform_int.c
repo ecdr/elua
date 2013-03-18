@@ -465,7 +465,7 @@ void platform_int_init()
   for( i = 0; i < NUM_UART ; i ++ )
     MAP_IntEnable( uart_int_ids[ i ] ) ;
 
-  ASSERT(NUM_PORTS <= sizeof( gpio_int_ids ) / sizeof( u8 ) );
+  ASSERT(NUM_PIO <= sizeof( gpio_int_ids ) / sizeof( u8 ) );
   for( i = 0; i < NUM_PIO; i ++ )
     MAP_IntEnable( gpio_int_ids[ i ] ) ;
 

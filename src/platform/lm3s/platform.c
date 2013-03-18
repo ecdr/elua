@@ -1889,3 +1889,16 @@ LUALIB_API int luaopen_platform( lua_State *L )
 
 #endif // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
 
+
+
+// Assertion failure error handler
+// TODO: Give feedback on console, and place for breakpoint for debugging
+
+#ifdef DEBUG
+void
+__error__(char *pcFilename, unsigned long ulLine)
+{
+}
+#endif
+
+
