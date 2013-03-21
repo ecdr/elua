@@ -43,7 +43,7 @@
 #endif
 
 // ToDo: Add simulated PWMs for LM4F
-#if !defined(FORLM3S6918) && !defined(FORLM4F120)
+#if !defined(FORLM3S6918) // && !defined(FORLM4F120)
 #define BUILD_PWM
 #endif
 
@@ -303,6 +303,7 @@
 #ifndef NUM_TIMER
   #define NUM_TIMER             6
 // LM4F120 actually has 12 (6 normal, 6 wide), but haven't added all of code to handle wide timers
+// Using wide timers for PWMs
 #else
   #define NUM_TIMER             4
 #endif
@@ -313,14 +314,18 @@
 #endif
 
 
-//TODO: Use timers for PWM on LM4F
-#if defined( FORLM3S6918 ) || defined (FORLM4F120)
+#if defined( FORLM3S6918 ) 
   #define NUM_PWM             0
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_PWM             8
 #else
   #define NUM_PWM             6
-#endif  
+//TODO: Using wide timers for PWM on LM4F
+#endif
+
+#ifdef FORLM4F120
+  #define EMULATE_PWM
+#endif
 
 
 #if defined( BUILD_I2C )

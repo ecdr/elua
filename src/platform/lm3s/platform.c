@@ -890,13 +890,14 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 // ****************************************************************************
 // Timers
 
-// FIXME FORLM4F120 has 12 timers (6 32 and 6 64 bit)
+// FIXME LM4F120 has 12 timers (6 32 and 6 64 bit)
 
 #ifdef FORLM4F120
 const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
 					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, 
 					WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
 					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
+// FIXME: Remove wide timers if using them for PWMs
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
@@ -1018,13 +1019,18 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // LM3S6918 has no PWM
 
 #ifdef BUILD_PWM
-// FIXME FORLM4F120 has no PWM, but so many timers should devote some as PWM
 
+#ifdef EMULATE_PWM
+// TODO: Implement clock divisors (at moment just uses system clock)
+
+#else
 // SYSCTL div data and actual div factors
 const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, 
 	SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
 
 const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
+#endif
+
 
 // Port/pin information for all channels
 #if defined(FORLM3S1968)
@@ -1057,7 +1063,19 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
   const static u32 pwm_configs[] = { GPIO_PD0_PWM0, GPIO_PD1_PWM1, GPIO_PD2_PWM2, GPIO_PD3_PWM3, 
 						GPIO_PE6_PWM4, GPIO_PE7_PWM5, GPIO_PC4_PWM6, GPIO_PC6_PWM7 };
 
-#elif defined( FORLM4F120 ) || defined( FORLM3S6918 )
+#elif defined( FORLM4F120 ) 
+// FIXME FORLM4F120 has no PWM, simulate PWM using timers
+// TODO: At the moment just using wide timers, could look at possible using arbitrary timers (based on which pin want PWMd)
+
+  const static u32 pwm_ports[] = {  GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
+						GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE};
+  const static u8 pwm_pins[] = {    GPIO_PIN_4, GPIO_PIN_6, GPIO_PIN_0, 
+						GPIO_PIN_2, GPIO_PIN_4,  GPIO_PIN_6 };
+
+  const static u32 pwm_configs[] = { GPIO_PC4_WT0CCP0, GPIO_PC6_WT1CCP0, GPIO_PD0_WT2CCP0, 
+						GPIO_PD2_WT3CCP0, GPIO_PD4_WT4CCP0, GPIO_PD6_WT5CCP0};
+
+#elif defined( FORLM3S6918 )
   const static u32 pwm_ports[] = {};
   const static u8 pwm_pins[] = {};
 
@@ -1071,11 +1089,25 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 #endif
 
 // PWM generators
+#if EMULATE_PWM
+
+#elif defined( FORLM4F120 ) 
+const static u32 pwm_timer_base[] = { WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
+					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
+// FIXME: Remove wide timers from timer area if using them for PWMs
+
+const static u32 pwm_timer_sysctl[] = { 
+	SYSCTL_PERIPH_WTIMER0, SYSCTL_PERIPH_WTIMER1, SYSCTL_PERIPH_WTIMER2,
+	SYSCTL_PERIPH_WTIMER3, SYSCTL_PERIPH_WTIMER4, SYSCTL_PERIPH_WTIMER5 };
+
+
+#else
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 #else
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
 #endif
+#endif //EMULATE_PWM
 
 // PWM outputs
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
@@ -1088,13 +1120,22 @@ const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_
 // TODO: What do these do on a system with no PWMs?
 static void pwms_init()
 {
+#if EMULATE_PWM
+//TODO: Write me!!
+
+#else
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
   MAP_SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
+#endif // EMULATE_PWM
 }
 
 // Return the PWM clock
 u32 platform_pwm_get_clock( unsigned id )
 {
+#ifdef EMULATE_PWM
+  return MAP_SysCtlClockGet();
+
+#else
   unsigned i;
   u32 clk;
 
@@ -1103,11 +1144,16 @@ u32 platform_pwm_get_clock( unsigned id )
     if( clk == pwm_div_ctl[ i ] )
       break;
   return MAP_SysCtlClockGet() / pwm_div_data[ i ];
+#endif // EMULATE_PWM
 }
 
 // Set the PWM clock
 u32 platform_pwm_set_clock( unsigned id, u32 clock )
 {
+#ifdef EMULATE_PWM
+  return MAP_SysCtlClockGet();
+
+#else
   unsigned i, min_i;
   u32 sysclk;
 
@@ -1117,16 +1163,38 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
       min_i = i;
   MAP_SysCtlPWMClockSet( pwm_div_ctl[ min_i ] );
   return sysclk / pwm_div_data[ min_i ];
+#endif // EMULATE_PWM
 }
 
+
+//duty - PWM channel duty cycle, specified as integer from 0 to 100 (percent).
 u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 {
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
 
-#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
+#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92) || defined(FORLM4F120)
   GPIOPinConfigure( pwm_configs[ id ] );
 #endif
+
+
+#ifdef EMULATE_PWM
+
+//Sample code
+//  MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);	// FIXME: Is this already done by pin handling?
+//End sample code
+  MAP_GPIOPinTypeTimer(pwm_ports[id], pwm_pins[id]); 
+
+//TODO: Be sure timer disabled before making changes
+//TODO: Maybe belong in general init 
+  MAP_SysCtlPeripheralEnable(pwm_timer_base[id]);	
+  MAP_TimerConfigure(pwm_timer_base[id], TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_PWM);
+
+  // Compute period
+  period = pwmclk / frequency;
+  MAP_TimerLoadSet(pwm_timer_base[id], TIMER_A, period);
+  MAP_TimerMatchSet(pwm_timer_base[id], TIMER_A, ( period * duty ) / 100);
+#else
 
   // Set pin as PWM
   MAP_GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
@@ -1138,19 +1206,31 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   // Set duty cycle
   MAP_PWMPulseWidthSet( PWM_BASE, pwm_outs[ id ], ( period * duty ) / 100 );
   // Return actual frequency
+#endif // EMULATE_PWM
+
   return pwmclk / period;
 }
 
 void platform_pwm_start( unsigned id )
 {
+#ifdef EMULATE_PWM
+//FIXME: what does PWMOutputState do?
+    MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
+#else
   MAP_PWMOutputState( PWM_BASE, 1 << id, true );
   MAP_PWMGenEnable( PWM_BASE, pwm_gens[ id >> 1 ] );
+#endif // EMULATE_PWM
 }
 
 void platform_pwm_stop( unsigned id )
 {
+#ifdef EMULATE_PWM
+//FIXME: what does PWMOutputState do?
+    MAP_TimerDisable(pwm_timer_base[id], TIMER_A);
+#else
   MAP_PWMOutputState( PWM_BASE, 1 << id, false );
   MAP_PWMGenDisable( PWM_BASE, pwm_gens[ id >> 1 ] );
+#endif // EMULATE_PWM
 }
 #endif // BUILD_PWM
 
@@ -1410,11 +1490,72 @@ const static u32 comp_ctls[] = { 0, 1 };
 
 const static u32 comp_ints[] = { INT_COMP0, INT_COMP1 };
 
+// Predefined reference values, in order
+const static u32 comp_refs[] = {};	// Voltage bins
+const static u32 comp_ref_codes[] = {};	// Codes used by library
+#define NUM_COMP_REFS	(sizeof(comp_refs)/sizeof(u32))
+
 #endif // FORLM4F120
+
+
+// TODO: What can you do with a comparator 
+// Generate an output
+// Generate an interrupt
+// Trigger ADC
+
+// Compare to pin or to internal reference
 
 static void comps_init()
 {
 }
+
+// Translate whatever voltage reference scheme eLua uses to platform specific
+// FIXME: for now vref is reference voltage * 1000 (maybe should make it * 1024)
+static unsigned long comp_ref_encode(unsigned vref)
+{
+// Assuming that bins are of fairly uniform width - use an index search
+/* FIXME: Pseudocode
+n bins between VMIN and VMAX
+	if vref < VMIN -> 0
+	if vref > VMAX -> NUM_COMP_REFS-1
+	i = ((vref - VMIN) * NUM_COMP_REFS )/(VMAX-VMIN);	// Want integer division
+	ASSERT (comp_refs[i] <= vref <= comp_refs[i+1]);
+	return i;			// Actually, return whichever is nearer to vref
+*/
+}
+
+// Translate back from platform voltage ref to eLua 
+static unsigned comp_ref_decode(unsigned long refcode)
+{
+	return comp_refs[i];
+};
+
+static unsigned comp_ref_index;
+
+// This platform only allows one vref
+unsigned platform_comp_ref_set(unsigned vref)
+{
+	unsigned long refindex;
+
+	comp_ref_index = comp_vref_encode( vref);
+	ComparatorRefSet(COMP_BASE, comp_ref_codes[comp_ref_index]);
+	return comp_vref_decode(comp_ref_index);
+
+};
+
+unsigned platform_comp_ref_get(unsigned id)
+{
+	return comp_vref_decode(comp_ref_index);
+};
+
+unsigned long platform_comp_value_get(unsigned id)
+{
+	return MAP_ComparatorValueGet(COMP_BASE, id);
+}; // Actually returns boolean
+
+
+
+
 
 #endif // ifdef BUILD_COMP
 
