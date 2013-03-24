@@ -316,12 +316,34 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 // PIN information from LM4F120H5QR Datasheet
 // TODO: Look at pin overlap, is there preference for which port to use by default?
 
+#if CAN_PORT==B
 #define CAN_PORT_BASE	GPIO_PORTB_BASE
 #define CAN_PORT_PINS	( GPIO_PIN_4 | GPIO_PIN_5 )
 
 #define PIN_CAN0RX	GPIO_PB4_CAN0RX
 #define PIN_CAN0TX	GPIO_PB5_CAN0TX
 
+#elif CAN_PORT==E
+
+#define CAN_PORT_BASE	GPIO_PORTE_BASE
+#define CAN_PORT_PINS	( GPIO_PIN_4 | GPIO_PIN_5 )
+
+#define PIN_CAN0RX	GPIO_PE4_CAN0RX
+#define PIN_CAN0TX	GPIO_PE5_CAN0TX
+
+#elif CAN_PORT==F
+
+#define CAN_PORT_BASE	GPIO_PORTF_BASE
+#define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_3 )
+
+#define PIN_CAN0RX	GPIO_PF0_CAN0RX
+#define PIN_CAN0TX	GPIO_PF3_CAN0TX
+
+#else
+#error Unrecognized CAN port: CAN_PORT
+#endif // CAN_PORT
+
+// TODO: give mechanism to select which port to use for CAN (at least at compile time, maybe at run time)
 // Pick one of 3 sets of possible pins for CAN
 // BASE			PINS					PIN_CAN0RX			PIN_CAN0TX
 // GPIO_PORTB_BASE 	GPIO_PIN_4 | GPIO_PIN_5 	GPIO_PB4_CAN0RX		GPIO_PB5_CAN0TX
@@ -1091,7 +1113,9 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 // PWM generators
 #if EMULATE_PWM
 
-#elif defined( FORLM4F120 ) 
+static BOOL pwm_enabled[NUM_PWM] = { FALSE };
+
+#if defined( FORLM4F120 ) 
 const static u32 pwm_timer_base[] = { WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
 					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
 // FIXME: Remove wide timers from timer area if using them for PWMs
@@ -1099,15 +1123,15 @@ const static u32 pwm_timer_base[] = { WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
 const static u32 pwm_timer_sysctl[] = { 
 	SYSCTL_PERIPH_WTIMER0, SYSCTL_PERIPH_WTIMER1, SYSCTL_PERIPH_WTIMER2,
 	SYSCTL_PERIPH_WTIMER3, SYSCTL_PERIPH_WTIMER4, SYSCTL_PERIPH_WTIMER5 };
+#endif
 
+#endif //EMULATE_PWM
 
-#else
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 #else
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
 #endif
-#endif //EMULATE_PWM
 
 // PWM outputs
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
@@ -1122,6 +1146,8 @@ static void pwms_init()
 {
 #if EMULATE_PWM
 //TODO: Write me!!
+//  for(id = 0; id < NUM_PWM; id++)
+//	pwm_enabled[id] = FALSE;
 
 #else
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
@@ -1177,18 +1203,19 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   GPIOPinConfigure( pwm_configs[ id ] );
 #endif
 
-
 #ifdef EMULATE_PWM
 
-//Sample code
-//  MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);	// FIXME: Is this already done by pin handling?
-//End sample code
-  MAP_GPIOPinTypeTimer(pwm_ports[id], pwm_pins[id]); 
+// Assumes that GPIO for pins (sysctrl) have already been enabled by PIO module
 
 //TODO: Be sure timer disabled before making changes
+//  if allow timer to be used as PWM or timer, then need to keep track of use
 //TODO: Maybe belong in general init 
-  MAP_SysCtlPeripheralEnable(pwm_timer_base[id]);	
-  MAP_TimerConfigure(pwm_timer_base[id], TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_PWM);
+  if (!pwm_enabled[id]){	// Initialize timer if not already set up
+	MAP_GPIOPinTypeTimer(pwm_ports[id], pwm_pins[id]); 
+	MAP_SysCtlPeripheralEnable(pwm_timer_base[id]);	
+	MAP_TimerConfigure(pwm_timer_base[id], TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_PWM);
+	pwm_enabled[id] = TRUE;
+  }
 
   // Compute period
   period = pwmclk / frequency;
