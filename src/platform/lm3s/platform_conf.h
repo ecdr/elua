@@ -380,6 +380,12 @@
 // CAN - Maximum is 1
 #ifdef BUILD_CAN
 #define NUM_CAN               1
+
+#ifdef FORLM4F120
+// LM4F120 can use port B, E, or F
+#define CAN_PORT	B
+#endif
+
 #else
 #define NUM_CAN               0
 #endif

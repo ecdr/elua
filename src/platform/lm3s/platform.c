@@ -233,6 +233,11 @@ int platform_init()
   const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF };
 
+// FIXME: LM4F120 pin F0 is MUXed with NMI, also connected to switch on Stellaris Launchpad
+//   in order to use as GPIO have to unlock it to reprogram - either need to handle in driver, or 
+//   provide way to do this from eLua program.
+//  At very least should throw an error when asked to do things it can not (like set F0 as input)
+
 #else
   const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
                                   GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE };
@@ -314,7 +319,19 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #if defined( FORLM4F120 )
 
 // PIN information from LM4F120H5QR Datasheet
+
+// LM4F120 CAN can use various ports/pins
+//   At moment port selection made at compile time
+//
+// TODO: Test selection mechanism
 // TODO: Look at pin overlap, is there preference for which port to use by default?
+//
+// TODO: give mechanism to select which port to use for CAN at run time
+// BASE			PINS					PIN_CAN0RX			PIN_CAN0TX
+// GPIO_PORTB_BASE 	GPIO_PIN_4 | GPIO_PIN_5 	GPIO_PB4_CAN0RX		GPIO_PB5_CAN0TX
+// GPIO_PORTE_BASE	GPIO_PIN_4 | GPIO_PIN_5		GPIO_PE4_CAN0RX         GPIO_PE5_CAN0TX         
+// GPIO_PORTF_BASE	GPIO_PIN_0 | GPIO_PIN_3		GPIO_PF0_CAN0RX         GPIO_PF3_CAN0TX         
+
 
 #if CAN_PORT==B
 #define CAN_PORT_BASE	GPIO_PORTB_BASE
@@ -343,13 +360,6 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #error Unrecognized CAN port: CAN_PORT
 #endif // CAN_PORT
 
-// TODO: give mechanism to select which port to use for CAN (at least at compile time, maybe at run time)
-// Pick one of 3 sets of possible pins for CAN
-// BASE			PINS					PIN_CAN0RX			PIN_CAN0TX
-// GPIO_PORTB_BASE 	GPIO_PIN_4 | GPIO_PIN_5 	GPIO_PB4_CAN0RX		GPIO_PB5_CAN0TX
-// GPIO_PORTE_BASE	GPIO_PIN_4 | GPIO_PIN_5		GPIO_PE4_CAN0RX         GPIO_PE5_CAN0TX         
-// GPIO_PORTF_BASE	GPIO_PIN_0 | GPIO_PIN_3		GPIO_PF0_CAN0RX         GPIO_PF3_CAN0TX         
-
 #else
 
 #define CAN_PORT_BASE	GPIO_PORTD_BASE
@@ -364,7 +374,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 // static const u8 can_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1 };
 #endif
 
-/* This assumes that RX and TX pins will be on same port.  
+/* Code assumes that RX and TX pins will be on same port.  
 Stellarisware defines the following for some CPUs (e.g. 8962)
 #define CAN0RX_PERIPH           SYSCTL_PERIPH_GPIOD
 #define CAN0RX_PORT             GPIO_PORTD_BASE
@@ -515,7 +525,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 // Think I fixed the defines, but haven't looked at the code to figure out
 // Whether might work on LM4F or if needs more fixing.
-// LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
+// FIXME: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
 //
 
 #ifdef FORLM4F120
@@ -1111,7 +1121,7 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 #endif
 
 // PWM generators
-#if EMULATE_PWM
+#if defined ( EMULATE_PWM )
 
 static BOOL pwm_enabled[NUM_PWM] = { FALSE };
 
@@ -1144,7 +1154,7 @@ const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_
 // TODO: What do these do on a system with no PWMs?
 static void pwms_init()
 {
-#if EMULATE_PWM
+#if defined( EMULATE_PWM )
 //TODO: Write me!!
 //  for(id = 0; id < NUM_PWM; id++)
 //	pwm_enabled[id] = FALSE;
