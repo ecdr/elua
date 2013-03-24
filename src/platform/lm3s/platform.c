@@ -237,6 +237,10 @@ int platform_init()
 //   in order to use as GPIO have to unlock it to reprogram - either need to handle in driver, or 
 //   provide way to do this from eLua program.
 //  At very least should throw an error when asked to do things it can not (like set F0 as input)
+// TODO: PD7 can also be NMI - see if needs special handling to use
+
+// PC0 - PC3 are JTAG pins, may also need or want special precautions
+
 
 #else
   const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
@@ -349,6 +353,9 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #define PIN_CAN0TX	GPIO_PE5_CAN0TX
 
 #elif CAN_PORT==F
+
+// FIXME: This will not work - have to do special things to reprogram PF0 (NMI)
+#error Need to fix code to allow reprogramming of pin PF_0
 
 #define CAN_PORT_BASE	GPIO_PORTF_BASE
 #define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_3 )
@@ -1519,6 +1526,7 @@ int platform_adc_start_sequence()
 const static u32 comp_in_ports[] =  { GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
 const static u8 comp_in_pins[] =    { GPIO_PIN_6, GPIO_PIN_7, GPIO_PIN_5, GPIO_PIN_4 };
 
+// FIXME: Need special handling to reprogram Port F0, also note F1 is chanel of LED
 const static u32 comp_out_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTF_BASE };
 const static u8 comp_out_pins[] =    { GPIO_PIN_0, GPIO_PIN_1 };
 
