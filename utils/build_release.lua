@@ -10,7 +10,9 @@ local rel = args[ 1 ]
 local boards = 
 { 
   'SAM7-EX256', 'EK-LM3S1968', 'EK-LM3S8962', 'EK-LM3S6965',
-  'EK-LM3S9B92', 'STR-E912', 'LPC-H2888',
+  'EK-LM3S9B92', 
+  { board = 'EK-LM4F120', options = "target=lualong" },
+  'STR-E912', 'LPC-H2888',
   'MOD711', 'STM3210E-EVAL', 
   { board = 'ATEVK1100', options = '' },
   { board = 'ATEVK1101', options = '' },
