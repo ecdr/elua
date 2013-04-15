@@ -621,6 +621,8 @@ static void spis_init()
 // TODO: fix Pin Mux
 #ifdef USE_PIN_MUX
 
+// TODO: Instead should probably do pin configure first time actually setup a SPI port (so don't configure unused ports)
+
   for( i = 0; i < NUM_SPI; i ++ ){
     GPIOPinConfigure(ssi_rx_pin[i]);
     GPIOPinConfigure(ssi_tx_pin[i]);
@@ -634,6 +636,7 @@ static void spis_init()
     MAP_SysCtlPeripheralEnable( spi_sysctl[ i ] );
 }
 
+// cpol - clock polarity (0 or 1), cpha - clock phase (0 or 1)
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
   unsigned protocol;
@@ -937,6 +940,7 @@ const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE,
 					WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
 					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
 // FIXME: Remove wide timers if using them for PWMs
+// TODO: TIMER0 B and TIMER1 A, B output pins are PWMs for RGB LED - maybe should make them PWMs
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
