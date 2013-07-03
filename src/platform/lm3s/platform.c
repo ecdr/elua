@@ -220,7 +220,7 @@ int platform_init()
 // LM4F120 has 6 ports
 
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
-  const u32 pio_base[] = { GPIO_PD1_CAN0TX_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
+  const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
                                   GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE, 
                                   GPIO_PORTJ_BASE };
                                   
