@@ -37,7 +37,7 @@ if board == 'EK-LM3S9B92'  then
    ldscript = "lm3s-9b92.ld"
 elseif board == 'SOLDERCORE' or board == "EK-LM3S9D92" then
    ldscript = "lm3s-9d92.ld"
-elseif cpu == 'LM4F120' then
+elseif board == 'EK-LM4F120' then
    ldscript = "lm4f.ld"
 else
    ldscript = "lm3s.ld"
@@ -48,7 +48,7 @@ specific_files = fwlib_files .. " " .. utils.prepend_path( specific_files, "src/
 specific_files = specific_files .. " src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c"
 ldscript = sf( "src/platform/%s/%s", platform, ldscript )
 
-if cpu == 'LM4F120' then
+if board == 'EK-LM4F120' then
     addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M4' }
 else
     addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
@@ -60,11 +60,13 @@ addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,-
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }
 addlib{ 'c','gcc','m' }
 
+local target_flags
+
 -- Todo: turn on FPU
-if cpu == 'LM4F120' then
-    local target_flags =  {'-mcpu=cortex-m4','-mthumb' }
+if board == 'EK-LM4F120' then
+    target_flags =  {'-mcpu=cortex-m4','-mthumb' }
 else
-    local target_flags =  {'-mcpu=cortex-m3','-mthumb' }
+    target_flags =  {'-mcpu=cortex-m3','-mthumb' }
 end
 
 -- Configure general flags for target
