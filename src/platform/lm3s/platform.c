@@ -25,6 +25,7 @@
 
 // Platform specific includes
 
+// PART_ macro MUST be defined BEFORE including pin_map.  
 
 #include "driverlib/pin_map.h"
 #include "driverlib/debug.h"
@@ -219,7 +220,7 @@ int platform_init()
 // LM4F120 has 6 ports
 
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
-  const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
+  const u32 pio_base[] = { GPIO_PD1_CAN0TX_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
                                   GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE, 
                                   GPIO_PORTJ_BASE };
                                   
@@ -372,9 +373,17 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #define CAN_PORT_BASE	GPIO_PORTD_BASE
 #define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_1 )
 
+#if defined( FORLM3S8962 )
+// Figure out what these should be on 3s8962 - not sure why below not defined
+#define PIN_CAN0RX	CAN0RX_PIN
+#define PIN_CAN0TX	CAN0TX_PIN
+#warning Do not use can - pins not set up right
+#else
 // Check this - does it work on 8962?  (Not sure that GPIO_PD0_CAN0RX, TX are defined on that platform)
+// FixMe: Doesn't work on 8962
 #define PIN_CAN0RX	GPIO_PD0_CAN0RX
 #define PIN_CAN0TX	GPIO_PD1_CAN0TX
+#endif
 
 // For multiple CANs:
 // static const u32 can_gpio_base[] = { GPIO_PORTD_BASE };
@@ -857,7 +866,16 @@ const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
 static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2 };
 static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
 static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
+
+// Something wrong here - not defined for LM3s8962
+#ifdef FORLM3S8962
+#warning Uses undefined symbols - need to track down this problem
+static const u32 uart_gpiofunc[] = { 0, 0, 0, 0, 0, 0 };
+
+#else
 static const u32 uart_gpiofunc[] = { GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PD2_U1RX, GPIO_PD3_U1TX, GPIO_PG0_U2RX, GPIO_PG1_U2TX };
+#endif
+
 #endif
 
 static void uarts_init()
@@ -1061,7 +1079,8 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // Similar on LM3S8962 and LM3S6965
 // LM3S6918 has no PWM
 
-#ifdef BUILD_PWM
+#if ( NUM_PWM > 0 )
+// #ifdef BUILD_PWM
 
 #ifdef EMULATE_PWM
 // TODO: Implement clock divisors (at moment just uses system clock)
@@ -2030,6 +2049,8 @@ int platform_flash_erase_sector( u32 sector_id )
 // ****************************************************************************
 // Platform specific modules go here
 
+/* This all was removed from master - don't know what it did
+
 #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
 
 #define MIN_OPT_LEVEL 2
@@ -2079,6 +2100,7 @@ LUALIB_API int luaopen_platform( lua_State *L )
 
 #endif // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
 
+*/
 
 
 // Assertion failure error handler
@@ -2090,5 +2112,4 @@ __error__(char *pcFilename, unsigned long ulLine)
 {
 }
 #endif
-
 
