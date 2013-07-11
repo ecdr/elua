@@ -1,4 +1,4 @@
--- Configuration file for the LM3S and LM4F microcontroller
+-- Configuration file for the LM3S and LM4F/TM4C microcontroller
 
 addi( sf( 'src/platform/%s/inc', platform ) )
 addi( sf( 'src/platform/%s/driverlib', platform ) )
@@ -9,6 +9,7 @@ local board = comp.board:upper()
 -- Only include USB headers/paths for boards which support it
 -- TODO: LM4F120 has USB, but may not have enough memory to use it in eLua
 -- TODO: USB should have a single flag to control it, rather than constantly testing for a list of boards.
+-- TODO: (or board == 'EK-LM4F120' or board == 'EK-TM4C123' )
 if cpu == 'LM3S9B92' or cpu == 'LM3S9D92' then
   addi( sf( 'src/platform/%s/usblib', platform ) )
   addi( sf( 'src/platform/%s/usblib/device', platform ) )
@@ -39,7 +40,7 @@ if board == 'EK-LM3S9B92'  then
    ldscript = "lm3s-9b92.ld"
 elseif board == 'SOLDERCORE' or board == "EK-LM3S9D92" then
    ldscript = "lm3s-9d92.ld"
-elseif board == 'EK-LM4F120' then
+elseif board == 'EK-LM4F120' or board == 'EK-TM4C123' then
    ldscript = "lm4f.ld"
 else
    ldscript = "lm3s.ld"
@@ -50,7 +51,7 @@ specific_files = fwlib_files .. " " .. utils.prepend_path( specific_files, "src/
 specific_files = specific_files .. " src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c"
 ldscript = sf( "src/platform/%s/%s", platform, ldscript )
 
-if board == 'EK-LM4F120' then
+if board == 'EK-LM4F120' or board == "EK-TM4C123" then
     addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M4' }
 else
     addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
@@ -65,7 +66,7 @@ addlib{ 'c','gcc','m' }
 local target_flags
 
 -- Todo: turn on FPU
-if board == 'EK-LM4F120' then
+if board == 'EK-LM4F120' or board == "EK-TM4C123" then
     target_flags =  {'-mcpu=cortex-m4','-mthumb' }
 else
     target_flags =  {'-mcpu=cortex-m3','-mthumb' }
