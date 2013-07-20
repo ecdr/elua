@@ -26,6 +26,6 @@ return {
     generic = { 'all', '-i2c' },
     platform = 'all',
   },
-  macros = { { "PART_LM3S8962", "" }, },	-- Need to make pin_map to work
+  macros = { { "PART_LM3S8962", "" }, },	-- Need to make pin_map work
 }
 

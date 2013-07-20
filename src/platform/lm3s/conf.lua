@@ -5,7 +5,8 @@ addi( sf( 'src/platform/%s/driverlib', platform ) )
 local cpu = comp.board:upper()
 
 -- Only include USB headers/paths for boards which support it
--- TODO: LM4F120 has USB, but may not have enough memory to use it in eLua (or cpu == 'LM4F120' )
+-- TODO: LM4F120 has USB, but may not have enough memory to use it in eLua
+-- TODO: USB should have a single flag to control it, rather than constantly testing for a list of boards.
 if cpu == 'LM3S9B92' or board == 'LM3S9D92' then
   addi( sf( 'src/platform/%s/usblib', platform ) )
   addi( sf( 'src/platform/%s/usblib/device', platform ) )
@@ -26,7 +27,7 @@ if board == 'EAGLE-100' then
   addlf '-Wl,-Ttext,0x2000'
 end
 
--- TODO: LM4F120 has USB, but may not have enough memory to use it in eLua
+-- ToDo: USB test again
 if cpu == 'LM3S9B92' or cpu == 'LM3S9D92' then
    fwlib_files = fwlib_files .. " " .. utils.get_files( "src/platform/" .. platform .. "/usblib", ".*%.c$" ) 
    fwlib_files = fwlib_files .. " " .. utils.get_files( "src/platform/" .. platform .. "/usblib/device", ".*%.c$" )
