@@ -1343,8 +1343,11 @@ void platform_pwm_stop( unsigned id )
   // FIXME: Not sure what this does
   #define ADC_PIN_CONFIG
 
+
 // 2 ADC
-  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1 };
+//  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1 };
+// Add temperature sensor as last channel
+  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_TS };
 
 // ToDo: Probably should make adc_ints only have 2 items also.
 
@@ -1354,6 +1357,12 @@ const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_C
 #endif
 
 const static u32 adc_ints[] = { INT_ADC0, INT_ADC1, INT_ADC2, INT_ADC3 };
+
+
+//ToDo: Add error checking for NUM_ADC
+//#if (NUM_ADC > sizeof(adc_ctls))
+//#error More ADC specified than hardware has.
+//#endif
 
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
@@ -1489,13 +1498,15 @@ int platform_adc_update_sequence( )
   {
     MAP_ADCSequenceStepConfigure( ADC_BASE, d->seq_id, d->seq_ctr, adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
 #ifdef ADC_PIN_CONFIG
-    MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
+    if (adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] != ADC_CTL_TS)	// Temperature sensor channel does not have pin
+        MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
 #endif
     d->seq_ctr++;
   }
   MAP_ADCSequenceStepConfigure( ADC_BASE, d->seq_id, d->seq_ctr, ADC_CTL_IE | ADC_CTL_END | adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
 #ifdef ADC_PIN_CONFIG
-  MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
+  if (adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] != ADC_CTL_TS)	// Temperature sensor channel does not have pin
+    MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
 #endif
   d->seq_ctr = 0;
   
