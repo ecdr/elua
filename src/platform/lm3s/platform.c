@@ -1328,9 +1328,6 @@ void platform_pwm_stop( unsigned id )
 #elif defined( FORLM4F120 )
 
 // 11 Pins - AIN0 .. AIN 11
-// ToDo: Maybe add Temperature sensor?
-// Not sure that ports/pins are set up way code is designed
-//   (It may assume one port per ADC, rather than having a choice of ports for each ADC)
 
   const static u32 adc_ports[] =  { GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE,
                                     GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE,
@@ -1340,16 +1337,19 @@ void platform_pwm_stop( unsigned id )
                                     GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0,
                                     GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_4, GPIO_PIN_5, };
 
-  // FIXME: Not sure what this does
+// Do pin maping
   #define ADC_PIN_CONFIG
 
 
-// 2 ADC
-//  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1 };
-// Add temperature sensor as last channel
-  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_TS };
+  const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3,
+                                  ADC_CTL_CH4, ADC_CTL_CH5, ADC_CTL_CH6, ADC_CTL_CH7,
+                                  ADC_CTL_CH8, ADC_CTL_CH9, ADC_CTL_CH10, ADC_CTL_CH11,
+                                  ADC_CTL_TS };
 
-// ToDo: Probably should make adc_ints only have 2 items also.
+// Add temperature sensor as last channel
+
+// ToDo: Have 2 ADC, could figure how to split the work
+// ToDo: Not sure how many ADC ints should have.  (Is it one per ADC or ?)
 
 #else
 

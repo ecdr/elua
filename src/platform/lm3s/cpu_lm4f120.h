@@ -17,7 +17,7 @@
 #define NUM_PWM               0	// ToDo: Simulate with wide timers
 #define NUM_I2C			4	// ToDo: Not written yet for lm3
 #define NUM_COMP			2	// ToDo: Not written yet
-#define NUM_ADC               3	// Actually 2 channels, temperature sensor is 3rd channel (number 2)
+#define NUM_ADC               13	// Actually 12 channels, temperature sensor is last channel
 #define NUM_CAN               1
 
 
