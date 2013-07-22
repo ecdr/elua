@@ -337,6 +337,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 // GPIO_PORTE_BASE	GPIO_PIN_4 | GPIO_PIN_5		GPIO_PE4_CAN0RX         GPIO_PE5_CAN0TX         
 // GPIO_PORTF_BASE	GPIO_PIN_0 | GPIO_PIN_3		GPIO_PF0_CAN0RX         GPIO_PF3_CAN0TX         
 
+// FIXME: CAN_PORT should be selected in board file
 
 #if CAN_PORT==B
 #define CAN_PORT_BASE	GPIO_PORTB_BASE
@@ -356,6 +357,8 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #elif CAN_PORT==F
 
 // FIXME: This will not work - have to do special things to reprogram PF0 (NMI)
+// Also note that F0 is connected to pushbutton, and F3 is connected to RGB LED (so would have to modify LP to use)
+
 #error Need to fix code to allow reprogramming of pin PF_0
 
 #define CAN_PORT_BASE	GPIO_PORTF_BASE

@@ -16,7 +16,8 @@ return {
     adc = { buf_size = 2 },	-- Not sure about this
     xmodem = true,
 -- MMCFS works (No MMC slot on board, but can use boosterpack)
---    mmcfs = { spi = 0, cs_port = 0, cs_pin = 6 },
+-- ToDo: Was pin 6 for earlier trial, pin 3 replaces FSS  I think code doesn't use FSS, but check that
+--    mmcfs = { spi = 0, cs_port = 0, cs_pin = 3 },	
   },
   config = {
     vtmr = { num = 4, freq = 4 },
