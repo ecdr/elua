@@ -234,13 +234,15 @@ int platform_init()
   const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF };
 
-// FIXME: LM4F120 pin F0 is MUXed with NMI, also connected to switch on Stellaris Launchpad
-//   in order to use as GPIO have to unlock it to reprogram - either need to handle in driver, or 
-//   provide way to do this from eLua program.
-//  At very least should throw an error when asked to do things it can not (like set F0 as input)
-// TODO: PD7 can also be NMI - see if needs special handling to use
+// LM4F120 pin F0 is MUXed with NMI, also connected to button on Stellaris Launchpad
+//  In order to use as GPIO have to unlock it to reprogram
+//  Added option to unlock in driver.
+//  PD7 can also be NMI, also needs unlock
 
-// PC0 - PC3 are JTAG pins, may also need or want special precautions
+// PC0 - PC3 are JTAG pins - also need special handling to reprogram 
+//  Reprogramming could make chip hard to reflash, so not unlocked in driver.
+
+//  Fixme: Locked pins should return an error when asked to do things can not (like set PF0 as input)
 
 
 #else
@@ -257,6 +259,15 @@ static void pios_init()
 
   for( i = 0; i < NUM_PIO; i ++ )
     MAP_SysCtlPeripheralEnable(pio_sysctl[ i ]);
+#ifdef PIO_UNLOCK_NMI
+// Unlock PD7 and PF0 (NMI) so can reprogram
+    GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
+    GPIO_PORTD_CR_R = 0xFF;
+    GPIO_PORTD_LOCK_R = 0;
+    GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
+    GPIO_PORTF_CR_R = 0xFF;
+    GPIO_PORTF_LOCK_R = 0;
+#endif //UNLOCK_NMI
 }
 
 pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )

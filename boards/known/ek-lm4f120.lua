@@ -29,8 +29,9 @@ return {
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
     platform = 'all', '-pwm'
   },
--- Needed for PIN_MAP.
-  macros = { { "PART_LM4F120H5QR", "" } },
+  macros = { { "PART_LM4F120H5QR", "" },	-- Needed for PIN_MAP.
+		{" PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
+  },
   build = {
     target = "lualong"			-- Integer only to conserve memory
   }
