@@ -25,7 +25,7 @@
 
 // Platform specific includes
 
-// PART_ macro MUST be defined BEFORE including pin_map.  
+// PART_ macro MUST be defined BEFORE including pin_map.
 
 #include "driverlib/pin_map.h"
 #include "driverlib/debug.h"
@@ -383,6 +383,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #error Need to define PIO_UNLOCK_NMI, or fix code to allow reprogramming of pin PF_0
 #endif
 
+
 #define CAN_PORT_BASE	GPIO_PORTF_BASE
 #define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_3 )
 
@@ -438,14 +439,16 @@ Stellarisware defines the following for some CPUs (e.g. 8962)
 
 // TODO: generalize to multiple CANs 
 
-// static const u32 can_base[] = { CAN0_BASE };
-// static const u32 can_sysctl[] = { SYSCTL_PERIPH_CAN0 };
+static const u32 can_base[] = { CAN0_BASE };
+
+static const u32 can_sysctl[] = { SYSCTL_PERIPH_CAN0 };
 // static const peripheral cans[] = { {CAN0_BASE, SYSCTL_PERIPH_CAN0} };
 
-// static const u32 can_int[] = { INT_CAN0 };
+static const u32 can_int[] = { INT_CAN0 };
+
 // Would also need to make can data fields into array
-// typedef struct {u32 rx_flag, tx_flag, err_flag; char tx_buf[PLATFORM_CAN_MAXLEN]; tCANMsgObject msg_rx;} can_status;
-// can_status can_stat[NUM_CAN];
+// typedef struct {volatile u32 rx_flag, tx_flag, err_flag; char tx_buf[PLATFORM_CAN_MAXLEN]; tCANMsgObject msg_rx;} can_status;
+// can_status can_stat[NUM_CAN-1];
 
 
 // FIXME: Not clear why the flags are u32 (looks like a BOOL, byte or a bit would do as well)
@@ -464,62 +467,86 @@ tCANMsgObject can_msg_rx;
 #define LM3S_CAN_CLOCK  SysCtlClockGet()
 #endif
 
+void CANIntHandler(unsigned id);
 
-void CANIntHandler(void)
+void can0_handler(void)
 {
-  u32 status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
+	CANIntHandler(0);
+}
+
+void can1_handler(void);
+{
+	CANIntHandler(1);
+}
+
+void can2_handler(void);
+{
+	CANIntHandler(2);
+}
+
+
+void CANIntHandler(unsigned id)
+{
+// Fixme: Needs to handle multiple CANs (flags)
+
+  u32 status = CANIntStatus(can_base[id], CAN_INT_STS_CAUSE);
 
 // ToDO: Why not use a switch statement?
   if(status == CAN_INT_INTID_STATUS)
   {
-    status = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
+    status = CANStatusGet(can_base[id], CAN_STS_CONTROL);
 // Why is the status fetched but not used?
     can_err_flag = 1;
     can_tx_flag = 0;
   }
   else if( status == 1 ) // Message receive
   {
-    CANIntClear(CAN0_BASE, 1);
+    CANIntClear(can_base[id], 1);
     can_rx_flag = 1;
     can_err_flag = 0;
   }
   else if( status == 2 ) // Message send
   {
-    CANIntClear(CAN0_BASE, 2);
+    CANIntClear(can_base[id], 2);
     can_tx_flag = 0;
     can_err_flag = 0;
   }
   else
-    CANIntClear(CAN0_BASE, status);
+    CANIntClear(can_base[id], status);
 }
 
 
 void cans_init( void )
 {
-  MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 ); 
-  MAP_CANInit( CAN0_BASE );
-  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, 500000);
-  MAP_CANIntEnable( CAN0_BASE, CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
-  MAP_IntEnable(INT_CAN0);
-  MAP_CANEnable(CAN0_BASE);
+  unsigned id;
 
-  // Configure default catch-all message object
-  can_msg_rx.ulMsgID = 0;
-  can_msg_rx.ulMsgIDMask = 0;
-  can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
-  can_msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;
-  MAP_CANMessageSet(CAN0_BASE, 1, &can_msg_rx, MSG_OBJ_TYPE_RX);
+  for( id = 0; id < NUM_CAN; id++){
+	MAP_SysCtlPeripheralEnable( can_sysctl[id] );
+	MAP_CANInit( can_base[id] );
+	CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, 500000);
+	MAP_CANIntEnable(can_base[id], CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
+	MAP_IntEnable(can_int[id]);
+	MAP_CANEnable(can_base[id]);
+
+  	// Configure default catch-all message object
+	can_msg_rx.ulMsgID = 0; 					// Fixme: multi-can
+	can_msg_rx.ulMsgIDMask = 0; 					// Fixme: multi-can
+	can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER; 					// Fixme: multi-can
+      can_msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;		// Fixme: multi-can
+	MAP_CANMessageSet(can_base[id], 1, &can_msg_rx, MSG_OBJ_TYPE_RX); 		// Fixme: multi-can
+   }
 }
 
 u32 platform_can_setup( unsigned id, u32 clock )
-{  
+{
+  //Fixme: adapt pin map to multiple CANs
   GPIOPinConfigure(PIN_CAN0RX);
   GPIOPinConfigure(PIN_CAN0TX);
   MAP_GPIOPinTypeCAN(CAN_PORT_BASE, CAN_PORT_PINS);
 
-  MAP_CANDisable(CAN0_BASE);
-  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, clock );
-  MAP_CANEnable(CAN0_BASE);
+  MAP_CANDisable(can_base[id]);
+  CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, clock );
+  MAP_CANEnable(can_base[id]);
   return clock;
 }
 
@@ -529,6 +556,7 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   const char *s = ( char * )data;
   char *d;
 
+	// Fixme: multi-can
   // Wait for outgoing messages to clear
   while( can_tx_flag == 1 );
 
@@ -546,16 +574,17 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
   can_tx_flag = 1;
-  CANMessageSet(CAN0_BASE, 2, &msg_tx, MSG_OBJ_TYPE_TX);
+  CANMessageSet(can_base[id], 2, &msg_tx, MSG_OBJ_TYPE_TX);
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
+	// Fixme: multi-can
   // wait for a message
   if( can_rx_flag != 0 )
   {
     can_msg_rx.pucMsgData = data;
-    CANMessageGet(CAN0_BASE, 1, &can_msg_rx, 0);
+    CANMessageGet(can_base[id], 1, &can_msg_rx, 0);
     can_rx_flag = 0;
 
     *canid = ( u32 )can_msg_rx.ulMsgID;
@@ -580,6 +609,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 // FIXME: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
 //  Port D, uses same pins as SSI3
 //  Port F, uses pins connected to buttons and LED
+//
 
 #if defined( FORLM4F120 ) || defined ( FORLM4F230 )
 static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE, SSI2_BASE, SSI3_BASE };
@@ -677,7 +707,7 @@ static void spis_init()
     MAP_GPIOPinConfigure(ssi_rx_pin[i]);
     MAP_GPIOPinConfigure(ssi_tx_pin[i]);
     MAP_GPIOPinConfigure(ssi_clk_pin[i]);
-//    GPIOPinConfigure(ssi_fss_pin[i]);
+//    MAP_GPIOPinConfigure(ssi_fss_pin[i]);
   };
 #endif
 #endif
@@ -1419,7 +1449,6 @@ void platform_pwm_stop( unsigned id )
 // Do pin maping
   #define ADC_PIN_CONFIG
 
-
   const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3,
                                   ADC_CTL_CH4, ADC_CTL_CH5, ADC_CTL_CH6, ADC_CTL_CH7,
                                   ADC_CTL_CH8, ADC_CTL_CH9, ADC_CTL_CH10, ADC_CTL_CH11,
@@ -1436,7 +1465,6 @@ const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_C
 #endif
 
 const static u32 adc_ints[] = { INT_ADC0, INT_ADC1, INT_ADC2, INT_ADC3 };
-
 
 //ToDo: Add error checking for NUM_ADC
 //#if (NUM_ADC > sizeof(adc_ctls))

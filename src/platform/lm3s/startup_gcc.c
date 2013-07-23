@@ -81,7 +81,12 @@ extern void ADCIntHandler(void);
 #endif
 
 #if defined( BUILD_CAN )
-extern void CANIntHandler(void);
+// extern void CANIntHandler(void);
+
+extern void can0_handler(void);
+extern void can1_handler(void);
+extern void can2_handler(void);
+
 #endif
 
 // Handlers from usblib (usbdevice.h)
@@ -193,12 +198,29 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // I2C1 Master and Slave
     IntDefaultHandler,                      // Quadrature Encoder 1
 #if defined( BUILD_CAN )
-    CANIntHandler,                          // CAN0
+#if NUM_CAN > 0
+    can0_handler(),                         // CAN0
 #else
     IntDefaultHandler,                      // CAN0
 #endif
+#if NUM_CAN > 1
+    can1_handler(),
+#else
+    IntDefaultHandler,                      // CAN1
+#endif
+#if NUM_CAN > 2
+    can2_handler(),
+#else
+    IntDefaultHandler,                      // CAN2
+#endif
+#if NUM_CAN > 3
+#error Maximum of 3 CAN supported
+#endif
+#else
+    IntDefaultHandler,                      // CAN0
     IntDefaultHandler,                      // CAN1
     IntDefaultHandler,                      // CAN2
+#endif
     EthernetIntHandler,                     // Ethernet
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 ) || defined( FORLM4F230 )
     IntDefaultHandler,                      // Hibernate
