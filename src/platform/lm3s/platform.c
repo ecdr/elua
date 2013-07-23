@@ -367,10 +367,13 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 #elif CAN_PORT==F
 
-// FIXME: This will not work - have to do special things to reprogram PF0 (NMI)
-// Also note that F0 is connected to pushbutton, and F3 is connected to RGB LED (so would have to modify LP to use)
+// Note that F0 is connected to pushbutton, and F3 is connected to RGB LED (so would have to modify LP to use)
 
-#error Need to fix code to allow reprogramming of pin PF_0
+#if PIO_UNLOCK_NMI
+#warning CAN using portF, but PF0 and PF3 connected to peripherals on launchpad.
+#else
+#error Need to define PIO_UNLOCK_NMI, or fix code to allow reprogramming of pin PF_0
+#endif
 
 #define CAN_PORT_BASE	GPIO_PORTF_BASE
 #define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_3 )
@@ -551,12 +554,13 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 // ****************************************************************************
 // SPI
 
-// FORLM4F120 has 4 SPIs - need way to specify how many to use
+// LM4F120 has 4 SPIs - need way to specify how many to use
 
 // Think I fixed the defines, but haven't looked at the code to figure out
 // Whether might work on LM4F or if needs more fixing.
 // FIXME: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
-//
+//  Port D, uses same pins as SSI3
+//  Port F, uses pins connected to buttons and LED
 
 #ifdef FORLM4F120
 static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE, SSI2_BASE, SSI3_BASE };
@@ -644,12 +648,13 @@ static void spis_init()
 // TODO: fix Pin Mux
 #ifdef USE_PIN_MUX
 
+#error Debug: USE_PIN_MUX is on
 // TODO: Instead should probably do pin configure first time actually setup a SPI port (so don't configure unused ports)
 
   for( i = 0; i < NUM_SPI; i ++ ){
-    GPIOPinConfigure(ssi_rx_pin[i]);
-    GPIOPinConfigure(ssi_tx_pin[i]);
-    GPIOPinConfigure(ssi_clk_pin[i]);
+    MAP_GPIOPinConfigure(ssi_rx_pin[i]);
+    MAP_GPIOPinConfigure(ssi_tx_pin[i]);
+    MAP_GPIOPinConfigure(ssi_clk_pin[i]);
 //    GPIOPinConfigure(ssi_fss_pin[i]);
   };
 #endif

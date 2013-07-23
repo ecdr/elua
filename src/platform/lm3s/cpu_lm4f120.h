@@ -14,11 +14,11 @@
 #define NUM_SPI               4
 #define NUM_UART              4	// Max is 8
 #define NUM_TIMER             6	// Max is 12
-#define NUM_PWM               0	// ToDo: Simulate with wide timers
+#define NUM_PWM               0	// ToDo: Simulate with timers
 #define NUM_I2C			4	// ToDo: Not written yet for lm3
 #define NUM_COMP			2	// ToDo: Not written yet
 #define NUM_ADC               13	// Actually 12 channels, temperature sensor is last channel
-#define NUM_CAN               1
+#define NUM_CAN               1	// Max is 1
 
 
 
@@ -35,10 +35,11 @@
 
 // ToDo: LM4F has CAN, but disabled until get other things working
 
-// ToDo: working on I2C
+// ToDo: working on EEPROM - eLua code, platform code
 
-// ToDo: working on comparators
+// ToDo: working on I2C - need platform code
 
+// ToDo: working on comparators - need eLua code, need platform code
 
 // ToDo: Maybe build USB CDC for LM4F120?  (but probably not enough RAM)  (see SOLDERCORE)
 
@@ -104,9 +105,6 @@
 #if defined( FORLM4F120 ) || defined( ELUA_BOARD_SOLDERCORE )
 #define USE_PIN_MUX
 #endif
-
-// PART_ - Needed for pin_map.h  - maybe better in the boards script?
-// #define PART_LM4F120H5QR
 
 // lm3s_pio.c has specifics for alternative pin mapping in eLua
 

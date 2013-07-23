@@ -30,7 +30,7 @@ return {
     platform = 'all', '-pwm'
   },
   macros = { { "PART_LM4F120H5QR", "" },	-- Needed for PIN_MAP.
-		{" PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
+		 { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
   },
   build = {
     target = "lualong"			-- Integer only to conserve memory
