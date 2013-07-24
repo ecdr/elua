@@ -10,6 +10,10 @@
 #define BUILD_CAN
 #endif
 
+// The following construct created by the linker, common.c declares it as array of char, so did same here compatibility
+//extern unsigned long end;
+extern char end[];
+
 #define PLATFORM_CPU_CONSTANTS_PLATFORM\
   _C( INT_GPIOA ),\
   _C( INT_GPIOB ),\

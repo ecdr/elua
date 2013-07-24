@@ -157,6 +157,8 @@
 #define SRAM_SIZE ( 0x08000 )
 // Allocator data: define your free memory zones here in two arrays
 // (start address and end address)
+
+// First_Free is a run time variable defined by linker, common.c defines it as type array of char
 #define INTERNAL_RAM1_FIRST_FREE        end
 #define INTERNAL_RAM1_LAST_FREE         ( SRAM_BASE + SRAM_SIZE - STACK_SIZE_TOTAL - 1 )
 
