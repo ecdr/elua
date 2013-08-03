@@ -30,4 +30,13 @@ extern void tmr3_handler();
 extern void tmr4_handler();
 extern void tmr5_handler();
 
+#if defined( FORLM4F120 )
+extern void tmr6_handler(void);
+extern void tmr7_handler(void);
+extern void tmr8_handler(void);
+extern void tmr9_handler(void);
+extern void tmr10_handler(void);
+extern void tmr11_handler(void);
+#endif // defined( FORLM4F120 )
+
 #endif

@@ -46,7 +46,6 @@
 // ****************************************************************************
 // Interrupt handlers
 
-// FIXME: So why are the interrupt IDs here, rather than with the other information about the various sources?
 // FIXME: Why are some of the interrupt handlers here, and some in platform.c (CAN, ADC, EtherNet, SysTick)
 
 extern const u32 uart_base[];
@@ -206,7 +205,7 @@ static void tmr_common_handler( elua_int_resnum id )
   if( lm3s_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
   {
     MAP_TimerIntDisable( base, TIMER_TIMA_TIMEOUT );
-    MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+    MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );	// TIMER_MAX_COUNT 
   }
   cmn_int_handler( INT_TMR_MATCH, id );
 }
@@ -241,6 +240,39 @@ void tmr5_handler()
   tmr_common_handler( 5 );
 }
 
+#if defined( FORLM4F120 )
+
+void tmr6_handler()
+{
+  tmr_common_handler( 6 );
+}
+
+void tmr7_handler()
+{
+  tmr_common_handler( 7 );
+}
+
+void tmr8_handler()
+{
+  tmr_common_handler( 8 );
+}
+
+void tmr9_handler()
+{
+  tmr_common_handler( 9 );
+}
+
+void tmr10_handler()
+{
+  tmr_common_handler( 10 );
+}
+
+void tmr11_handler()
+{
+  tmr_common_handler( 11 );
+}
+
+#endif // defined( FORLM4F120 )
 
 // ****************************************************************************
 // Helpers
@@ -537,6 +569,41 @@ void tmr2_handler()
 void tmr3_handler()
 {
 }
+
+void tmr4_handler()
+{
+}
+
+void tmr5_handler()
+{
+}
+
+#if defined( FORLM4F120 )
+
+void tmr6_handler()
+{
+}
+
+void tmr7_handler()
+{
+}
+
+void tmr8_handler()
+{
+}
+
+void tmr9_handler()
+{
+}
+
+void tmr10_handler()
+{
+}
+
+void tmr11_handler()
+{
+}
+#endif 
 
 #endif // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 

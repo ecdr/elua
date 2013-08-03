@@ -971,13 +971,18 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 
 // FIXME LM4F120 has 12 timers (6 32 and 6 64 bit)
 
+#define TIMER_MAX_COUNT	0xFFFFFFFF
+
+
 #ifdef FORLM4F120
-const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
+const u32 timer_base[] = { 	TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
 					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, 
 					WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
 					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
-// FIXME: Remove wide timers if using them for PWMs
+// FIXME: Remove timers if using them for PWMs
 // TODO: TIMER0 B and TIMER1 A, B output pins are PWMs for RGB LED - maybe should make them PWMs
+
+#define WTIMER_MAX_COUNT	((u64) 0xFFFFFFFFFFFFFFFF)
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
@@ -991,6 +996,8 @@ static const u32 timer_sysctl[] = {
 // All possible LM3S timers defs
 const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
 static const u32 timer_sysctl[] = { SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, SYSCTL_PERIPH_TIMER3 };
+
+
 #endif // FORLM4F120
 
 static void timers_init()
@@ -1010,12 +1017,13 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
   timer_data_type final;
   u32 base = timer_base[ id ];
 
-  final = 0xFFFFFFFF - ( ( ( u64 )delay_us * MAP_SysCtlClockGet() ) / 1000000 );
-  MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+  final = TIMER_MAX_COUNT - ( ( ( u64 )delay_us * MAP_SysCtlClockGet() ) / 1000000 );
+  MAP_TimerLoadSet( base, TIMER_A, TIMER_MAX_COUNT );
   while( MAP_TimerValueGet( base, TIMER_A ) > final );
+	// Fixme: Looks like it does busy waiting for timer, consider sleep?
 }
 
-timer_data_type platform_s_timer_op( unsigned id, int op,timer_data_type data )
+timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
   u32 res = 0;
   u32 base = timer_base[ id ];
@@ -1024,9 +1032,9 @@ timer_data_type platform_s_timer_op( unsigned id, int op,timer_data_type data )
   switch( op )
   {
     case PLATFORM_TIMER_OP_START:
-      res = 0xFFFFFFFF;
+      res = TIMER_MAX_COUNT;
       MAP_TimerControlTrigger(base, TIMER_A, false);
-      MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+      MAP_TimerLoadSet( base, TIMER_A, TIMER_MAX_COUNT );
       break;
 
     case PLATFORM_TIMER_OP_READ:
@@ -1039,7 +1047,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op,timer_data_type data )
       break;
 
     case PLATFORM_TIMER_OP_GET_MAX_CNT:
-      res = 0xFFFFFFFF;
+      res = TIMER_MAX_COUNT;
       break;
 
   }
@@ -1067,6 +1075,7 @@ timer_data_type platform_timer_read_sys()
 }
 
 u8 lm3s_timer_int_periodic_flag[ NUM_TIMER ];
+
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
   u32 base = timer_base[ id ];
@@ -1077,7 +1086,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
     MAP_TimerDisable( base, TIMER_A );
     MAP_TimerIntDisable( base, TIMER_TIMA_TIMEOUT );
     MAP_TimerIntClear( base, TIMER_TIMA_TIMEOUT );
-    MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+    MAP_TimerLoadSet( base, TIMER_A, TIMER_MAX_COUNT );
     MAP_TimerEnable( base, TIMER_A );
     return PLATFORM_TIMER_INT_OK;
   }

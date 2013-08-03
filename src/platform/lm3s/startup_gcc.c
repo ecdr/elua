@@ -278,17 +278,17 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     tmr5_handler,                           // Timer 5 subtimer A
     IntDefaultHandler,                      // Timer 5 subtimer B
-    IntDefaultHandler,                      // Wide Timer 0 subtimer A
+    tmr6_handler,                           // Wide Timer 0 subtimer A
     IntDefaultHandler,                      // Wide Timer 0 subtimer B
-    IntDefaultHandler,                      // Wide Timer 1 subtimer A
+    tmr7_handler,                           // Wide Timer 1 subtimer A
     IntDefaultHandler,                      // Wide Timer 1 subtimer B
-    IntDefaultHandler,                      // Wide Timer 2 subtimer A
+    tmr8_handler,                           // Wide Timer 2 subtimer A
     IntDefaultHandler,                      // Wide Timer 2 subtimer B
-    IntDefaultHandler,                      // Wide Timer 3 subtimer A
+    tmr9_handler,                           // Wide Timer 3 subtimer A
     IntDefaultHandler,                      // Wide Timer 3 subtimer B
-    IntDefaultHandler,                      // Wide Timer 4 subtimer A
+    tmr10_handler,                          // Wide Timer 4 subtimer A
     IntDefaultHandler,                      // Wide Timer 4 subtimer B
-    IntDefaultHandler,                      // Wide Timer 5 subtimer A
+    tmr11_handler,                          // Wide Timer 5 subtimer A
     IntDefaultHandler,                      // Wide Timer 5 subtimer B
     IntDefaultHandler,                      // FPU
     IntDefaultHandler,                      // PECI 0
