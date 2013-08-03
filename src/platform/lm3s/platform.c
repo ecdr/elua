@@ -394,7 +394,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 // Figure out what these should be on 3s8962 - not sure why below not defined
 #define PIN_CAN0RX	CAN0RX_PIN
 #define PIN_CAN0TX	CAN0TX_PIN
-#warning Do not use can - pins not set up right
+#warning Do not use CAN - pins not set up right
 #else
 // Check this - does it work on 8962?  (Not sure that GPIO_PD0_CAN0RX, TX are defined on that platform)
 // FixMe: Doesn't work on 8962
@@ -427,14 +427,16 @@ Stellarisware defines the following for some CPUs (e.g. 8962)
 
 // static const u32 can_int[] = { INT_CAN0 };
 // Would also need to make can data fields into array
-// typedef struct {u32 rx_flag, tx_flag, err_flag; char tx_buf[8]; tCANMsgObject msg_rx;} can_status;
+// typedef struct {u32 rx_flag, tx_flag, err_flag; char tx_buf[PLATFORM_CAN_MAXLEN]; tCANMsgObject msg_rx;} can_status;
 // can_status can_stat[NUM_CAN];
 
+
+// FIXME: Not clear why the flags are u32 (looks like a BOOL, byte or a bit would do as well)
 
 volatile u32 can_rx_flag = 0;
 volatile u32 can_tx_flag = 0;
 volatile u32 can_err_flag = 0;
-char can_tx_buf[8];
+char can_tx_buf[PLATFORM_CAN_MAXLEN];
 tCANMsgObject can_msg_rx;
 
 // LM3S9Bxx and LM4F120 MCU CAN seems to run off of system clock, LM3S8962 has 8 MHz clock
@@ -488,7 +490,7 @@ void cans_init( void )
   can_msg_rx.ulMsgID = 0;
   can_msg_rx.ulMsgIDMask = 0;
   can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
-  can_msg_rx.ulMsgLen = 8;
+  can_msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;
   MAP_CANMessageSet(CAN0_BASE, 1, &can_msg_rx, MSG_OBJ_TYPE_RX);
 }
 
@@ -982,7 +984,7 @@ const u32 timer_base[] = { 	TIMER0_BASE, TIMER1_BASE, TIMER2_BASE,
 // FIXME: Remove timers if using them for PWMs
 // TODO: TIMER0 B and TIMER1 A, B output pins are PWMs for RGB LED - maybe should make them PWMs
 
-#define WTIMER_MAX_COUNT	((u64) 0xFFFFFFFFFFFFFFFF)
+//#define WTIMER_MAX_COUNT	((u64) 0xFFFFFFFFFFFFFFFF)
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
@@ -1093,7 +1095,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
   final = ( ( u64 )period_us * MAP_SysCtlClockGet() ) / 1000000;
   if( final == 0 )
     return PLATFORM_TIMER_INT_TOO_SHORT;
-  if( final > 0xFFFFFFFFULL )
+  if( final > 0xFFFFFFFFULL )				// todo: check
     return PLATFORM_TIMER_INT_TOO_LONG;
   lm3s_timer_int_periodic_flag[ id ] = type;
   MAP_TimerDisable( base, TIMER_A );
