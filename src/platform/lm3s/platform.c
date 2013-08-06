@@ -433,9 +433,9 @@ Stellarisware defines the following for some CPUs (e.g. 8962)
 
 // FIXME: Not clear why the flags are u32 (looks like a BOOL, byte or a bit would do as well)
 
-volatile u32 can_rx_flag = 0;
-volatile u32 can_tx_flag = 0;
-volatile u32 can_err_flag = 0;
+volatile u8 can_rx_flag = 0;
+volatile u8 can_tx_flag = 0;
+volatile u8 can_err_flag = 0;
 char can_tx_buf[PLATFORM_CAN_MAXLEN];
 tCANMsgObject can_msg_rx;
 
