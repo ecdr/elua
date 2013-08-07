@@ -56,10 +56,10 @@ static const u8 gpio_int_ids[] = { INT_GPIOA, INT_GPIOB, INT_GPIOC, INT_GPIOD, I
 extern const u32 timer_base[];
 extern u8 lm3s_timer_int_periodic_flag[ NUM_TIMER ];
 
-#ifdef FORLM4F140
+#ifdef FORLM4F120
   static const u8 timer_int_ids[] = { INT_TIMER0A, INT_TIMER1A, INT_TIMER2A, INT_TIMER3A, INT_TIMER4A, INT_TIMER5A };
   // INT_WTIMER0A, INT_WTIMER1A, INT_WTIMER2A, INT_WTIMER3A, INT_WTIMER4A, INT_WTIMER5A
-  static const u8 uart_int_ids = { INT_UART0, INT_UART1, INT_UART2, INT_UART3, INT_UART4, INT_UART5, INT_UART7, INT_UART6 };
+  static const u8 uart_int_ids[] = { INT_UART0, INT_UART1, INT_UART2, INT_UART3, INT_UART4, INT_UART5, INT_UART7, INT_UART6 };
 
 #else
   static const u8 timer_int_ids[] = { INT_TIMER0A, INT_TIMER1A, INT_TIMER2A, INT_TIMER3A };
