@@ -340,7 +340,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 // Added handle different port mapping (So far this assumed fixed ports PORTD)
 
-#if defined( FORLM4F120 ) || defined ( FORM4F230 )
+#if defined( FORLM4F120 ) || defined ( FORLM4F230 )
 
 // PIN information from LM4F120H5QR Datasheet
 
@@ -393,10 +393,11 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #error Unrecognized CAN port: CAN_PORT
 #endif // CAN_PORT
 
-#if defined ( FORM4F230 )	// LM4F230 only
+#if defined ( FORLM4F230 )	// LM4F230 only
 
-#define CAN1_BASE		GPIO_PORTA_BASE
-#define CAN1_PINS		( GPIO_PIN_0 | GPIO_PIN_1 )
+// CAN1_BASE already defined in hw_memmap.h
+//#define CAN1_BASE		GPIO_PORTA_BASE
+//#define CAN1_PINS		( GPIO_PIN_0 | GPIO_PIN_1 )
 
 #endif
 

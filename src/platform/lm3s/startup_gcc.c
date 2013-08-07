@@ -200,7 +200,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // CAN1
     IntDefaultHandler,                      // CAN2
     EthernetIntHandler,                     // Ethernet
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 ) || defined( FORLM4F230 )
     IntDefaultHandler,                      // Hibernate
 #if defined( BUILD_USB_CDC )
     USB0DeviceIntHandler,                   // USB0
@@ -217,10 +217,10 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // I2S0
     IntDefaultHandler,                      // External Bus Interface 0
 // suppress comma unless LM4F
-#if !( defined( FORLM4F120 )  || defined( FORLM4F230 ) )
-    gpioj_handler                           // GPIO Port J    
-#else
+#if defined( FORLM4F120 ) || defined( FORLM4F230 ) 
     gpioj_handler,                          // GPIO Port J    
+#else
+    gpioj_handler                           // GPIO Port J    
 #endif
 #else // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
     IntDefaultHandler                       // Hibernate

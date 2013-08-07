@@ -9,7 +9,7 @@
 -- return t
 
 return {
-  cpu = 'lm4f120',	-- Fixme: CPU 'tm4c123' or 'lm4f230'
+  cpu = 'lm4f230',	-- Fixme: CPU 'tm4c123' or 'lm4f230'
   components = {
     sercon = { uart = 0, speed = 115200 },
     wofs = true,
