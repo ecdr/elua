@@ -105,7 +105,7 @@
   _M( PD6_WT5CCP0 ),\
   _M( PD7_U2TX ),\
   _M( PD7_WT5CCP1 ),\
-  _M( PD7_NMI ),\	
+  _M( PD7_NMI ),\
   _M( PE0_U7RX ),\
   _M( PE1_U7TX ),\
   _M( PE4_U5RX ),\

@@ -179,7 +179,14 @@
   _C( INT_TIMER4B ),\
   _C( INT_TIMER5A ),\
   _C( INT_TIMER5B ),\
-  _C( INT_UART_RX ),
+  _C( INT_UART_RX ),\
+  _C( INT_GPIO_POSEDGE ),\
+  _C( INT_GPIO_NEGEDGE ),\
+  _C( INT_TMR_MATCH ),
+
+// Fixme: Added eLua ints, but suspect need to do for other lm3s
+// GPIO POSEDGE, NEGEDGE and TMR Match were after INT_UART_RX in platform_conf.h
+// Seem to have disappeared when platform_conf removed - not sure where best place to reintroduce 
 
 /*  These would handle the wide timers on LM4F120 - add if needed, before UART_RX
   _C( INT_WTIMER0A ),\
