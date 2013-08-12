@@ -17,7 +17,7 @@
 
 // Alternate function setting is not available on all CPUs
 // FIXME: Suspect this needs to be defined/extended to support LM4F120 (which has alternate PIO)
-#if defined( ELUA_CPU_LM3S9B92 ) || defined( ELUA_CPU_LM3S9D92 )
+#if defined( ELUA_CPU_LM3S9B92 ) || defined( ELUA_CPU_LM3S9D92 )  //   || defined( FOR_LM4F120 )
 #define LM3S_HAS_ALTERNATE_PIO
 #endif
 

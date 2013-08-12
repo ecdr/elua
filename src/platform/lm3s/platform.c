@@ -1076,6 +1076,7 @@ timer_data_type platform_timer_read_sys()
   return cmn_systimer_get();
 }
 
+// Todo: Could be optimized for memory - Can only have 2 (or maybe 3) values (Cyclic, 1 Time, invalid)
 u8 lm3s_timer_int_periodic_flag[ NUM_TIMER ];
 
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )

@@ -13,7 +13,7 @@
 #ifdef BUILD_SERMUX
 int uart_service_id_in = -1;
 int uart_service_id_out = -1;
-u8 uart_got_esc = 0;
+u8 uart_got_esc = 0;			// Todo: Seems to be a 1 bit flag
 int uart_last_sent = -1;
 // [TODO] add interrupt support for virtual UARTs
 #else // #ifdef BUILD_SERMUX
