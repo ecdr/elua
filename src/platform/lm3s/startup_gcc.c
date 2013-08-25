@@ -200,7 +200,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // CAN1
     IntDefaultHandler,                      // CAN2
     EthernetIntHandler,                     // Ethernet
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F )
     IntDefaultHandler,                      // Hibernate
 #if defined( BUILD_USB_CDC )
     USB0DeviceIntHandler,                   // USB0
@@ -216,17 +216,17 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // ADC1 Sequence 3
     IntDefaultHandler,                      // I2S0
     IntDefaultHandler,                      // External Bus Interface 0
-// suppress comma unless LM4F120
-#ifndef FORLM4F120 
+// suppress comma unless LM4F
+#ifndef FORLM4F 
     gpioj_handler                           // GPIO Port J    
 #else
     gpioj_handler,                          // GPIO Port J    
 #endif
-#else // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
+#else // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F )
     IntDefaultHandler                       // Hibernate
-#endif // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
+#endif // #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F )
 
-#if defined( FORLM4F120 )
+#if defined( FORLM4F )
     IntDefaultHandler,                      // GPIO Port K
     IntDefaultHandler,                      // GPIO Port L
     IntDefaultHandler,                      // SSI2 Rx and Tx
@@ -323,7 +323,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // PWM 1 Generator 2
     IntDefaultHandler,                      // PWM 1 Generator 3
     IntDefaultHandler                       // PWM 1 Fault
-#endif // FORLM4F120
+#endif // FORLM4F
 
 };
 
@@ -378,7 +378,7 @@ ResetISR(void)
           "        strlt   r2, [r0], #4\n"
           "        blt     zero_loop");
 
-#if defined( FORLM4F120 )
+#if defined( FORLM4F )
 // FIXME: incorporate FPU into eLua
     //
     // Enable the floating-point unit.  This must be done here to handle the
@@ -397,7 +397,7 @@ ResetISR(void)
                         NVIC_CPAC_CP10_FULL | NVIC_CPAC_CP11_FULL);
 
 #endif // ccs
-#endif // FORLM4F120
+#endif // FORLM4F
 
     //
     // Call the application's entry point.

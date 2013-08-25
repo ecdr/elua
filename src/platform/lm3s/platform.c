@@ -137,7 +137,7 @@ int platform_init()
 {
   // Set the clocking to run from PLL
 
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined ( FORLM4F120 )
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined ( FORLM4F )
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 #else
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_8MHZ);
@@ -227,12 +227,12 @@ int platform_init()
   const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH,
                                     SYSCTL_PERIPH_GPIOJ };
-#elif defined( FORLM4F120 )
-  const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
-                                  GPIO_PORTE_BASE, GPIO_PORTF_BASE };
+#elif defined( FORLM4F )
+  const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, 
+                           GPIO_PORTD_BASE, GPIO_PORTE_BASE, GPIO_PORTF_BASE };
                                   
-  const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD,
-                                    SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF };
+  const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, 
+                             SYSCTL_PERIPH_GPIOD, SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF };
 
 // LM4F120 pin F0 is MUXed with NMI, also connected to button on Stellaris Launchpad
 //  In order to use as GPIO have to unlock it to reprogram
@@ -332,7 +332,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 // Added handle different port mapping (So far this assumed fixed ports PORTD)
 
-#if defined( FORLM4F120 )
+#if defined( FORLM4F )
 
 // PIN information from LM4F120H5QR Datasheet
 
@@ -558,13 +558,12 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 // LM4F120 has 4 SPIs - need way to specify how many to use
 
-// Think I fixed the defines, but haven't looked at the code to figure out
-// Whether might work on LM4F or if needs more fixing.
+// Think I fixed the defines, but haven't looked at the code to see if anything needs adapting for LM4F.
 // FIXME: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
 //  Port D, uses same pins as SSI3
 //  Port F, uses pins connected to buttons and LED
 
-#ifdef FORLM4F120
+#ifdef FORLM4F
 static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE, SSI2_BASE, SSI3_BASE };
 static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1, 
                                   SYSCTL_PERIPH_SSI2, SYSCTL_PERIPH_SSI3};
@@ -619,7 +618,7 @@ static const u32 ssi_pin_clk[] = { GPIO_PH4_SSI1CLK };
 // static const u32 ssi_pin_fss[] = {  };
 
 // ToDo: Need general pin mux handling
-#elif defined( FORLM4F120 )
+#elif defined( FORLM4F )
 
 static const u32 ssi_rx_pin[] =  {GPIO_PA4_SSI0RX,  GPIO_PD3_SSI1TX,  GPIO_PB7_SSI2TX,  GPIO_PD3_SSI3TX };
 static const u32 ssi_tx_pin[] =  {GPIO_PA5_SSI0TX,  GPIO_PD2_SSI1RX,  GPIO_PB6_SSI2RX,  GPIO_PD2_SSI3RX };
@@ -713,7 +712,7 @@ void platform_spi_select( unsigned id, int is_select )
 
 #ifdef BUILD_I2C
 
-#ifdef FORLM4F120
+#ifdef FORLM4F 
 const u32 i2c_base[] = { I2C0_MASTER_BASE, I2C1_MASTER_BASE, I2C2_MASTER_BASE, I2C3_MASTER_BASE };
 static const u32 i2c_sysctl[] = { SYSCTL_PERIPH_I2C0, SYSCTL_PERIPH_I2C1, SYSCTL_PERIPH_I2C2, SYSCTL_PERIPH_I2C3 };
 static const u32 i2c_gpio_base[] = { GPIO_PORTB_BASE, GPIO_PORTA_BASE, GPIO_PORTE_BASE, GPIO_PORTD_BASE };
@@ -858,7 +857,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 // FIXME FORLM4F120 has 8 UART - need way to specify how many want to use
 // If implement USB, then remove UART6 - since it uses PD4,5 (so put UART6 last)
 
-#ifdef FORLM4F120
+#ifdef FORLM4F
 const u32 uart_base[] = { 	UART0_BASE, UART1_BASE, UART2_BASE, UART3_BASE, 
       				UART4_BASE, UART5_BASE, UART7_BASE, UART6_BASE };
 static const u32 uart_sysctl[] = { 
@@ -976,7 +975,7 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 #define TIMER_MAX_COUNT	0xFFFFFFFF
 
 
-#ifdef FORLM4F120
+#ifdef FORLM4F
 const u32 timer_base[] = { 	TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
 					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, 
 					WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
@@ -1000,7 +999,7 @@ const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
 static const u32 timer_sysctl[] = { SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, SYSCTL_PERIPH_TIMER3 };
 
 
-#endif // FORLM4F120
+#endif // FORLM4F
 
 static void timers_init()
 {
@@ -1270,7 +1269,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
 
-#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92) || defined(FORLM4F120)
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
   GPIOPinConfigure( pwm_configs[ id ] );
 #endif
 
@@ -1339,7 +1338,7 @@ void platform_pwm_stop( unsigned id )
 #ifdef BUILD_ADC
 
 // Pin configuration if necessary
-#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   const static u32 adc_ports[] =  { GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE,
                                     GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE,
                                     GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE,
@@ -1356,7 +1355,7 @@ void platform_pwm_stop( unsigned id )
                                   ADC_CTL_CH12, ADC_CTL_CH13, ADC_CTL_CH14, ADC_CTL_CH15 };
 
   #define ADC_PIN_CONFIG
-#elif defined( FORLM4F120 )
+#elif defined( FORLM4F )
 
 // 11 Pins - AIN0 .. AIN 11
 
@@ -1586,7 +1585,7 @@ int platform_adc_start_sequence()
 // C0, positive input PC6, negative input, PC7, output PF0
 // C1, positive input PC5, negative input, PC4, output PF1
 
-#ifdef FORLM4F120
+#ifdef FORLM4F
 
 const static u32 comp_in_ports[] =  { GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
 const static u8 comp_in_pins[] =    { GPIO_PIN_6, GPIO_PIN_7, GPIO_PIN_5, GPIO_PIN_4 };
@@ -1605,7 +1604,7 @@ const static u32 comp_refs[] = {};	// Voltage bins
 const static u32 comp_ref_codes[] = {};	// Codes used by library
 #define NUM_COMP_REFS	(sizeof(comp_refs)/sizeof(u32))
 
-#endif // FORLM4F120
+#endif // FORLM4F
 
 
 // TODO: What can you do with a comparator 
