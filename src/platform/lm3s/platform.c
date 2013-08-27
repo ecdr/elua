@@ -450,30 +450,30 @@ tCANMsgObject can_msg_rx;
 
 void CANIntHandler(void)
 {
-  u32 status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
+  u32 status = MAP_CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
 
 // ToDO: Why not use a switch statement?
   if(status == CAN_INT_INTID_STATUS)
   {
-    status = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
+    status = MAP_CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
 // Why is the status fetched but not used?
     can_err_flag = 1;
     can_tx_flag = 0;
   }
   else if( status == 1 ) // Message receive
   {
-    CANIntClear(CAN0_BASE, 1);
+    MAP_CANIntClear(CAN0_BASE, 1);
     can_rx_flag = 1;
     can_err_flag = 0;
   }
   else if( status == 2 ) // Message send
   {
-    CANIntClear(CAN0_BASE, 2);
+    MAP_CANIntClear(CAN0_BASE, 2);
     can_tx_flag = 0;
     can_err_flag = 0;
   }
   else
-    CANIntClear(CAN0_BASE, status);
+    MAP_CANIntClear(CAN0_BASE, status);
 }
 
 
@@ -496,12 +496,12 @@ void cans_init( void )
 
 u32 platform_can_setup( unsigned id, u32 clock )
 {  
-  GPIOPinConfigure(PIN_CAN0RX);
-  GPIOPinConfigure(PIN_CAN0TX);
+  MAP_GPIOPinConfigure(PIN_CAN0RX);
+  MAP_GPIOPinConfigure(PIN_CAN0TX);
   MAP_GPIOPinTypeCAN(CAN_PORT_BASE, CAN_PORT_PINS);
 
   MAP_CANDisable(CAN0_BASE);
-  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, clock );
+  MAP_CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, clock );
   MAP_CANEnable(CAN0_BASE);
   return clock;
 }
@@ -529,7 +529,7 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
   can_tx_flag = 1;
-  CANMessageSet(CAN0_BASE, 2, &msg_tx, MSG_OBJ_TYPE_TX);
+  MAP_CANMessageSet(CAN0_BASE, 2, &msg_tx, MSG_OBJ_TYPE_TX);
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
@@ -538,7 +538,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
   if( can_rx_flag != 0 )
   {
     can_msg_rx.pucMsgData = data;
-    CANMessageGet(CAN0_BASE, 1, &can_msg_rx, 0);
+    MAP_CANMessageGet(CAN0_BASE, 1, &can_msg_rx, 0);
     can_rx_flag = 0;
 
     *canid = ( u32 )can_msg_rx.ulMsgID;
