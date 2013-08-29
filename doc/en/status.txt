@@ -148,6 +148,7 @@ modules and platform specific modules, check link:arch_overview.html[the eLua ar
 |=======================================================================================
 ^|    Name   ^| Description                   ^|      Boards                   ^| Status
 o| _mlm3sdisp | OLED display support           | _EK-LM3S8962 _br _EK-LM3S6965  | _sok
+o| _mlm3sqei  | Quadrature encoder support     | _EK-LM3S8962 _br _EK-LM3S6965 _br EK-LM4F230 | _snt
 o| _mstr9pio  | Extended PIO configuration     | _STR-E912 _br _STR9-comStick   | _sok
 o| _mmbedpio  | Extended PIO configuration     | _mbed                          | _sok
 o| _mstr9rtc  | Real time clock                | _STR-E912 _br _STR9-comStick   | _sok
