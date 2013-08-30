@@ -8,7 +8,6 @@ return {
     romfs = true,
     shell = true,
     term = { lines = 25, cols = 80 },
--- Fixme: Testing, I thought it had line editor before, maybe this is why gone?
     linenoise = { shell_lines = 3, lua_lines = 10 }, -- was 10/50 on mbed
     cints = true,
     luaints = true,	-- Not set by default, think have it working now
@@ -29,7 +28,7 @@ return {
 	-- ToDo: CAN tested in loopback, needs testing with transceiver
 	-- ToDo: PWM needs code to use timers instead
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
-    platform = {'all', '-pwm', '-mmc'},
+    platform = { 'all', '-pwm', '-mmc', '-qei' },
   },
   macros = { { "PART_LM4F120H5QR", "" },	-- Needed for PIN_MAP.
 		 { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins

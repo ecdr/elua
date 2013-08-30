@@ -1,10 +1,13 @@
 -- EK-TM4C123 build configuration
 -- CPU same as lm4f230h5qr
 
--- Should make it inherit from lm4F120 but not sure how to handle macros 
+-- Todo: make it inherit from lm4F120, but not sure how to handle macros 
 -- local t = dofile( "boards/known/ek-lm4f120.lua" )
--- t.cpu = 'tm4c123'	 				-- Fixme: Not implemented yet
--- t.macros =  { "PART_LM4F230H5QR", "" },	-- Needed for PIN_MAP.	-- FixMe: How do I override PART from LM4F120
+-- t.cpu = 'tm4c123'	 				-- Fixme: CPU 'tm4c123' or 'lm4f230'
+-- t.macros =  { { "PART_LM4F230H5QR", "" },	-- Needed for PIN_MAP.
+--		 { "PIO_UNLOCK_NMI", ""}, 	-- Allow use of PF0 and PD7 as GPIO pins
+--		 { "ENABLE_QEI", ""}
+-- },	-- FixMe: How do I override PART from LM4F120
 -- modules add pwm
 -- return t
 
