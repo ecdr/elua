@@ -2193,17 +2193,30 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 // *********************************************************************
 // Support for Quadrature Encoder Interface (QEI)
 // FIXME: Tested on the lm3s8962 only
+// ToDo: Adapt to TM4C123
+
 #ifdef ENABLE_QEI
 
 static u32 qei_capture[] = { QEI_CONFIG_CAPTURE_A, QEI_CONFIG_CAPTURE_A_B };
 static u32 qei_index[] = { QEI_CONFIG_NO_RESET, QEI_CONFIG_RESET_IDX };
 static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 
+#ifdef LM4F
+//PHA0, PF0/PD6
+//PHB0, PD7/PF1		// PD7 - also NMI
+//PHA1, PC5
+//PHB1, PC6
+//IDX0, PF4/PD3
+//IDX1, PC4
+
+#endif //LM4F
+
+
 static void qei_init()
 {
     MAP_GPIOPinTypeQEI( GPIO_PORTC_BASE, GPIO_PIN_4 );  //CH0_PHA
-    MAP_GPIOPinTypeQEI( GPIO_PORTE_BASE, GPIO_PIN_3 );  //CH1_PHA
     MAP_GPIOPinTypeQEI( GPIO_PORTC_BASE, GPIO_PIN_6 );  //CH0_PHB
+    MAP_GPIOPinTypeQEI( GPIO_PORTE_BASE, GPIO_PIN_3 );  //CH1_PHA
     MAP_GPIOPinTypeQEI( GPIO_PORTE_BASE, GPIO_PIN_2 );  //CH1_PHB
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI0 );
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI1 );
@@ -2235,8 +2248,8 @@ void lm3s_qei_vel_init( u8 enc_id, u32 vel_period )
 {
     vel_ticks = vel_period * (MAP_SysCtlClockGet()/1000000);
     /* -Configures the QEI to compute the velocity.
-     * -The velocity predivider is applied to the quadrature
-     *  signal before it is counted. Set to QEI_VELDIV_1 aka div by 1 */
+     * -The velocity predivider is applied to the quadrature signal before it is counted. 
+     * Set to QEI_VELDIV_1 aka div by 1 */
     /* Enabled here but will not capture until the QEI is also
      * enabled using the lm3s_qei_enable() call. */
 
@@ -2292,7 +2305,7 @@ u32 lm3s_qei_getPosition( u8 enc_id )
 long lm3s_qei_getDirection( u8 enc_id)
 {
     u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
-    return QEIDirectionGet( base );  /* 1=fwd, rev=-1 */
+    return MAP_QEIDirectionGet( base ); /* 1=fwd, rev=-1 */
 }
 
 #endif
