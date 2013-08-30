@@ -3,6 +3,9 @@
 #ifndef __LM3S_QEI_H__
 #define __LM3S_QEI_H__
 
+#ifdef ENABLE_QEI
+
+
 #include "platform_conf.h"
 
 /* Encoder 0 and 1 each with phase A and B */
@@ -38,5 +41,7 @@ u32 lm3s_qei_get_sys_clk();
 u32 lm3s_qei_getPulses( u8 enc_id );
 u32 lm3s_qei_getPosition( u8 enc_id );
 long lm3s_qei_getDirection( u8 enc_id );
+
+#endif // ENABLE_QEI
 
 #endif

@@ -43,7 +43,7 @@
 #include "driverlib/flash.h"
 #include "driverlib/interrupt.h"
 
-#ifdef BUILD_QEI
+#ifdef ENABLE_QEI
 #include "driverlib/qei.h"
 #endif
 
@@ -56,7 +56,7 @@
 #include "disp.h"
 #endif
 
-#ifdef BUILD_QEI
+#ifdef ENABLE_QEI
 #include "qei.h"
 #endif
 
@@ -144,7 +144,7 @@ static void comps_init();
 static void i2cs_init();
 #endif
 
-#ifdef BUILD_QEI
+#ifdef ENABLE_QEI
 static void qei_init();
 #endif
 
@@ -206,7 +206,7 @@ int platform_init()
   usb_init();
 #endif
 
-#ifdef BUILD_QEI
+#ifdef ENABLE_QEI
   // Setup QEI
   qei_init();
 #endif
