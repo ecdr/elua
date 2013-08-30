@@ -2202,22 +2202,33 @@ static u32 qei_index[] = { QEI_CONFIG_NO_RESET, QEI_CONFIG_RESET_IDX };
 static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 
 #ifdef LM4F
-//PHA0, PF0/PD6
+//PHA0, PD6/PF0
 //PHB0, PD7/PF1		// PD7 - also NMI
 //PHA1, PC5
 //PHB1, PC6
 //IDX0, PF4/PD3
 //IDX1, PC4
 
+const static u32 qei_port[] = { GPIO_PORTD_BASE, GPIO_PORTC_BASE };
+const static u8  qei_pins[] = { GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_5|GPIO_PIN_6 };
+
+#else
+// LM3S8962
+const static u32 qei_port[] = { GPIO_PORTC_BASE, GPIO_PORTE_BASE };
+const static u8  qei_pins[] = { GPIO_PIN_4|GPIO_PIN_6, GPIO_PIN_3|GPIO_PIN_2 };
+
 #endif //LM4F
 
 
 static void qei_init()
 {
-    MAP_GPIOPinTypeQEI( GPIO_PORTC_BASE, GPIO_PIN_4 );  //CH0_PHA
-    MAP_GPIOPinTypeQEI( GPIO_PORTC_BASE, GPIO_PIN_6 );  //CH0_PHB
-    MAP_GPIOPinTypeQEI( GPIO_PORTE_BASE, GPIO_PIN_3 );  //CH1_PHA
-    MAP_GPIOPinTypeQEI( GPIO_PORTE_BASE, GPIO_PIN_2 );  //CH1_PHB
+    u8 i;
+
+// FIXME: Should not set pin type until actually know going to use a particular QEI and particular phase
+// TODO: Check to be sure loop bounds are right
+    for (i=0; i<sizeof(qei_pins); i++)
+      MAP_GPIOPinTypeQEI( qei_port[i], qei_pins[i] );
+
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI0 );
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI1 );
     qei_flag = 0x00;                                    //Reset Flag
