@@ -1,6 +1,5 @@
 // eLua Module for LM3S Quadrature Encoding Interface (QEI) Support
-// qei is a platform-dependent (LM3S) module, that binds to Lua the basic API
-// from Luminary Micro
+// qei is a platform-dependent (LM3S) module, that binds to Lua the basic API from Texas Instruments
 
 #include "lua.h"
 #include "lualib.h"
@@ -24,6 +23,12 @@ static void qei_init( lua_State *L )
     u8 swap = ( u8 )luaL_checkinteger( L, 3 );
     u8 index = ( u8 )luaL_checkinteger( L, 4 );
     u32 max_count = ( u32 )luaL_checkinteger( L, 5 );
+
+    MOD_CHECK_ID( qei, enc_id );
+    if ( phase > LM3S_QEI_PHAB || swap > LM3S_QEI_SWAP || index > LM3S_QEI_INDEX)
+      return luaL_error( L, "qei invalid argument" );
+
+// Todo: Not sure if there is a range on max_count
     lm3s_qei_init( enc_id, phase, swap, index, max_count );
 }
 
@@ -31,10 +36,15 @@ static void qei_init( lua_State *L )
 static void qei_velInit( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
+
     u32 vel_period = ( u32 )luaL_checkinteger( L, 2 );
     int ppr = ( int )luaL_checkinteger( L, 3 );
     int edges = ( int )luaL_checkinteger( L, 4 );
+
+// ToDo: Are there any useful range checks to make on arguments?
     lm3s_qei_vel_init( enc_id, vel_period );
+
     qei_flag |= ( enc_id << VEL_FLAG_OFFSET );  //Sets encoder velocity flag
     u32 clk_freq = lm3s_qei_get_sys_clk();
     vel_modifier = (clk_freq * 60) / (vel_ticks * ppr * edges);
@@ -44,6 +54,8 @@ static void qei_velInit( lua_State *L )
 static void qei_enable( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
+
     lm3s_qei_enable( enc_id );
     qei_flag |= enc_id;
 }
@@ -52,6 +64,8 @@ static void qei_enable( lua_State *L )
 static void qei_disable( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
+
     lm3s_qei_disable( enc_id );
     qei_flag &= ~enc_id;
 }
@@ -60,6 +74,7 @@ static void qei_disable( lua_State *L )
 static int qei_getVelPulses( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
@@ -85,6 +100,7 @@ static int qei_getVelPulses( lua_State *L )
 static int qei_getRPM( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
@@ -111,9 +127,11 @@ static int qei_getRPM( lua_State *L )
 static int qei_getPosition( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
+// FIXME: What is the magic number 2 being returned?  Should it be one of the error enum values?
         err = 2;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );

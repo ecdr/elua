@@ -2197,9 +2197,9 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 
 #ifdef ENABLE_QEI
 
-static u32 qei_capture[] = { QEI_CONFIG_CAPTURE_A, QEI_CONFIG_CAPTURE_A_B };
-static u32 qei_index[] = { QEI_CONFIG_NO_RESET, QEI_CONFIG_RESET_IDX };
-static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
+const static u32 qei_capture[] = { QEI_CONFIG_CAPTURE_A, QEI_CONFIG_CAPTURE_A_B };
+const static u32 qei_index[] = { QEI_CONFIG_NO_RESET, QEI_CONFIG_RESET_IDX };
+const static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 
 #ifdef LM4F
 //PHA0, PD6/PF0
@@ -2208,6 +2208,8 @@ static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 //PHB1, PC6
 //IDX0, PF4/PD3
 //IDX1, PC4
+
+// TODO: Support alternate pins for QEI0
 
 const static u32 qei_port[] = { GPIO_PORTD_BASE, GPIO_PORTC_BASE };
 const static u8  qei_pins[] = { GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_5|GPIO_PIN_6 };
@@ -2219,6 +2221,11 @@ const static u8  qei_pins[] = { GPIO_PIN_4|GPIO_PIN_6, GPIO_PIN_3|GPIO_PIN_2 };
 
 #endif //LM4F
 
+
+int platform_qei_exists( u8 enc_id )
+{
+	return enc_id <= LM3S_QEI_CH01;
+}
 
 static void qei_init()
 {
@@ -2341,7 +2348,13 @@ int platform_flash_erase_sector( u32 sector_id )
 // ****************************************************************************
 // Platform specific modules go here
 
-/* This all was removed from master - don't know what it did
+/* This all was removed from master when build system changed - don't know where it went */
+/* They seem to have gone to linit.c 
+  platform_map[]
+But it has just items in PLATFORM_MODULES_LIBS_ROM
+Where are the platform modules, like disp_map?
+
+
 
 #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO ) || defined( ENABLE_QEI )
 
@@ -2352,7 +2365,9 @@ int platform_flash_erase_sector( u32 sector_id )
 extern const LUA_REG_TYPE disp_map[];
 #endif
 
+#if defined( ENABLE_LM3S_GPIO )
 extern const LUA_REG_TYPE lm3s_pio_map[];
+#endif
 
 #if defined( ENABLE_QEI )
 extern const LUA_REG_TYPE qei_map[];
@@ -2419,7 +2434,6 @@ LUALIB_API int luaopen_platform( lua_State *L )
 #endif // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO ) || defined( ENABLE_QEI )
 
 */
-
 
 // Assertion failure error handler
 // TODO: Give feedback on console, and place for breakpoint for debugging
