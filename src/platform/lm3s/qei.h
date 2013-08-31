@@ -18,8 +18,9 @@ enum qei_index_codes { LM3S_QEI_NO_INDEX = 0, LM3S_QEI_INDEX };
 /* Error Codes */
 enum qei_error_codes { LM3S_QEI_ERR_OK = 0, LM3S_QEI_ERR_VEL_NOT_ENABLED, LM3S_QEI_ERR_ENC_NOT_ENABLED };
 
-/* qei_flag keeps track of encoders/channels that are enabled, as well
- * as whether they are enabled for velocity measurement.
+// TODO: Bitfields might make code easier to read
+/* qei_flag keeps track of encoders/channels that are initialized,
+ * as well as whether they are enabled, or enabled for velocity measurement.
  * BIT0 Channel0 Enabled
  * BIT1 Channel1 Enabled
  * BIT2 Channel0 Velocity Enabled
@@ -32,8 +33,8 @@ u8 qei_flag;
 #define VEL_FLAG_OFFSET 2
 #define INIT_FLAG_OFFSET 4
 
-/* vel_period is time (us) over which to measure velocity. vel_ticks is
- * this period converted into counts on the system clock. */
+/* vel_period is time (us) over which to measure velocity. 
+ * vel_ticks is this period converted into counts on the system clock. */
 u32 vel_ticks;
 
 /* Function Prototypes */

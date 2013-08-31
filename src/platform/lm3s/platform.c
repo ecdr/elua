@@ -2212,14 +2212,14 @@ const static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 // TODO: Support alternate pins for QEI0
 
 const static u32 qei_port[] = { GPIO_PORTD_BASE, GPIO_PORTC_BASE };
-const static u8  qei_pins[] = { GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_5|GPIO_PIN_6 };
-
-// FIXME: For QEI0 - add incantation to program PD7 or PF0
+const static u8  qei_pinsa[] = { GPIO_PIN_6, GPIO_PIN_5 };
+const static u8  qei_pinsb[] = { GPIO_PIN_7, GPIO_PIN_6 };
 
 #else
 // LM3S8962
 const static u32 qei_port[] = { GPIO_PORTC_BASE, GPIO_PORTE_BASE };
-const static u8  qei_pins[] = { GPIO_PIN_4|GPIO_PIN_6, GPIO_PIN_3|GPIO_PIN_2 };
+const static u8  qei_pinsa[] = { GPIO_PIN_4, GPIO_PIN_3 };
+const static u8  qei_pinsb[] = { GPIO_PIN_6, GPIO_PIN_2 };
 
 #endif //LM4F
 
@@ -2231,42 +2231,46 @@ int platform_qei_exists( u8 enc_id )
 
 static void qei_init()
 {
-    u8 i;
-
-// FIXME: Move to when actually using the pin
-#ifdef LM4F
-    MAP_GPIOPinConfigure(GPIO_PD6_PHA0);
-    MAP_GPIOPinConfigure(GPIO_PD7_PHB0);
-    MAP_GPIOPinConfigure(GPIO_PC5_PHA1);
-    MAP_GPIOPinConfigure(GPIO_PC6_PHB1);
-#endif
-
-// FIXME: Should not set pin type until actually know going to use a particular QEI and particular phase
-// TODO: Check to be sure loop bounds are right
-    for (i=0; i<sizeof(qei_pins); i++)
-      MAP_GPIOPinTypeQEI( qei_port[i], qei_pins[i] );
-	//Set Pins to be PHA0 and PHB0
-
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI0 );
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI1 );
     qei_flag = 0x00;                                    //Reset Flag
 }
 
+// TODO: Why is this expression used?  If QEI_CH0 = 1 and QEI_CH1 = 2 (or vice-versa), could eliminate portion from == on 
+//  if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
+
 void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
 {
-    /* -Configure each QE channel (0 or 1) to use either phase A or both A & B.
-     * -LM3S8962 RevA2 Errata states that software cannot be relied upon
+    /* -Configure each QE channel (0 or 1) to use either phase A or both A & B. */
+    /* -LM3S8962 RevA2 Errata states that software cannot be relied upon
      *  to disable the index pulse using QEI_CONFIG_NO_RESET. They
-     *  suggest you do not connect the index pulse if not needed. */
+     *  They suggest you do not connect the index pulse if not needed. */
 
     if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
     {
+
+// Set up pins just for channel/phase actually going to use
+#ifdef LM4F
+// FIXME: For QEI0 - add incantation to program PD7 or PF0
+
+        MAP_GPIOPinConfigure(GPIO_PD6_PHA0);
+        if (phase == LM3S_QEI_PHAB) MAP_GPIOPinConfigure(GPIO_PD7_PHB0);
+#endif
+        MAP_GPIOPinTypeQEI( qei_port[0], qei_pinsa[0] | ((phase == LM3S_QEI_PHAB) ? qei_pinsb[0] : 0) );
+
         MAP_QEIConfigure( QEI0_BASE, (qei_capture[ phase ]
         | QEI_CONFIG_QUADRATURE | qei_swap[ swap ] | qei_index[ index ]),
         max_count);
     }
     if( (enc_id & LM3S_QEI_CH1) == LM3S_QEI_CH1 )
     {
+
+#ifdef LM4F
+        MAP_GPIOPinConfigure(GPIO_PC5_PHA1);
+        if (phase == LM3S_QEI_PHAB) MAP_GPIOPinConfigure(GPIO_PC6_PHB1);
+#endif
+        MAP_GPIOPinTypeQEI( qei_port[1], qei_pinsa[1] | ((phase == LM3S_QEI_PHAB) ? qei_pinsb[1] : 0));
+
         MAP_QEIConfigure( QEI1_BASE, (qei_capture[ phase ]
         | QEI_CONFIG_QUADRATURE | qei_swap[ swap ] | qei_index[ index ]),
         max_count);
