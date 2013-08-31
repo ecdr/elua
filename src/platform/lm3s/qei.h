@@ -16,7 +16,7 @@ enum qei_swap_codes { LM3S_QEI_NO_SWAP = 0, LM3S_QEI_SWAP };
 /* Defines whether an index pulse is used */
 enum qei_index_codes { LM3S_QEI_NO_INDEX = 0, LM3S_QEI_INDEX };
 /* Error Codes */
-enum qei_error_codes { LM3S_QEI_ERR_OK = 0, LM3S_QEI_ERR_VEL_NOT_ENABLED, LM3S_QEI_ERR_ENC_NOT_ENABLED };
+enum qei_error_codes { LM3S_QEI_ERR_OK = 0, LM3S_QEI_ERR_VEL_NOT_ENABLED, LM3S_QEI_ERR_ENC_NOT_ENABLED, QEI_ERR_NOT_INIT };
 
 // TODO: Bitfields might make code easier to read
 /* qei_flag keeps track of encoders/channels that are initialized,
