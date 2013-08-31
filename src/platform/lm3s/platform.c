@@ -2202,7 +2202,7 @@ const static u32 qei_index[] = { QEI_CONFIG_NO_RESET, QEI_CONFIG_RESET_IDX };
 const static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 
 #ifdef LM4F
-//PHA0, PD6/PF0
+//PHA0, PD6/PF0		// PF0 - also NMI
 //PHB0, PD7/PF1		// PD7 - also NMI
 //PHA1, PC5
 //PHB1, PC6
@@ -2213,6 +2213,8 @@ const static u32 qei_swap[] = { QEI_CONFIG_NO_SWAP, QEI_CONFIG_SWAP };
 
 const static u32 qei_port[] = { GPIO_PORTD_BASE, GPIO_PORTC_BASE };
 const static u8  qei_pins[] = { GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_5|GPIO_PIN_6 };
+
+// FIXME: For QEI0 - add incantation to program PD7 or PF0
 
 #else
 // LM3S8962
@@ -2231,10 +2233,19 @@ static void qei_init()
 {
     u8 i;
 
+// FIXME: Move to when actually using the pin
+#ifdef LM4F
+    MAP_GPIOPinConfigure(GPIO_PD6_PHA0);
+    MAP_GPIOPinConfigure(GPIO_PD7_PHB0);
+    MAP_GPIOPinConfigure(GPIO_PC5_PHA1);
+    MAP_GPIOPinConfigure(GPIO_PC6_PHB1);
+#endif
+
 // FIXME: Should not set pin type until actually know going to use a particular QEI and particular phase
 // TODO: Check to be sure loop bounds are right
     for (i=0; i<sizeof(qei_pins); i++)
       MAP_GPIOPinTypeQEI( qei_port[i], qei_pins[i] );
+	//Set Pins to be PHA0 and PHB0
 
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI0 );
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_QEI1 );
@@ -2320,6 +2331,12 @@ u32 lm3s_qei_getPosition( u8 enc_id )
     return MAP_QEIPositionGet( base );
 }
 
+void lm3s_qei_setPosition( u8 enc_id, u32 position )
+{
+    u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
+    MAP_QEIPositionSet( base, position );
+}
+
 long lm3s_qei_getDirection( u8 enc_id)
 {
     u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
@@ -2348,14 +2365,13 @@ int platform_flash_erase_sector( u32 sector_id )
 // ****************************************************************************
 // Platform specific modules go here
 
-/* This all was removed from master when build system changed - don't know where it went */
-/* They seem to have gone to linit.c 
-  platform_map[]
-But it has just items in PLATFORM_MODULES_LIBS_ROM
-Where are the platform modules, like disp_map?
+/* This all was removed from master when build system changed - 
+   seems to have gone to the build_conf.lua and linit.c */
+/* 
+  platform_map[] generated in linit, likewise luaopen_platform 
+ */
 
-
-
+/*
 #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO ) || defined( ENABLE_QEI )
 
 #define MIN_OPT_LEVEL 2

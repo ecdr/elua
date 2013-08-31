@@ -15,6 +15,8 @@
 
 static u32 vel_modifier = 0;
 
+// Fixme: Figure how to handle errors in functions returning voids
+
 //Lua: lm3s.qei.init( encoder_id, phase, swap, index, max_count )
 static void qei_init( lua_State *L )
 {
@@ -131,7 +133,7 @@ static int qei_getPosition( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
-// FIXME: What is the magic number 2 being returned?  Should it be one of the error enum values?
+// FIXME: What is the magic err number 2 being returned?  Should it be one of the error enum values?
         err = 2;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
@@ -142,6 +144,25 @@ static int qei_getPosition( lua_State *L )
     return 2;
 }
 
+// Fixme: The returns are probably not right here - check some other code for examples
+//Lua: err = lm3s.qei.setPosition( encoder_id, position)
+static int qei_setPosition( lua_State *L )
+{
+    u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
+    MOD_CHECK_ID( qei, enc_id );
+    u32 position = ( u32 )luaL_checkinteger( L, 2 );
+    int err = 0;
+    if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
+    {
+// FIXME: What is the magic err number 2 being returned?  Should it be one of the error enum values?
+        err = 2;
+        lua_pushinteger( L, err );
+        return 1;
+    }
+    lm3s_qei_setPosition( enc_id, position );
+    lua_pushinteger( L, err );
+    return 1;
+}
 
 // Module function map
 #define MIN_OPT_LEVEL 2
@@ -155,6 +176,7 @@ const LUA_REG_TYPE qei_map[] =
     { LSTRKEY( "getVelPulses" ), LFUNCVAL( qei_getVelPulses ) },
     { LSTRKEY( "getRPM" ), LFUNCVAL( qei_getRPM ) },
     { LSTRKEY( "getPosition" ), LFUNCVAL( qei_getPosition ) },
+    { LSTRKEY( "setPosition" ), LFUNCVAL( qei_setPosition ) },
 
     { LSTRKEY( "PHA" ), LNUMVAL( LM3S_QEI_PHA ) },
     { LSTRKEY( "PHAB" ), LNUMVAL( LM3S_QEI_PHAB ) },

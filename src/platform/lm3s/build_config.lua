@@ -30,14 +30,15 @@ function add_platform_configs( t, board, cpu )
 end
 
 -- Return an array of all the available platform modules for the given cpu
+-- open = true if has a luaopen_lib function
 function get_platform_modules( board, cpu )
   m = { pio = { guards = { 'ENABLE_LM3S_GPIO' }, lib = '"pio"', map = "lm3s_pio_map", open = false } }
   board = board:upper()
   if board == 'EK-LM3S1968' or board == 'EK-LM3S6965' or board == 'EK-LM3S8962' then
     m.disp = { guards = { 'ENABLE_DISP' }, lib = '"disp"', open = false }
   end
-  if board == 'EK-LM3S8962' or board == 'EK-LM3S6965' or board == 'EK-LM4F230' then
-    m.qei = { guards = { 'ENABLE_QEI' }, lib = '"qei"', open = false }		-- ToDo: what does open mean?
+  if board == 'EK-LM3S8962' or board == 'EK-LM3S6965' or board == 'EK-LM4F230' or board == 'EK-TM4C123' then
+    m.qei = { guards = { 'ENABLE_QEI' }, lib = '"qei"', open = false }
   end
   return m
 end

@@ -35,6 +35,8 @@ u32 vel_ticks;
 /* Function Prototypes */
 
 int platform_qei_exists( u8 enc_id );
+void lm3s_qei_setPosition( u8 enc_id, u32 position );
+
 void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count );
 void lm3s_qei_vel_init( u8 enc_id, u32 vel_period );
 void lm3s_qei_enable( u8 enc_id );
