@@ -24,9 +24,13 @@ enum qei_error_codes { LM3S_QEI_ERR_OK = 0, LM3S_QEI_ERR_VEL_NOT_ENABLED, LM3S_Q
  * BIT1 Channel1 Enabled
  * BIT2 Channel0 Velocity Enabled
  * BIT3 Channel1 Velocity Enabled
- * BIT4-7 Unused. */
+ * BIT4 Channel0 Initialized
+ * BIT5 Channel1 Initialized
+ * BIT6-7 Unused. */
+
 u8 qei_flag;
 #define VEL_FLAG_OFFSET 2
+#define INIT_FLAG_OFFSET 4
 
 /* vel_period is time (us) over which to measure velocity. vel_ticks is
  * this period converted into counts on the system clock. */

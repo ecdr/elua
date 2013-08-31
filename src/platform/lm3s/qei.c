@@ -32,6 +32,7 @@ static void qei_init( lua_State *L )
 
 // Todo: Not sure if there is a range on max_count
     lm3s_qei_init( enc_id, phase, swap, index, max_count );
+    qei_flag |= (enc_id << INIT_FLAG_OFFSET);
 }
 
 //Lua: lm3s.qei.velInit( encoder_id, vel_period, ppr, edges )
@@ -58,6 +59,8 @@ static void qei_enable( lua_State *L )
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
 
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
+	return;	// Error (qei not initialized)
     lm3s_qei_enable( enc_id );
     qei_flag |= enc_id;
 }
@@ -68,6 +71,8 @@ static void qei_disable( lua_State *L )
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
 
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
+	return;	// Error (qei not initialized)
     lm3s_qei_disable( enc_id );
     qei_flag &= ~enc_id;
 }
@@ -80,6 +85,7 @@ static int qei_getVelPulses( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
+// FIXME: Should use symbols for error codes
         err = 2;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
@@ -88,6 +94,13 @@ static int qei_getVelPulses( lua_State *L )
     else if( !(qei_flag & (enc_id << VEL_FLAG_OFFSET) ) )
     {
         err = 1;
+        lua_pushinteger( L, -1 );
+        lua_pushinteger( L, err );
+        return 2;
+    }
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
+    {
+        err = QEI_ERR_NOT_INIT;		// Error (qei not initialized)
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
@@ -106,6 +119,7 @@ static int qei_getRPM( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
+// FIXME: Should use symbols for error codes
         err = 2;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
@@ -114,6 +128,13 @@ static int qei_getRPM( lua_State *L )
     else if( !(qei_flag & (enc_id << VEL_FLAG_OFFSET) ) )
     {
         err = 1;
+        lua_pushinteger( L, -1 );
+        lua_pushinteger( L, err );
+        return 2;
+    }
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
+    {
+        err = QEI_ERR_NOT_INIT;		// Error (qei not initialized)
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
@@ -139,6 +160,13 @@ static int qei_getPosition( lua_State *L )
         lua_pushinteger( L, err );
         return 2;
     }
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
+    {
+        err = QEI_ERR_NOT_INIT;		// Error (qei not initialized)
+        lua_pushinteger( L, -1 );
+        lua_pushinteger( L, err );
+        return 2;
+    }
     lua_pushinteger( L, lm3s_qei_getPosition( enc_id ) );
     lua_pushinteger( L, err );
     return 2;
@@ -158,6 +186,13 @@ static int qei_setPosition( lua_State *L )
         err = 2;
         lua_pushinteger( L, err );
         return 1;
+    }
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
+    {
+        err = QEI_ERR_NOT_INIT;		// Error (qei not initialized)
+        lua_pushinteger( L, -1 );
+        lua_pushinteger( L, err );
+        return 2;
     }
     lm3s_qei_setPosition( enc_id, position );
     lua_pushinteger( L, err );
@@ -190,6 +225,7 @@ const LUA_REG_TYPE qei_map[] =
     { LSTRKEY( "ERR_OK" ), LNUMVAL( LM3S_QEI_ERR_OK ) },
     { LSTRKEY( "ERR_VELOCITY_NOT_ENABLED" ), LNUMVAL( LM3S_QEI_ERR_VEL_NOT_ENABLED ) },
     { LSTRKEY( "ERR_ENCODER_NOT_ENABLED" ), LNUMVAL( LM3S_QEI_ERR_ENC_NOT_ENABLED ) },
+    { LSTRKEY( "ERR_NOT_INIT" ), LNUMVAL( QEI_ERR_NOT_INIT ) },
 
     { LNILKEY, LNILVAL }
 };
