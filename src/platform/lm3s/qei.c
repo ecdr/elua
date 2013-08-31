@@ -15,10 +15,10 @@
 
 static u32 vel_modifier = 0;
 
-// Fixme: Figure how to handle errors in functions returning voids
+// Fixme: test error handling in functions that formerly returned voids
 
 //Lua: lm3s.qei.init( encoder_id, phase, swap, index, max_count )
-static void qei_init( lua_State *L )
+static int qei_init( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     u8 phase = ( u8 )luaL_checkinteger( L, 2 );
@@ -30,13 +30,14 @@ static void qei_init( lua_State *L )
     if ( phase > LM3S_QEI_PHAB || swap > LM3S_QEI_SWAP || index > LM3S_QEI_INDEX)
       return luaL_error( L, "qei invalid argument" );
 
-// Todo: Not sure if there is a range on max_count
+// Todo:is there a useful range check for max_count?
     lm3s_qei_init( enc_id, phase, swap, index, max_count );
     qei_flag |= (enc_id << INIT_FLAG_OFFSET);
+    return 0;
 }
 
 //Lua: lm3s.qei.velInit( encoder_id, vel_period, ppr, edges )
-static void qei_velInit( lua_State *L )
+static int qei_velInit( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -51,30 +52,37 @@ static void qei_velInit( lua_State *L )
     qei_flag |= ( enc_id << VEL_FLAG_OFFSET );  //Sets encoder velocity flag
     u32 clk_freq = lm3s_qei_get_sys_clk();
     vel_modifier = (clk_freq * 60) / (vel_ticks * ppr * edges);
+    return 0;
 }
 
 //Lua: lm3s.qei.enable( encoder_id )
-static void qei_enable( lua_State *L )
+static int qei_enable( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
 
-    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
-	return;	// Error (qei not initialized)
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET)){
+      lua_pushinteger( L, QEI_ERR_NOT_INIT );
+	return 1;	// Error (qei not initialized) QEI_ERR_NOT_INIT
+    }
     lm3s_qei_enable( enc_id );
     qei_flag |= enc_id;
+    return 0;
 }
 
 //Lua: lm3s.qei.disable( encoder_id )
-static void qei_disable( lua_State *L )
+static int qei_disable( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
 
-    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
-	return;	// Error (qei not initialized)
+    if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET)){
+      lua_pushinteger( L, QEI_ERR_NOT_INIT );
+	return 1;	// Error (qei not initialized) 
+    }
     lm3s_qei_disable( enc_id );
     qei_flag &= ~enc_id;
+    return 0;
 }
 
 //Lua: vel, err = lm3s.qei.getVelPulses( encoder_id )
@@ -85,15 +93,15 @@ static int qei_getVelPulses( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
-// FIXME: Should use symbols for error codes
-        err = 2;
+// FIXME: Error not strictly correct, CH01 should porbably be invalid argument (or return 2 vel)
+        err = LM3S_QEI_ERR_ENC_NOT_ENABLED;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
     }
     else if( !(qei_flag & (enc_id << VEL_FLAG_OFFSET) ) )
     {
-        err = 1;
+        err = LM3S_QEI_ERR_VEL_NOT_ENABLED;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
@@ -119,15 +127,15 @@ static int qei_getRPM( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
-// FIXME: Should use symbols for error codes
-        err = 2;
+// FIXME: Error not strictly correct, CH01 should porbably be invalid argument (or return 2 rpm)
+        err = LM3S_QEI_ERR_ENC_NOT_ENABLED;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
     }
     else if( !(qei_flag & (enc_id << VEL_FLAG_OFFSET) ) )
     {
-        err = 1;
+        err = LM3S_QEI_ERR_VEL_NOT_ENABLED;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
@@ -154,8 +162,8 @@ static int qei_getPosition( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
-// FIXME: What is the magic err number 2 being returned?  Should it be one of the error enum values?
-        err = 2;
+// FIXME: Error not strictly correct, CH01 should porbably be invalid argument (or return 2 positions)
+        err = LM3S_QEI_ERR_ENC_NOT_ENABLED;
         lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
         return 2;
@@ -182,17 +190,16 @@ static int qei_setPosition( lua_State *L )
     int err = 0;
     if( (enc_id == LM3S_QEI_CH01) || !(qei_flag & enc_id) )
     {
-// FIXME: What is the magic err number 2 being returned?  Should it be one of the error enum values?
-        err = 2;
+// FIXME: Error not strictly correct, CH01 should porbably be invalid argument (or return 2 positions)
+        err = LM3S_QEI_ERR_ENC_NOT_ENABLED;
         lua_pushinteger( L, err );
         return 1;
     }
     if ( (qei_flag & (enc_id << INIT_FLAG_OFFSET)) != (enc_id << INIT_FLAG_OFFSET))
     {
         err = QEI_ERR_NOT_INIT;		// Error (qei not initialized)
-        lua_pushinteger( L, -1 );
         lua_pushinteger( L, err );
-        return 2;
+        return 1;
     }
     lm3s_qei_setPosition( enc_id, position );
     lua_pushinteger( L, err );
