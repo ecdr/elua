@@ -23,6 +23,10 @@ if board == 'EK-LM3S1968' or board == 'EK-LM3S6965' or board == 'EK-LM3S8962' th
   specific_files = specific_files .. " rit128x96x4.c disp.c"
 end
 
+if board == 'EK-TM4C123' or board == 'EK-LM4F230' or board == 'EK-LM3S8962' then
+  specific_files = specific_files .. " qei.c"
+end
+
 -- The default for the Eagle 100 board is to start the image at 0x2000,
 -- so that the built in Ethernet boot loader can be used to upload it
 if board == 'EAGLE-100' then
