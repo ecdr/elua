@@ -2251,10 +2251,25 @@ void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
 
 // Set up pins just for channel/phase actually going to use
 #ifdef LM4F
-// FIXME: For QEI0 - add incantation to program PD7 or PF0
+// For QEI0 - add incantation to program PD7 or PF0
 
         MAP_GPIOPinConfigure(GPIO_PD6_PHA0);
-        if (phase == LM3S_QEI_PHAB) MAP_GPIOPinConfigure(GPIO_PD7_PHB0);
+        if (phase == LM3S_QEI_PHAB){
+// If PIO_UNLOCK_NMI, then already unlocked by the PIO init, otherwise need to unlock it now
+// TODO: Would be more robust to just check the lock bit, and unlock if needed
+
+#ifndef PIO_UNLOCK_NMI
+// Unlock PD7 (NMI) so can reprogram
+           GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
+           GPIO_PORTD_CR_R = 0xFF;
+           GPIO_PORTD_LOCK_R = 0;
+//  Following would be used for unlocking port F (e.g. if implement alternate pin selection, but that would be PHA0)
+//    GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
+//    GPIO_PORTF_CR_R = 0xFF;
+//    GPIO_PORTF_LOCK_R = 0;
+#endif //UNLOCK_NMI
+	     MAP_GPIOPinConfigure(GPIO_PD7_PHB0);
+        }
 #endif
         MAP_GPIOPinTypeQEI( qei_port[0], qei_pinsa[0] | ((phase == LM3S_QEI_PHAB) ? qei_pinsb[0] : 0) );
 
