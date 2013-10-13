@@ -103,18 +103,18 @@ local toolchain_map = {
 local platform_list =
 {
   at91sam7x = { cpus = { 'AT91SAM7X256', 'AT91SAM7X512' }, arch = 'arm' },
-  lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92' }, arch = 'cortexm' },
-  str9 = { cpus = { 'STR912FAW44' }, arch = 'arm' },
+  avr32 = { cpus = { 'AT32UC3A0128', 'AT32UC3A0256', 'AT32UC3A0512', 'AT32UC3B0256' }, arch = 'avr32' },
   i386 = { cpus = { 'I386' }, arch = 'i386' },
   sim = { cpus = { 'LINUX' }, arch = 'i386' },
+  lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92' }, arch = 'cortexm' },
+  lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' }
+  lpc24xx = { cpus = { 'LPC2468' }, arch = 'arm' },
   lpc288x = { cpus = { 'LPC2888' }, arch = 'arm' },
   str7 = { cpus = { 'STR711FR2' }, arch = 'arm' },
-  stm32f2 = { cpus = { 'STM32F205RF' }, arch = 'cortexm' },
+  str9 = { cpus = { 'STR912FAW44' }, arch = 'arm' },
   stm32 = { cpus = { 'STM32F103ZE', 'STM32F103RE' }, arch = 'cortexm' },
+  stm32f2 = { cpus = { 'STM32F205RF' }, arch = 'cortexm' },
   stm32f4 = { cpus =  { 'STM32F407VG', 'STM32F407ZG' }, arch = 'cortexm' },
-  avr32 = { cpus = { 'AT32UC3A0128', 'AT32UC3A0256', 'AT32UC3A0512', 'AT32UC3B0256' }, arch = 'avr32' },
-  lpc24xx = { cpus = { 'LPC2468' }, arch = 'arm' },
-  lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' }
 }
 
 -- Returns the platform of a given CPU
