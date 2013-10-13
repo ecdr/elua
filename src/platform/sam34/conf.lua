@@ -1,15 +1,55 @@
 -- Configuration file for SAM3/4 microcontrollers
 
 addi( sf( 'src/platform/%s/config', platform ) )
-addi( sf( 'src/platform/%s/ASF', platform ) )
+addi( sf( 'src/platform/%s/ASF/common/boards' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/clock' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/gpio' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/ioport' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/serial/sam_uart' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/serial' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/sleepmgr' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/spi/sam_spi' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/spi' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/twi' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/usb' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/usb/class/cdc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/usb/class/cdc/device' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/usb/udc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/utils' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/utils/stdio/stdio_serial', platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/boards' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/boards/arduino_due_x' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/utils' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/utils/cmsis/sam3x/include' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/utils/cmsis/sam3x/source/templates' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/utils/header_files' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/utils/preprocessor' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/pio' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/pmc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/adc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/can' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/dacc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/pwm' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/spi' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/tc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/trng' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/twi' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/uart' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/uotghs' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/chipid' , platform ) )
+addi( sf( 'src/platform/%s/ASF/sam/drivers/usart' , platform ) )
+addi( sf( 'src/platform/%s/ASF/thirdparty/CMSIS/Include' , platform ) )
+addi( sf( 'src/platform/%s/ASF/thirdparty/CMSIS/Lib/GCC' , platform ) )
 local cpu = comp.cpu:upper()
 local board = comp.board:upper()
 
 
-specific_files = "ASF/sam/utils/cmsis/sam3x/source/templates/gcc/startup_sam3x.c startup_sam3x.c platform.c platform_int.c"
-local fwlib_files = utils.get_files( "src/platform/" .. platform .. "/drivers", ".*%.c$" )
 
--- Fixme: Needs a lot more directories (or some wildcards) to get all the fwlib files
+specific_files = "ASF/sam/utils/cmsis/sam3x/source/templates/gcc/startup_sam3x.c platform.c platform_int.c"
+
+-- Dig through ASF to find source files
+
+local fwlib_files = utils.get_files( "src/platform/" .. platform .. "/ASF", ".*%.c$", false )
 
 ldscript = "ASF/sam/utils/liker_scripts/sam3x/sam3x8/gcc/lm3s.ld"
 
