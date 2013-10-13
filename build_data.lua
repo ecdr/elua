@@ -110,6 +110,7 @@ local platform_list =
   lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' }
   lpc24xx = { cpus = { 'LPC2468' }, arch = 'arm' },
   lpc288x = { cpus = { 'LPC2888' }, arch = 'arm' },
+  sam34 = { cpus = { 'SAM3X8E' }, arch = 'cortexm' },
   str7 = { cpus = { 'STR711FR2' }, arch = 'arm' },
   str9 = { cpus = { 'STR912FAW44' }, arch = 'arm' },
   stm32 = { cpus = { 'STM32F103ZE', 'STM32F103RE' }, arch = 'cortexm' },

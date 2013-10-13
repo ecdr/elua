@@ -1,7 +1,7 @@
 -- SAM3x8e build configuration
 
 return {
-  cpu = 'sam3x',
+  cpu = 'sam3x8e',
   components = {
     sercon = { uart = 0, speed = 115200 },
     wofs = true,

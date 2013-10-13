@@ -53,10 +53,10 @@ addlf{ target_flags, '-Wl,-e,ResetISR', '-Wl,-static' }
 addaf( target_flags )
 
 -- Toolset data
-tools.lm3s = {}
+tools.sam34 = {}
 
 -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
-tools.lm3s.prog_flist = { output .. ".bin" }
+tools.sam34.prog_flist = { output .. ".bin" }
 
 -- We use 'gcc' as the assembler
 toolset.asm = toolset.compile
