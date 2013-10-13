@@ -1,4 +1,4 @@
-// Interrupt list for the LM3S platform
+// Interrupt list for the SAM platform
 
 #ifndef __PLATFORM_INTS_H__
 #define __PLATFORM_INTS_H__

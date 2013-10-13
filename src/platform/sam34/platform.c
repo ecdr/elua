@@ -24,6 +24,12 @@
 
 // Platform specific includes
 
+#include "cpu_sam3x8e.h"
+/*
+ * Include header files for all drivers that have been imported from
+ * Atmel Software Framework (ASF).
+ */
+#include <asf.h>
 
 // ****************************************************************************
 // Platform initialization
@@ -56,10 +62,12 @@ static void i2cs_init();
 
 int platform_init()
 {
+  board_init();		// ASF
+  
   // Set the clocking to run from PLL
 
 FIXME
-
+  
   // Setup PIO
   pios_init();
 

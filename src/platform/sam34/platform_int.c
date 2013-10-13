@@ -1,4 +1,4 @@
-// lm3s interrupt support
+// sam interrupt support
 
 
 #include "platform_conf.h"
@@ -134,7 +134,7 @@ void tmr8_handler()
   tmr_common_handler( 8 );
 }
 
-#endif // defined( FORLM4F )
+
 
 // ****************************************************************************
 // Helpers
@@ -286,7 +286,7 @@ void tmr8_handler()
 {
 }
 
-#endif 
+
 
 #endif // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
