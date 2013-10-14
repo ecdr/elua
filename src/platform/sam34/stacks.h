@@ -8,4 +8,7 @@
 #define  STACK_SIZE       4096
 #define  STACK_SIZE_TOTAL ( STACK_SIZE )
 
+#define __stack_size__  STACK_SIZE
+// Fixme: __stack_size__ used by linker script - check that symbol is transferred to linker
+
 #endif

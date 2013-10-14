@@ -5,9 +5,11 @@
 
 #include "platform_ints.h"
 #include "stacks.h"
+//#include <asf.h>
+#include <sysclk.h>
 
 // Number of resources (0 if not available/not implemented)
-#define NUM_PIO               5
+#define NUM_PIO               4
 // FIXME: Check number PIO - libraries look like only 4 (A-D)
 #define NUM_SPI               1
 #define NUM_UART              3
@@ -25,7 +27,6 @@
 
 #define DAC_BIT_RESOLUTION    12
 
-
 // CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)
 #define CPU_FREQUENCY         sysclk_get_cpu_hz()
 // FIXME - check if this is right call 
@@ -38,7 +39,7 @@
 // #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
 // #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
 // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
-#define PIO_PIN_ARRAY         { 30, 32, 31, 10, 6 }
+#define PIO_PIN_ARRAY         { 30, 32, 31, 11 }
 
 // Internal Flash data
 #define INTERNAL_FLASH_SIZE             ( 512 * 1024 )
@@ -47,6 +48,7 @@
 #define INTERNAL_FLASH_START_ADDRESS    0x00080000
 // FIXME: Check FLASH start address in documentation (got from flash.ld, what about boot loader, etc.)
 // FIXME: Need to get write unit size and sector size before can use WOFS
+// TODO: Consider reading flash size, RAM size from chipid?
 
 #define SRAM_ORIGIN           0x20070000
 #ifndef SRAM_SIZE

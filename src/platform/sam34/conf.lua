@@ -51,7 +51,7 @@ specific_files = "platform.c platform_int.c"
 
 local fwlib_files = utils.get_files( "src/platform/" .. platform .. "/ASF", ".*%.c$", false )
 
-ldscript = "ASF/sam/utils/liker_scripts/sam3x/sam3x8/gcc/lm3s.ld"
+ldscript = "ASF/sam/utils/linker_scripts/sam3x/sam3x8/gcc/flash.ld"
 
 -- Prepend with path
 specific_files = fwlib_files .. " " .. utils.prepend_path( specific_files, "src/platform/" .. platform )

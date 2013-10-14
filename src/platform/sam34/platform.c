@@ -33,12 +33,13 @@
 
 // Platform specific includes
 
-#if defined( FORSAM3X8E)
-
-#include "cpu_sam3x8e.h"
-#else
-#warning SAM - Unknown CPU
-#endif   // CPU
+// Not needed - handled by platform_conf.h
+//#if defined( FORSAM3X8E)
+//
+//#include "cpu_sam3x8e.h"
+//#else
+//#warning SAM - Unknown CPU
+//#endif   // CPU
 
 /*
  * Include header files for all drivers that have been imported from
@@ -133,8 +134,8 @@ int platform_init()
 // PIO
 
 // PIOE net defined, but thought there were 5 ports - ??
-const u32 pio_id[] = { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD, ID_PIOE };
-const pio_type pio_base[] = { PIOA, PIOB, PIOC, PIOD, PIOE };
+const u32 pio_id[] =        { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
+Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 
 #define PIO_MASK_ALL  0xFFFFFFFF
 
@@ -149,7 +150,8 @@ static void pios_init()
 
 pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 {
-  pio_type retval = 1, base = pio_base[ port ];
+  pio_type retval = 1; 
+  Pio * base = pio_base[ port ];
 
   switch( op )
   {
@@ -211,7 +213,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 #if defined( BUILD_CAN )
 
-const can_base[] = { CAN0, CAN1 };
+Can * const can_base[] = { CAN0, CAN1 };
 
 // Speed used in INIT
 #ifndef CAN_INIT_SPEED
