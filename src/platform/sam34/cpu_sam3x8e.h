@@ -8,15 +8,17 @@
 
 // Number of resources (0 if not available/not implemented)
 #define NUM_PIO               5
+// FIXME: Check number PIO - libraries look like only 4 (A-D)
 #define NUM_SPI               1
 #define NUM_UART              3
 #define NUM_TIMER             9
+// FIXME: Check number timers - libraries look like only 3 (?)
 #define NUM_PWM               8
 #define NUM_I2C               2
 #define NUM_ADC               16
 #define NUM_CAN               2
 
-#define NUM_DAC			2
+#define NUM_DAC			          2
 #define NUM_I2S               1
 
 #define ADC_BIT_RESOLUTION    12
@@ -25,7 +27,9 @@
 
 
 // CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)
-#define CPU_FREQUENCY         84*1000*1000
+#define CPU_FREQUENCY         sysclk_get_cpu_hz()
+// FIXME - check if this is right call 
+// 84*1000*1000
 // Fixme - find CPU frequency (should be system call for it)
 
 // PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
