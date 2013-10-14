@@ -57,7 +57,7 @@
 enum {
   ERR_EOF       = MAXINT - 100,  // reached end of file on transport
   ERR_CLOSED    = MAXINT - 101,  // attempted operation on closed transport
-  ERR_PROTOCOL  = MAXINT - 102,  // some error in the received protocol
+  ERR_RPC_PROTOCOL  = MAXINT - 102,  // some error in the received protocol
   ERR_NODATA    = MAXINT - 103,
   ERR_COMMAND   = MAXINT - 106,
   ERR_HEADER    = MAXINT - 107,

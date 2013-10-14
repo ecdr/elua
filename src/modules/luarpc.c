@@ -136,7 +136,7 @@ static const char * errorString( int n )
   switch (n) {
     case ERR_EOF: return "connection closed unexpectedly";
     case ERR_CLOSED: return "operation requested on closed transport";
-    case ERR_PROTOCOL: return "error in the received protocol";
+    case ERR_RPC_PROTOCOL: return "error in the received protocol";
     case ERR_COMMAND: return "undefined command";
     case ERR_NODATA: return "no data received when attempting to read";
     case ERR_HEADER: return "header exchanged failed";
@@ -871,7 +871,7 @@ static void helper_wait_ready( Transport *tpt, u8 cmd )
   cmdresp = transport_read_u8( tpt );
   if( cmdresp != RPC_READY )
   {
-    e.errnum = ERR_PROTOCOL;
+    e.errnum = ERR_RPC_PROTOCOL;
     e.type = nonfatal;
     Throw( e );
   }
