@@ -63,6 +63,7 @@ SECTIONS
     { 
         . = ALIGN(4);
         _sfixed = .;
+        PROVIDE(stext = .);				/* eLua */
         KEEP(*(.vectors .vectors.*))
         *(.text .text.* .gnu.linkonce.t.*) 	      
         *(.glue_7t) *(.glue_7)		                
@@ -91,6 +92,7 @@ SECTIONS
         KEEP (*crtend.o(.ctors))
 
         . = ALIGN(4);
+        _fini = . ;			/* eLua - TODO: I am really not sure about this one */
         KEEP(*(.fini))
 
         . = ALIGN(4);
@@ -106,6 +108,7 @@ SECTIONS
 
         . = ALIGN(4);
         _efixed = .;            /* End of text section */
+        PROVIDE(etext = .);		/* eLua */
     } > rom
 
     /* .ARM.exidx is sorted, so has to go in its own output section.  */
@@ -117,6 +120,11 @@ SECTIONS
     PROVIDE_HIDDEN (__exidx_end = .);
 
     . = ALIGN(4); 
+
+/* eLua */
+    PROVIDE( flash_used_size = SIZEOF(.text) + SIZEOF(.data) + SIZEOF(.ARM.extab) + SIZEOF(.ARM.exidx) );
+/* Not sure about handling of _srelocate - not in lm3s.ld */
+
     _etext = .;
 
     .relocate : AT (_etext)
@@ -154,4 +162,5 @@ SECTIONS
 
     . = ALIGN(4); 
     _end = . ; 
+    end = . ;	/* eLua */
 }
