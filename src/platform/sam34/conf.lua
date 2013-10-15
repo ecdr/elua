@@ -92,7 +92,7 @@ local target_flags =  {'-mcpu=cortex-m3','-mthumb','-D=__SAM3X8E__','-DBOARD=ARD
 
 -- Configure general flags for target
 addcf{ target_flags, '-mlittle-endian' }
-addlf{ target_flags, '-Wl,-e,ResetISR', '-Wl,-static' }
+addlf{ target_flags, '-Wl,--entry=Reset_Handler', '-Wl,-static' }
 addaf( target_flags )
 
 -- Toolset data

@@ -244,7 +244,7 @@ void cans_init( void )
   can_rx_mailbox.uc_obj_type = CAN_MB_RX_MODE;
   can_rx_mailbox.ul_id_msk = CAN_MAM_MIDvA_Msk | CAN_MAM_MIDvB_Msk;
   can_rx_mailbox.ul_id = CAN_MID_MIDvA(0x00);
-  can_mailbox_init(CAN01, &can_rx_mailbox);
+  can_mailbox_init(CAN0, &can_rx_mailbox);
 }
 
 u32 platform_can_setup( unsigned id, u32 clock )
@@ -260,6 +260,8 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
+#warning Not finished - return bogus result
+  return 42;
 }
 
 #endif
