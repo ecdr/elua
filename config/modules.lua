@@ -25,7 +25,7 @@ local lua_modules = {
 local elua_generic_modules = { 
   adc = { guards = { "BUILD_ADC", "NUM_ADC > 0" } }, 
   bit = {}, 
-  can = { guards = { "NUM_CAN > 0" } }, 
+  can = { guards = { "BUILD_CAN" } }, 
   cpu = {}, 
   elua = {}, 
   i2c = { guards = { "NUM_I2C > 0" } },

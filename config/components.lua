@@ -201,6 +201,8 @@ function init()
   components.romfs = { macro = 'BUILD_ROMFS' }
   -- WOFS
   components.wofs = { macro = "BUILD_WOFS" }
+  -- CAN
+  components.can = { macro = "BUILD_CAN" }
   -- All done
   return components
 end

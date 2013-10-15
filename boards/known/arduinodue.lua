@@ -11,6 +11,7 @@ return {
     linenoise = { shell_lines = 10, lua_lines = 50 },
     cints = false,
     luaints = false,
+    can = true,
     rpc = { uart = 0, speed = 115200 },
     adc = { buf_size = 2 },
     xmodem = true,
