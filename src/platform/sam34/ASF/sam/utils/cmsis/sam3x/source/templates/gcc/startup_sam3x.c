@@ -211,7 +211,7 @@ void Reset_Handler(void)
 	}
 
 	/* Initialize the C library */
-	__libc_init_array();
+//	__libc_init_array();    // This was part of ASF startup, but not in various eLua platforms 
 
 	/* Branch to main function */
 	main();
