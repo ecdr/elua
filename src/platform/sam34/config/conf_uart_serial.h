@@ -46,11 +46,11 @@
 
 /* A reference setting for UART */
 /** UART Interface */
-//#define CONF_UART            CONSOLE_UART
+#define CONF_UART            CONSOLE_UART
 /** Baudrate setting */
-//#define CONF_UART_BAUDRATE   115200
+#define CONF_UART_BAUDRATE   115200
 /** Parity setting */
-//#define CONF_UART_PARITY     UART_MR_PAR_NO
+#define CONF_UART_PARITY     UART_MR_PAR_NO
 
 
 /* A reference setting for USART */

@@ -49,6 +49,7 @@
 // FIXME: Check FLASH start address in documentation (got from flash.ld, what about boot loader, etc.)
 // FIXME: Need to get write unit size and sector size before can use WOFS
 // TODO: Consider reading flash size, RAM size from chipid?
+// Flash Page size is 256 bytes (according to bossac)
 
 #define SRAM_ORIGIN           0x20070000
 #ifndef SRAM_SIZE

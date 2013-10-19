@@ -47,6 +47,7 @@
 #include "compiler.h"
 
 #warning You must refill the following definitions with a correct values
+// FIXME: What is power consumption on Due?
 
 /**
  * USB Device Configuration
@@ -66,8 +67,8 @@
 //	(USB_CONFIG_ATTR_REMOTE_WAKEUP|USB_CONFIG_ATTR_BUS_POWERED)
 
 //! USB Device string definitions (Optional)
-// #define  USB_DEVICE_MANUFACTURE_NAME      "Manufacture name"
-// #define  USB_DEVICE_PRODUCT_NAME          "Product name"
+#define  USB_DEVICE_MANUFACTURE_NAME      "Atmel"
+#define  USB_DEVICE_PRODUCT_NAME          "Virtual COM Port"
 // #define  USB_DEVICE_SERIAL_NAME           "12...EF"
 
 

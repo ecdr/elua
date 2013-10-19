@@ -20,8 +20,8 @@ return {
       vtmr = { num = 4, freq = 4 },
   },
   modules = {
-    generic = { 'all', '-i2c', '-net', '-pwm', '-mmc' },
-    platform = {'all', '-pwm', '-mmc', '-adc', '-spi', '-uart'},
+    generic = { 'all', '-i2c', '-net', '-mmc' },
+    platform = {'all', '-mmc'},
   },
 --  macros = { { "", "" },
 --		 { "", ""}
