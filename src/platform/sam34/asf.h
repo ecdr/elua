@@ -58,12 +58,21 @@
 // From module: CAN - Controller Area Network
 #include <can.h>
 
+// From module: CHIPID - Chip Identifier
+#include <chipid.h>
+
 // From module: Common SAM compiler driver
 #include <compiler.h>
 #include <status_codes.h>
 
 // From module: DACC - Digital-to-Analog Converter
 #include <dacc.h>
+
+// From module: EEFC - Enhanced Embedded Flash Controller
+#include <efc.h>
+
+// From module: Flash - SAM Flash Service API
+#include <flash_efc.h>
 
 // From module: GPIO - General purpose Input/Output
 #include <gpio.h>
@@ -90,6 +99,9 @@
 // From module: Part identification macros
 #include <parts.h>
 
+// From module: RTC - Real Time Clock
+#include <rtc.h>
+
 // From module: SAM3X startup code
 #include <exceptions.h>
 
@@ -103,6 +115,9 @@
 // From module: Sleep manager - SAM implementation
 #include <sam/sleepmgr.h>
 #include <sleepmgr.h>
+
+// From module: Standard serial I/O (stdio) - SAM implementation
+#include <stdio_serial.h>
 
 // From module: System Clock Control - SAM3X/A implementation
 #include <sysclk.h>
@@ -124,6 +139,12 @@
 
 // From module: UART - Univ. Async Rec/Trans
 #include <uart.h>
+
+// From module: USART - Serial interface - SAM implementation for devices with both UART and USART
+#include <serial.h>
+
+// From module: USART - Univ. Syn Async Rec/Trans
+#include <usart.h>
 
 // From module: USB CDC Protocol
 #include <usb_protocol_cdc.h>
