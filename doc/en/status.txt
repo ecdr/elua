@@ -137,11 +137,11 @@ o|_mi2c      | Inter-integrated circuit protocol                    | _sok
 o|_mrpc      | Remote procedure call                                | _sok
 o|_mcan      | Controller area network                              | _snt
 o|_melua     | eLua system control                                  | _sok
-o|dac 	 | Digital to analog converter                          | _sni
 o|cmp 	 | Analog comparator                                    | _sni
 o|cnt 	 | Event counter                                        | _sni
-o|rtc 	 | Real time clock                                      | _sni
+o|dac 	 | Digital to analog converter                          | _sni
 o|i2s 	 | Inter-IC sound                                       | _sni
+o|rtc 	 | Real time clock                                      | _sni
 |===========================================================================
 
 For some platforms, a number of platform dependent modules are implemented (or in the works) and are listed below. To understand the difference between generic 
@@ -156,6 +156,8 @@ o| _mmizar32lcd| LCD Character Display         | _Mizar32                       
 o| _mmizar32rtc| Real time clock               | _Mizar32                       | _sok
 o| _mstr9pio  | Extended PIO configuration     | _STR-E912 _br _STR9-comStick   | _sok
 o| _mstr9rtc  | Real time clock                | _STR-E912 _br _STR9-comStick   | _sok
+o| _msamrtc   | Real time clock                | _arduino_due                   | _snt
+o| _msamrng   | Random number generator        | _arduino_due                   | _snt
 |=======================================================================================
 
 [[roadmap]]

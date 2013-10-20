@@ -245,6 +245,7 @@ u32 platform_can_setup( unsigned id, u32 clock )
   can_disable(can_base[id]);
   can_init(can_base[id], CANCLK, clock);
   can_enable(can_base[id]);
+  return clock;    // FIXME: Should return clock actually set
 }
 
 void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
@@ -254,7 +255,7 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
 #warning Not finished - return bogus result
-  return PLATFORM_ERROR;
+  return PLATFORM_ERR;
 }
 
 #endif
@@ -269,10 +270,13 @@ static void spis_init()
 // cpol - clock polarity (0 or 1), cpha - clock phase (0 or 1)
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
+  return 0; // clock;
 }
 
 spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
 {
+// FIXME: Fill in body
+  return data;
 }
 
 void platform_spi_select( unsigned id, int is_select )
@@ -546,7 +550,7 @@ const static u32 pwm_div_ctl[] =
 const unsigned nprescalers = PWM_CLOCK_PRE_MAX;
 #define PWM_PRE_CLOCKA (nprescalers)
 #define PWM_PRE_CLOCKB (nprescalers+1)
-#define PWM_PRE_UNUSED (nprescalers+2)
+#define PWM_PRE_UNUSED (PWM_CLOCK_PRE_MAX+2)
 
 // Which clock is each channel using
 u32 pwm_chan_clock[NUM_PWM] = { 0 };
@@ -592,11 +596,13 @@ static u32 freq_from_prescaler( unsigned prescaler )
 
 
 #define FREQ_EPSILON  100
+// Scaler for relative difference (100 would be % difference)
+#define PWM_PARTS_PER 1000
 
-// TODO: Use % difference, rather than absolute difference
-static int freq_eq(u32 f1, f2)
+// TODO: Use relative difference, rather than absolute difference
+static int rel_diff(u32 f1, u32 f2)
 {
-  return abs(f1 - f2) < FREQ_EPSILON;
+  return (PWM_PARTS_PER * 2 * (f1 - f2)) / (f1 + f2);
 }
 
 u32 platform_pwm_get_clock( unsigned id )
@@ -726,6 +732,7 @@ void platform_pwm_stop( unsigned id )
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
 {
+  return ( ( timer_id >= ADC_TIMER_FIRST_ID ) && ( timer_id < ( ADC_TIMER_FIRST_ID + ADC_NUM_TIMERS ) ) );
 }
 
 void platform_adc_stop( unsigned id )
@@ -737,20 +744,26 @@ void ADCIntHandler( void )
 {
 }
 
-static void adcs_init()
+static void adcs_init( void )
 {
 }
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
+//  return frequency;
+  return 0;   // FIXME: Signal an error - should return frequency set
 }
 
-int platform_adc_update_sequence( )
+int platform_adc_update_sequence( void )
 {
+//  return PLATFORM_OK;
+  return PLATFORM_ERR;
 }
 
-int platform_adc_start_sequence()
+int platform_adc_start_sequence( void )
 {
+//  return PLATFORM_OK;
+  return PLATFORM_ERR;
 }
 
 
@@ -768,6 +781,25 @@ int platform_adc_start_sequence()
 // ****************************************************************************
 // USB functions
 
+
+#if defined( BUILD_USB_CDC )
+
+static void usb_init()
+{
+}
+
+unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
+{}
+
+unsigned long RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
+{}
+
+unsigned long
+ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
+{}
+
+#endif // BUILD_USB_CDC
+
 // ****************************************************************************
 // Flash access functions
 
@@ -779,6 +811,7 @@ u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 
 int platform_flash_erase_sector( u32 sector_id )
 {
+  return PLATFORM_ERR;
 }
 
 #endif // #ifdef BUILD_WOFS
@@ -787,7 +820,16 @@ int platform_flash_erase_sector( u32 sector_id )
 // Platform specific modules go here
 
 // ****************************************************************************
-// Random number generator
+// Random sequence generator
+
+#ifdef BUILD_RAND
+// STM32F4 also has an RNG
+
+// FIXME: Need to add to module map
+// FIXME: Need to add build flag to config
+
+// Need to arrange to call rand_init - maybe should be in system init(?)
+static u8 f_rand_init = 0;
 
 static void rand_init()
 {
@@ -796,5 +838,22 @@ static void rand_init()
 
 u32 rand_read()
 {
+  if ( !f_rand_init )
+  {
+    rand_init();
+    f_rand_init = 1;
+  }
   return trng_read_output_data(TRNG);
 }
+
+#define MIN_OPT_LEVEL 2
+#include "lrodefs.h"
+
+// platform.random() module function map
+const LUA_REG_TYPE rand_map[] =
+{
+  { LSTRKEY( "next" ), LFUNCVAL( rand_read ) },
+  { LNILKEY, LNILVAL }
+};
+
+#endif // BUILD_RAND

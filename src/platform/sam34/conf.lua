@@ -50,7 +50,7 @@ local board = comp.board:upper()
 
 
 
-specific_files = "platform.c platform_int.c"
+specific_files = " rtc.c platform_rtc.c platform.c platform_int.c"
 
 -- Dig through ASF to find source files
 
