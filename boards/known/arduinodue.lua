@@ -15,8 +15,8 @@ return {
     rpc = { uart = 0, speed = 115200 },
     adc = { buf_size = 2 },
     xmodem = true,
-    sam_rand = true,
-    sam_rtc = true,
+    sam34_rand = true,
+    sam34_rtc = true,
   },
   config = {
       vtmr = { num = 4, freq = 4 },

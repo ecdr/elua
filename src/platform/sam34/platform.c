@@ -823,37 +823,28 @@ int platform_flash_erase_sector( u32 sector_id )
 // Random sequence generator
 
 #ifdef BUILD_RAND
-// STM32F4 also has an RNG
 
-// FIXME: Need to add to module map
-// FIXME: Need to add build flag to config
+// TODO: Add buffer (so can generate ahead of need)
+// TODO: Add interface to check if number available
 
 // Need to arrange to call rand_init - maybe should be in system init(?)
 static u8 f_rand_init = 0;
 
-static void rand_init()
+u8 platform_rand_init()
 {
   trng_enable(TRNG);
+  return TRUE;
 }
 
-u32 rand_read()
+u32 platform_rand_next()
 {
   if ( !f_rand_init )
   {
-    rand_init();
+    platform_rand_init();
     f_rand_init = 1;
   }
   return trng_read_output_data(TRNG);
 }
 
-#define MIN_OPT_LEVEL 2
-#include "lrodefs.h"
-
-// platform.random() module function map
-const LUA_REG_TYPE rand_map[] =
-{
-  { LSTRKEY( "next" ), LFUNCVAL( rand_read ) },
-  { LNILKEY, LNILVAL }
-};
 
 #endif // BUILD_RAND

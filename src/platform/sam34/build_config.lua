@@ -9,8 +9,8 @@ local at = require "attributes"
 -- Add specific components to the 'components' table
 function add_platform_components( t, board, cpu )
   t.cdc = comps.cdc_uart()
-  t.sam_rand = { macro = "BUILD_RAND" }
-  t.sam_rtc = { macro = "BUILD_RTC" }
+  t.sam34_rand = { macro = "BUILD_RAND" }
+  t.sam34_rtc = { macro = "BUILD_RTC" }
 end
 
 -- Add specific configuration to the 'configs' table
