@@ -39,6 +39,7 @@
  * Atmel Software Framework (ASF).
  */
 #include <asf.h>
+#include <assert.h>
 
 // ****************************************************************************
 // Platform initialization
@@ -49,7 +50,7 @@ static void uarts_init();
 static void spis_init();
 static void pios_init();
 
-#ifdef NUM_PWM > 0
+#if NUM_PWM > 0
 static void pwms_init();
 #endif
 
@@ -320,7 +321,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 
 // FIXME: Think there are only 3 UART/USART on Due
 const u32 uart_id[] = { ID_UART, ID_USART0, ID_USART1, ID_USART3};
-Usart* const uart_base[] = { UART, USART0, USART1, USART3};
+Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 //#define USART_SERIAL_PIO PINS_USART_PIO
 //#define USART_SERIAL_TYPE PINS_USART_TYPE
 //#define USART_SERIAL_PINS PINS_USART_PINS
@@ -433,13 +434,16 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 const u32 timer_id[] = {ID_TC0, ID_TC1, ID_TC2};
 Tc * const timer_base[] = {TC0, TC1, TC2};
 
+#define NUM_TC (sizeof timer_id/sizeof u32)
+
 // FIXME: Something said there were 9 counter timers, but only TC0 through 2??
+#define PLATFORM_TIMER_COUNT_MAX ((u32) 0xFFFFFFFF )
 
 static void timers_init()
 {
 //  unsigned i;
 
-//  for( i = 0; i < NUM_UART; i ++ )
+//  for( i = 0; i < NUM_TC; i ++ )
 //    pmc_enable_periph_clk(timer_id[i]);
   pmc_enable_periph_clk(ID_TC0);
 }
@@ -448,6 +452,22 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 {
 }
 
+// Return timer number for given timer ID
+static u32 timer(unsigned id)
+{
+  return id/3;
+}
+
+static Tc * tc(unsigned id)
+{
+  return timer_base[timer(id)];
+}
+
+// Timer id -> channel # 
+static u32 tchanel(unsigned id) 
+{
+  return (u32) id - timer(id);
+}
 
 //	uint32_t ul_div;
 //	uint32_t ul_tcclks;
@@ -461,6 +481,9 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 //	tc_init(TC0, 0, ul_tcclks | TC_CMR_CPCTRG);
 //	tc_write_rc(TC0, 0, (ul_sysclk / ul_div) / TC_FREQ);
 
+#warning FIXME: Need to figure out what timer mode to use
+#define TC_MODE_COUNTER 0
+
   
 timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
@@ -473,7 +496,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
         res = 0xFFFFFFFF;      // FIXME
 //      MAP_TimerControlTrigger(base, TIMER_A, false);
 //      MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
-        tc_init(TC0, id, ul_mode);   // FIXME - figure out mode
+        tc_init(TC0, id, TC_MODE_COUNTER);   // FIXME - figure out mode
         tc_start(TC0, id);    // FIXME
       break;
 
@@ -578,7 +601,7 @@ static u32 pwm_find_clock_prescaler( u32 frequency )
   for (prescaler = 0; prescaler < nprescalers; prescaler++)
     if ( pwm_prescalers( prescaler ) * frequency > PWM_MAX_CLOCK)
       break;
-//  assert( max/prescalers( prescaler-1) > frequency > max/prescalers(prescaler) or prescaler = nprescalers )
+//  Assert( max/prescalers( prescaler-1) > frequency > max/prescalers(prescaler) or prescaler = nprescalers )
 //  if ( prescaler < nprescalers )    
 // Taking the absolute values of the differences in following comparison handles case where prescaler==nprescalers
     if ( abs(PWM_MAX_CLOCK - frequency * pwm_prescalers( prescaler-1 )) < abs(frequency * pwm_prescalers( prescaler ) - PWM_MAX_CLOCK))
@@ -659,7 +682,7 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
     pwm_chan_clock[id] = 0;
     pwm_clka_users--;
     }
-  assert(pwm_clka_users < NUM_PWM);
+  Assert(pwm_clka_users < NUM_PWM);
   return clock; // FIXME - what is it supposed to return?
 }
 
@@ -729,6 +752,10 @@ void platform_pwm_stop( unsigned id )
 // ADC specific functions and variables
 
 #ifdef BUILD_ADC
+
+#warning fix ADC_TIMER_IDs (they are arbitrarily set for now)
+#define ADC_TIMER_FIRST_ID 8
+#define ADC_NUM_TIMERS 1
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
 {
@@ -828,21 +855,53 @@ int platform_flash_erase_sector( u32 sector_id )
 // TODO: Add interface to check if number available
 
 // Need to arrange to call rand_init - maybe should be in system init(?)
-static u8 f_rand_init = 0;
+static u8 f_rand_init = false;
+
+/*
+static u8 buf_space = true;
+static u32 rand_buffer;
+
+void TRNG_Handler(void)
+{
+	u32 status;
+
+  status = trng_get_interrupt_status(TRNG);
+  
+  if (buf_space)
+  {
+    if ((status & TRNG_ISR_DATRDY) == TRNG_ISR_DATRDY) {
+      buf_space = false;
+      rand_buffer = trng_read_output_data(TRNG);
+    }
+  }
+}
+*/
 
 u8 platform_rand_init()
 {
-  trng_enable(TRNG);
+  if ( !f_rand_init ) {
+    f_rand_init = true;
+    pmc_enable_periph_clk(ID_TRNG);
+  
+    trng_enable(TRNG);
+
+	/* Enable TRNG interrupt */
+/*
+	NVIC_DisableIRQ(TRNG_IRQn);
+	NVIC_ClearPendingIRQ(TRNG_IRQn);
+	NVIC_SetPriority(TRNG_IRQn, 0);
+	NVIC_EnableIRQ(TRNG_IRQn);
+	trng_enable_interrupt(TRNG);
+ */
+  }
   return TRUE;
 }
 
 u32 platform_rand_next()
 {
   if ( !f_rand_init )
-  {
     platform_rand_init();
-    f_rand_init = 1;
-  }
+
   return trng_read_output_data(TRNG);
 }
 
