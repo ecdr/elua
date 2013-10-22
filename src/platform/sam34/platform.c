@@ -41,14 +41,16 @@
 #include <asf.h>
 #include <assert.h>
 
+
 // ****************************************************************************
 // Platform initialization
 
 // forward
-static void timers_init();
-static void uarts_init();
-static void spis_init();
 static void pios_init();
+static void spis_init();
+static void uarts_init();
+static void timers_init();
+
 
 #if NUM_PWM > 0
 static void pwms_init();
@@ -123,6 +125,7 @@ int platform_init()
   // All done
   return PLATFORM_OK;
 }
+
 
 // ****************************************************************************
 // PIO
@@ -207,6 +210,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 #if defined( BUILD_CAN )
 
+const u32 can_id[] = { ID_CAN0, ID_CAN1 };
 Can * const can_base[] = { CAN0, CAN1 };
 
 // Speed used in INIT
@@ -261,36 +265,90 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 #endif
 
+
 // ****************************************************************************
 // SPI
 
+const u32 spi_id[] = { ID_SPI0 };
+Spi * const spi_base[] = { SPI0 };
+
 static void spis_init()
 {
+  unsigned i;
+  
+  for (i = 0; i < NUM_SPI; i++)
+  {
+  pmc_enable_periph_clk(spi_id[i]); // FIXME: Is this needed? Not listed in example
+  
+  spi_enable_clock(spi_base[i]);
+  spi_reset(spi_base[i]);
+  spi_set_master_mode(spi_base[i]);
+  spi_disable_mode_fault_detect(spi_base[i]);
+  spi_disable_loopback(spi_base[i]);
+//  spi_set_peripheral_chip_select_value(spi_base[i], DEFAULT_CHIP_ID);
+  spi_set_fixed_peripheral_select(spi_base[i]);
+  spi_disable_peripheral_select_decode(spi_base[i]);
+  spi_set_delay_between_chip_select(spi_base[i], CONFIG_SPI_MASTER_DELAY_BCS);
+  }
 }
 
 // cpol - clock polarity (0 or 1), cpha - clock phase (0 or 1)
+// ?? what is mode
+
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
-  return 0; // clock;
+// FIXME: Copied from quickstart code - ??? not sure what the device or ID is.
+//void spi_master_setup_device(struct spi_device *device) - this was calling signature
+  spi_set_transfer_delay(spi_base[id], device->id, CONFIG_SPI_MASTER_DELAY_BS,  CONFIG_SPI_MASTER_DELAY_BCT);
+
+  spi_set_bits_per_transfer(spi_base[id], device->id, databits);
+  spi_set_baudrate_div(spi_base[id], device->id, spi_calc_baudrate_div(clock, sysclk_get_cpu_hz()));
+
+  spi_configure_cs_behavior(spi_base[id], device->id, SPI_CS_KEEP_LOW);
+  spi_set_clock_polarity(spi_base[id], device->id, cpol);
+  spi_set_clock_phase(spi_base[id], device->id, cpha);
+
+// FIXME: So far just enables configures SPI pins 
+	gpio_configure_pin(SPI0_MISO_GPIO, SPI0_MISO_FLAGS);
+	gpio_configure_pin(SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS);
+	gpio_configure_pin(SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS);
+// Alternate pins for NPCS on SPI0 (pick 1)
+    gpio_configure_pin(SPI0_NPCS0_GPIO, SPI0_NPCS0_FLAGS);
+    gpio_configure_pin(SPI0_NPCS1_PA29_GPIO, SPI0_NPCS1_PA29_FLAGS);
+
+  return 0; // clock; // FIXME: Return clock set
 }
+//  spi_enable(spi_base[id])
 
 spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
 {
+
+//spi_status_t 	spi_read (spi_base[id], uint16_t *us_data, uint8_t *p_pcs)
+//spi_status_t 	spi_write (spi_base[id], uint16_t data, uint8_t uc_pcs, uint8_t uc_last)
+// result - SPI_OK or SPI_ERROR_TIMEOUT
+
 // FIXME: Fill in body
   return data;
 }
 
+// FIXME: This is just a guess at what this might mean
 void platform_spi_select( unsigned id, int is_select )
 {
+  spi_set_peripheral_chip_select_value(spi_base[id], is_select);
 }
 
+
 // ****************************************************************************
-// I2C
+// I2C / TWI
 
 #ifdef BUILD_I2C
 
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
+	gpio_configure_pin(TWI0_DATA_GPIO, TWI0_DATA_FLAGS);
+	gpio_configure_pin(TWI0_CLK_GPIO, TWI0_CLK_FLAGS);
+	gpio_configure_pin(TWI1_DATA_GPIO, TWI1_DATA_FLAGS);
+	gpio_configure_pin(TWI1_CLK_GPIO, TWI1_CLK_FLAGS);
 }
 // Address is 0..127, direction - from enum, return is boolean
 
@@ -316,6 +374,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 
 #endif	// BUILD_I2C
 
+
 // ****************************************************************************
 // UART
 
@@ -334,6 +393,7 @@ static void uarts_init()
 //  for( i = 0; i < NUM_UART; i ++ )
 //    sysclk_enable_peripheral_clock(uart_id[i]);
   sysclk_enable_peripheral_clock(ID_UART);
+
 }
 
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
@@ -398,7 +458,33 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
       
     usart_enable_tx(uart_base[id]);
     usart_enable_rx(uart_base[id]);
+  // Need to configure pins for ports other than UART0 (assuming UART0 handled by ASF)
+
+/*    PIO_Configure( g_APinDescription[PINS_UART].pPort, g_APinDescription[PINS_UART].ulPinType,
+    g_APinDescription[PINS_UART].ulPin, g_APinDescription[PINS_UART].ulPinConfiguration); */
+    
+// FIXME: Make something data driven (table) here
+  switch(id)
+  {
+    case 0:
+    break;
+    case 1:
+    gpio_configure_pin(PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS);
+    gpio_configure_pin(PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS);
+    break;
+    case 2:
+    gpio_configure_pin(PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS);
+    gpio_configure_pin(PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS);
+    break;
+    case 3:
+    gpio_configure_pin(PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS);
+    gpio_configure_pin(PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS);
+    default:
+    
+    break;
+    }
   }
+
   return baud;
 }
 
@@ -416,11 +502,10 @@ int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 //  Fixme: Need non-blocking read (check if available, if available, then get, else return what)
       return PLATFORM_ERR;
   else
-    if (!usart_getchar(uart_base[id], & c))
+    if (!usart_getchar(uart_base[id], & c)) //TODO: Make it use timout value
       return c;
     else
       return PLATFORM_ERR;   // Fixme
-//  return MAP_UARTCharGet( base );
 }
 
 int platform_s_uart_set_flow_control( unsigned id, int type )
@@ -484,6 +569,37 @@ static u32 tchanel(unsigned id)
 #warning FIXME: Need to figure out what timer mode to use
 #define TC_MODE_COUNTER 0
 
+/*
+component_tc.h
+Capture mode - TIOA,B are inputs (trigger/measure signals)
+Wave mode - free running (wave gen, etc.) TIOA output, TIOB out if not trigger
+
+?? It several places says 32 bit counter, but it says that counter resets on 0xFFFF 
+(i.e. 16 bits) which one is correct?
+
+Trigger - software, 
+  Compare to register C
+
+Counter value
+Registers A, B, C
+Status
+Timer channel mode:
+TC_CMR_TCCLKS_TIMER_CLOCK1-5 (MCK/2, MCK/8, MCK/32, MCK/128, SLCK), TC_CMR_TCCLKS_XC0-2 
+TC_CMR_CLKI - invert clock
+Burst - gate clock with external signal (XC0-2)
+ TC_CMR_BURST_NONE, TC_CMR_BURST_XC0-2
+TC_CMR_LDBSTOP, TC_CMR_LDBDIS
+Edge trigger - 
+TC_CMR_ETRGEDG_NONE, TC_CMR_ETRGEDG_RISING, TC_CMR_ETRGEDG_FALLING, TC_CMR_ETRGEDG_EDGE (both)
+
+TC_CMR_ABETRG
+TC_CMR_CPCTRG
+TC_CMR_WAVE - waveform mode
+TC_CMR_LDRA_NONE, RISING, FALLING, EDGE - load reg. A on given edge
+TC_CMR_LDRB_NONE, RISING, FALLING, EDGE - load reg. B on given edge
+TC_CMR_CPCSTOP, TC_CMR_CPCDIS - Stopped/disabled with RC compare
+TC_CMR_EEVTEDG - external event edge
+*/
   
 timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
@@ -496,7 +612,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
         res = 0xFFFFFFFF;      // FIXME
 //      MAP_TimerControlTrigger(base, TIMER_A, false);
 //      MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
-        tc_init(TC0, id, TC_MODE_COUNTER);   // FIXME - figure out mode
+        tc_init(TC0, id, TC_CMR_WAVE);   // FIXME - figure out mode
         tc_start(TC0, id);    // FIXME
       break;
 
@@ -511,8 +627,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       break;
 
     case PLATFORM_TIMER_OP_GET_MAX_CNT:
-//      res = 0xFFFFFFFF;
-// FIXME
+      res = PLATFORM_TIMER_COUNT_MAX;
       break;
   }
   return res;
@@ -537,6 +652,7 @@ void platform_timer_sys_enable_int()
 timer_data_type platform_timer_read_sys()
 {
 }
+
 
 // ****************************************************************************
 // PWMs
@@ -726,6 +842,8 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   pwm_inst.ul_period = period;
   pwm_inst.ul_duty = duty_clocks;
   pwm_channel_init(PWM, &pwm_inst);
+  //FIXME: Need to configure associated pin appropriately
+
   return (pwmclk + period/2) / period;
 }
 
@@ -747,6 +865,7 @@ void platform_pwm_stop( unsigned id )
 #undef pwm_prescalers
 
 #endif // NUM_PWM > 0
+
 
 // *****************************************************************************
 // ADC specific functions and variables
@@ -793,8 +912,8 @@ int platform_adc_start_sequence( void )
   return PLATFORM_ERR;
 }
 
-
 #endif // ifdef BUILD_ADC
+
 
 // ****************************************************************************
 // Support for specific onboard devices 
@@ -827,6 +946,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, 
 
 #endif // BUILD_USB_CDC
 
+
 // ****************************************************************************
 // Flash access functions
 
@@ -843,8 +963,10 @@ int platform_flash_erase_sector( u32 sector_id )
 
 #endif // #ifdef BUILD_WOFS
 
+
 // ****************************************************************************
 // Platform specific modules go here
+
 
 // ****************************************************************************
 // Random sequence generator
@@ -904,6 +1026,5 @@ u32 platform_rand_next()
 
   return trng_read_output_data(TRNG);
 }
-
 
 #endif // BUILD_RAND
