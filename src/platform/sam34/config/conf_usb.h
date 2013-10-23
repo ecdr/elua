@@ -122,8 +122,9 @@
 #define  UDI_CDC_PORT_NB 1
 
 //! Interface callback definition
-#define  UDI_CDC_ENABLE_EXT(port)          true
-#define  UDI_CDC_DISABLE_EXT(port)
+#define  UDI_CDC_ENABLE_EXT(port)          stdio_usb_enable()
+//          true
+#define  UDI_CDC_DISABLE_EXT(port)         stdio_usb_disable()
 #define  UDI_CDC_RX_NOTIFY(port)
 #define  UDI_CDC_TX_EMPTY_NOTIFY(port)
 #define  UDI_CDC_SET_CODING_EXT(port,cfg)
@@ -167,5 +168,8 @@
 
 //! The includes of classes and other headers must be done at the end of this file to avoid compile error
 #include "udi_cdc_conf.h"
+
+#warning For USB STDIO need stdio_usb.h
+#include "stdio_usb.h"
 
 #endif // _CONF_USB_H_

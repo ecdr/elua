@@ -41,6 +41,10 @@
 #include <asf.h>
 #include <assert.h>
 
+// NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
+// same value, as they're served by the same timer (the systick)
+#define SYSTICKHZ 5
+
 
 // ****************************************************************************
 // Platform initialization
@@ -120,11 +124,12 @@ int platform_init()
   usb_init();
 #endif
 
+
+
   // Setup system timer
-#warning FIXME - setup system timer
-  	if (SysTick_Config(sysclk_get_cpu_hz() / 1000))
+  	if (SysTick_Config(platform_cpu_get_frequency() / SYSTICKHZ))
       return PLATFORM_ERR;    // SysTick error
-  
+
   cmn_platform_init();
 
   // All done
@@ -298,25 +303,29 @@ static void spis_init()
 }
 
 // cpol - clock polarity (0 or 1), cpha - clock phase (0 or 1)
-// ?? what is mode
+// mode - PLATFORM_SPI_MASTER/SLAVE
 
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
+  if (mode = PLATFORM_SPI_MASTER) 
+  {
+    struct spi_device *device;
+    
 // FIXME: Copied from quickstart code - ??? not sure what the device or ID is.
 //void spi_master_setup_device(struct spi_device *device) - this was calling signature
-  spi_set_transfer_delay(spi_base[id], device->id, CONFIG_SPI_MASTER_DELAY_BS,  CONFIG_SPI_MASTER_DELAY_BCT);
+    spi_set_transfer_delay(spi_base[id], device->id, CONFIG_SPI_MASTER_DELAY_BS,  CONFIG_SPI_MASTER_DELAY_BCT);
 
-  spi_set_bits_per_transfer(spi_base[id], device->id, databits);
-  spi_set_baudrate_div(spi_base[id], device->id, spi_calc_baudrate_div(clock, sysclk_get_cpu_hz()));
+    spi_set_bits_per_transfer(spi_base[id], device->id, databits);
+    spi_set_baudrate_div(spi_base[id], device->id, spi_calc_baudrate_div(clock, platform_cpu_get_frequency()));
 
-  spi_configure_cs_behavior(spi_base[id], device->id, SPI_CS_KEEP_LOW);
-  spi_set_clock_polarity(spi_base[id], device->id, cpol);
-  spi_set_clock_phase(spi_base[id], device->id, cpha);
+    spi_configure_cs_behavior(spi_base[id], device->id, SPI_CS_KEEP_LOW);
+    spi_set_clock_polarity(spi_base[id], device->id, cpol);
+    spi_set_clock_phase(spi_base[id], device->id, cpha);
 
 // FIXME: So far just enables configures SPI pins 
-	gpio_configure_pin(SPI0_MISO_GPIO, SPI0_MISO_FLAGS);
-	gpio_configure_pin(SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS);
-	gpio_configure_pin(SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS);
+    gpio_configure_pin(SPI0_MISO_GPIO, SPI0_MISO_FLAGS);
+    gpio_configure_pin(SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS);
+    gpio_configure_pin(SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS);
 // Alternate pins for NPCS on SPI0 (pick 1)
 // FIXME: Needs uniform way to handle pin mapping (or at least add a regular control variable)
 #ifndef SPI0_NPCS_PIN1
@@ -324,8 +333,12 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
 #else
     gpio_configure_pin(SPI0_NPCS1_PA29_GPIO, SPI0_NPCS1_PA29_FLAGS);
 #endif
-
-  return 0; // clock; // FIXME: Return clock set
+    return 0; // clock; // FIXME: Return clock set
+  }
+  else
+  { // FIXME: Need to implement slave
+    return 0;
+  }
 }
 //  spi_enable(spi_base[id])
 
@@ -376,7 +389,7 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
     gpio_configure_pin(TWI1_CLK_GPIO, TWI1_CLK_FLAGS);
   }
   
-  opt.master_clk = sysclk_get_cpu_hz();
+  opt.master_clk = platform_cpu_get_frequency();
 	opt.speed      = speed;
 
   if (twi_master_init(i2c_base[id], &opt) != TWI_SUCCESS) 
@@ -508,7 +521,7 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
     };
     usart_settings.channel_mode = US_MR_CHMODE_NORMAL;
     
-    if (usart_init_rs232(uart_base[id], &usart_settings, sysclk_get_main_hz()))
+    if (usart_init_rs232(uart_base[id], &usart_settings, platform_cpu_get_frequency()))
       return 0;     // Fixme: Failure
       
     usart_enable_tx(uart_base[id]);
@@ -987,8 +1000,17 @@ int platform_adc_start_sequence( void )
 
 static void usb_init()
 {
+// From stdio_usb example
+  	// Initialize interrupt vector table support.
+//	irq_initialize_vectors();
+
+	// Enable interrupts
+//	cpu_irq_enable();
+
+  stdio_usb_init();
 }
 
+/*
 unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
 {
 }
@@ -1001,6 +1023,7 @@ unsigned long
 ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
 {
 }
+*/
 
 #endif // BUILD_USB_CDC
 
