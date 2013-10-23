@@ -7,7 +7,7 @@
 #include "auxmods.h"
 #include "lrotable.h"
 
-// Lua: sson( id )
+// Lua: spi.sson( id )
 static int spi_sson( lua_State* L )
 {
   unsigned id;
@@ -18,7 +18,7 @@ static int spi_sson( lua_State* L )
   return 0;
 }
 
-// Lua: ssoff( id )
+// Lua: spi.ssoff( id )
 static int spi_ssoff( lua_State* L )
 {
   unsigned id;
@@ -29,7 +29,7 @@ static int spi_ssoff( lua_State* L )
   return 0;
 }
 
-// Lua: clock = setup( id, MASTER/SLAVE, clock, cpol, cpha, databits )
+// Lua: clock = spi.setup( id, MASTER/SLAVE, clock, cpol, cpha, databits )
 static int spi_setup( lua_State* L )
 {
   unsigned id, cpol, cpha, is_master, databits;
@@ -93,13 +93,13 @@ static int spi_rw_helper( lua_State *L, int withread )
   return withread ? 1 : 0;
 }
 
-// Lua: write( id, out1, out2, ... )
+// Lua: spi.write( id, out1, out2, ... )
 static int spi_write( lua_State* L )
 {
   return spi_rw_helper( L, 0 );
 }
 
-// Lua: restable = readwrite( id, out1, out2, ... )
+// Lua: restable = spi.readwrite( id, out1, out2, ... )
 static int spi_readwrite( lua_State* L )
 {
   return spi_rw_helper( L, 1 );
