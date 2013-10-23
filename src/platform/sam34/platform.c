@@ -79,6 +79,9 @@ int platform_init()
   sysclk_init();
 
   board_init();		// ASF
+
+//	LED_Off(LED0_GPIO);
+//	LED_Off(LED1_GPIO);
   
   // Setup PIO
   pios_init();
@@ -119,7 +122,9 @@ int platform_init()
 
   // Setup system timer
 #warning FIXME - setup system timer
-
+  	if (SysTick_Config(sysclk_get_cpu_hz() / 1000))
+      return PLATFORM_ERR;    // SysTick error
+  
   cmn_platform_init();
 
   // All done
@@ -130,8 +135,8 @@ int platform_init()
 // ****************************************************************************
 // PIO
 
-// PIOE net defined, but thought there were 5 ports - ??
-const u32 pio_id[] =        { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
+// FIXME: PIOE net defined, but thought there were 5 ports - ??
+const u32 pio_id[] =     { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
 Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 
 #define PIO_MASK_ALL  0xFFFFFFFF
@@ -210,8 +215,8 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 #if defined( BUILD_CAN )
 
-const u32 can_id[] = { ID_CAN0, ID_CAN1 };
-Can * const can_base[] = { CAN0, CAN1 };
+const u32 can_id[]     = { ID_CAN0, ID_CAN1 };
+Can * const can_base[] = { CAN0,    CAN1 };
 
 // Speed used in INIT
 #ifndef CAN_INIT_SPEED
@@ -269,7 +274,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 // ****************************************************************************
 // SPI
 
-const u32 spi_id[] = { ID_SPI0 };
+const u32 spi_id[]     = { ID_SPI0 };
 Spi * const spi_base[] = { SPI0 };
 
 static void spis_init()
@@ -286,8 +291,8 @@ static void spis_init()
   spi_disable_mode_fault_detect(spi_base[i]);
   spi_disable_loopback(spi_base[i]);
 //  spi_set_peripheral_chip_select_value(spi_base[i], DEFAULT_CHIP_ID);
-  spi_set_fixed_peripheral_select(spi_base[i]);
-  spi_disable_peripheral_select_decode(spi_base[i]);
+  spi_set_fixed_peripheral_select(spi_base[i]);         // ??
+  spi_disable_peripheral_select_decode(spi_base[i]);    // ??
   spi_set_delay_between_chip_select(spi_base[i], CONFIG_SPI_MASTER_DELAY_BCS);
   }
 }
@@ -313,8 +318,12 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
 	gpio_configure_pin(SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS);
 	gpio_configure_pin(SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS);
 // Alternate pins for NPCS on SPI0 (pick 1)
+// FIXME: Needs uniform way to handle pin mapping (or at least add a regular control variable)
+#ifndef SPI0_NPCS_PIN1
     gpio_configure_pin(SPI0_NPCS0_GPIO, SPI0_NPCS0_FLAGS);
+#else
     gpio_configure_pin(SPI0_NPCS1_PA29_GPIO, SPI0_NPCS1_PA29_FLAGS);
+#endif
 
   return 0; // clock; // FIXME: Return clock set
 }
@@ -332,6 +341,7 @@ spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
 }
 
 // FIXME: This is just a guess at what this might mean
+// is_select - flag (PLATFORM_SPI_SELECT_ON or OFF)
 void platform_spi_select( unsigned id, int is_select )
 {
   spi_set_peripheral_chip_select_value(spi_base[id], is_select);
@@ -341,25 +351,67 @@ void platform_spi_select( unsigned id, int is_select )
 // ****************************************************************************
 // I2C / TWI
 
-#ifdef BUILD_I2C
+#if NUM_I2C > 0
 
+const u32 i2c_id[]     = { ID_TWI0, ID_TWI1 };
+Twi * const i2c_base[] = { TWI0,    TWI1 };
+
+// speed - PLATFORM_I2C_SPEED_FAST, PLATFORM_I2C_SPEED_SLOW
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
-	gpio_configure_pin(TWI0_DATA_GPIO, TWI0_DATA_FLAGS);
-	gpio_configure_pin(TWI0_CLK_GPIO, TWI0_CLK_FLAGS);
-	gpio_configure_pin(TWI1_DATA_GPIO, TWI1_DATA_FLAGS);
-	gpio_configure_pin(TWI1_CLK_GPIO, TWI1_CLK_FLAGS);
-}
-// Address is 0..127, direction - from enum, return is boolean
+	twi_options_t opt;
+  
+  pmc_enable_periph_clk(i2c_id[id]);
 
+// Configure pins
+// TODO: Make this data driven (table)
+  if (id == 0)
+  {
+    gpio_configure_pin(TWI0_DATA_GPIO, TWI0_DATA_FLAGS);
+    gpio_configure_pin(TWI0_CLK_GPIO, TWI0_CLK_FLAGS);
+  }
+  else
+  {
+    gpio_configure_pin(TWI1_DATA_GPIO, TWI1_DATA_FLAGS);
+    gpio_configure_pin(TWI1_CLK_GPIO, TWI1_CLK_FLAGS);
+  }
+  
+  opt.master_clk = sysclk_get_cpu_hz();
+	opt.speed      = speed;
+
+  if (twi_master_init(i2c_base[id], &opt) != TWI_SUCCESS) 
+    return PLATFORM_ERR;
+  else
+    return ;// FIXME: What?
+}
+
+// Address is 0..127, direction - from enum (PLATFORM_I2C_DIRECTION_TRANSMITTER, PLATFORM_I2C_DIRECTION_RECEIVER), 
+// return is boolean
 int platform_i2c_send_address( unsigned id, u16 address, int direction )
 {
+/*
+	twi_packet_t packet_tx;
+
+	/* Configure the data packet to be transmitted */
+/*	packet_tx.chip        = AT24C_ADDRESS;
+	packet_tx.addr[0]     = EEPROM_MEM_ADDR >> 8;
+	packet_tx.addr[1]     = EEPROM_MEM_ADDR;
+	packet_tx.addr_length = EEPROM_MEM_ADDR_LENGTH;
+	packet_tx.buffer      = (uint8_t *) test_data_tx;
+	packet_tx.length      = TEST_DATA_LENGTH;
+
+	if (twi_master_write(BOARD_BASE_TWI_EEPROM, &packet_tx) != TWI_SUCCESS) 
+  
+  */
 }
 
 int platform_i2c_send_byte( unsigned id, u8 data )
 {
+  twi_write_byte(i2c_base[id], data);
 }
 
+// FIXME: What are send_start and send_stop for?
+#warning: i2c_send_start and send_stop not implemented
 void platform_i2c_send_start( unsigned id )
 {
 }
@@ -368,11 +420,13 @@ void platform_i2c_send_stop( unsigned id )
 {
 }
 
+// FIXME: What is ack for?
 int platform_i2c_recv_byte( unsigned id, int ack )
 {
+  return twi_read_byte(i2c_base[id]);
 }
 
-#endif	// BUILD_I2C
+#endif	// NUM_I2C > 0
 
 
 // ****************************************************************************
@@ -393,6 +447,7 @@ static void uarts_init()
 //  for( i = 0; i < NUM_UART; i ++ )
 //    sysclk_enable_peripheral_clock(uart_id[i]);
   sysclk_enable_peripheral_clock(ID_UART);
+//  stdio_serial_init(CONF_UART, &uart_serial_options);
 
 }
 
@@ -935,14 +990,17 @@ static void usb_init()
 }
 
 unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
-{}
+{
+}
 
 unsigned long RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
-{}
+{
+}
 
 unsigned long
 ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
-{}
+{
+}
 
 #endif // BUILD_USB_CDC
 
@@ -952,13 +1010,48 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, 
 
 #ifdef BUILD_WOFS
 
+// INTERNAL_FLASH_START_ADDRESS, INTERNAL_FLASH_SIZE
+#ifdef IFLASH0_SIZE
+#define IFLASH0_END (IFLASH0_ADDR + IFLASH0_SIZE)
+#endif
+
+#ifdef IFLASH1_SIZE
+#define IFLASH1_END (IFLASH1_ADDR + IFLASH1_SIZE)
+#endif
+
+// Wait cycles copied from example
+#define FLASH_WAIT_CYCLES 6
+
+int platform_flash_init()
+{
+ // Set access mode, wait cycles
+  return (flash_init(FLASH_ACCESS_MODE_128, FLASH_WAIT_CYCLES) == FLASH_RC_OK) 
+    ? PLATFORM_OK : PLATFORM_ERR;
+}
+
+static u8 flash_bank(u32 addr)
+{
+  if ((IFLASH0_ADDR <= addr) && (addr <= IFLASH0_END))
+    return IFLASH0;
+  if ((IFLASH1_ADDR <= addr) && (addr <= IFLASH1_END))
+    return IFLASH1;   // FIXME: Need to define return values
+  return PLATFORM_ERR;
+}
+
+// TODO: Check for crossing bank boundary (and handle appropriately)
 u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 {
+  u32 result;
+
+ if ( flash_bank(toaddr) != flash_bank(toaddr + size)
+    return PLATFORM_ERR;  // FIXME: Really should do in 2 parts
+	result = flash_write(toaddr, from, size, 1);  // Last arg - 1 if erase first
+  return (result == FLASH_RC_OK) ? PLATFORM_OK : PLATFORM_ERR;
 }
 
 int platform_flash_erase_sector( u32 sector_id )
 {
-  return PLATFORM_ERR;
+  return (flash_erase_sector(sector_id) == FLASH_RC_OK) ? PLATFORM_OK : PLATFORM_ERR;
 }
 
 #endif // #ifdef BUILD_WOFS

@@ -27,10 +27,7 @@ RTC_SetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct);
 RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct);
  */
 
-#include "lua.h"
-#include "lualib.h"
 #include "lauxlib.h"
-#include "platform.h"
 #include "lrotable.h"
 #include "platform_conf.h"
 

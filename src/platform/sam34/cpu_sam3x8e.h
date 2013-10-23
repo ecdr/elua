@@ -42,19 +42,24 @@
 #define PIO_PIN_ARRAY         { 30, 32, 31, 11 }
 
 // Internal Flash data
-#define INTERNAL_FLASH_SIZE             ( 512 * 1024 )
+#define INTERNAL_FLASH_SIZE             IFLASH_SIZE
+//#define INTERNAL_FLASH_SIZE             ( 512 * 1024 )
 //#define INTERNAL_FLASH_WRITE_UNIT_SIZE  
-//#define INTERNAL_FLASH_SECTOR_SIZE      
-#define INTERNAL_FLASH_START_ADDRESS    0x00080000
-// FIXME: Check FLASH start address in documentation (got from flash.ld, what about boot loader, etc.)
+#define INTERNAL_FLASH_SECTOR_SIZE      IFLASH0_PAGE_SIZE 
+//#define INTERNAL_FLASH_START_ADDRESS    0x00080000
+#define INTERNAL_FLASH_START_ADDRESS    IFLASH0_ADDR
 // FIXME: Need to get write unit size and sector size before can use WOFS
 // TODO: Consider reading flash size, RAM size from chipid?
-// Flash Page size is 256 bytes (according to bossac)
 
+// TODO: Check RAM origin - (header says something else, but this may be because of remapping)
 #define SRAM_ORIGIN           0x20070000
 #ifndef SRAM_SIZE
-#define SRAM_SIZE             0x18000
+//#define SRAM_SIZE             0x18000
+#define SRAM_SIZE             IRAM_SIZE
 #endif
+
+// NFC_RAM_ADDR /**< NAND Flash Controller RAM base address */
+
 
 #define INTERNAL_RAM1_FIRST_FREE end
 #define INTERNAL_RAM1_LAST_FREE  ( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 )

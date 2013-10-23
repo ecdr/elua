@@ -22,12 +22,12 @@ return {
       vtmr = { num = 4, freq = 4 },
   },
   modules = {
-    generic = { 'all', '-i2c', '-net', '-mmc' },
+    generic = { 'all', '-net', '-mmc' },
     platform = {'all', '-mmc'},
   },
---  macros = { { "", "" },
+  macros = { -- { "SPI0_NPCS_PIN1", "" }, -- Select which pin to use for SPI0 NPCS (define for PA29)
 --		 { "", ""}
---  },
+  },
   build = {
   }
 }
