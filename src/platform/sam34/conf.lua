@@ -17,8 +17,11 @@ addi( sf( 'src/platform/%s/ASF/common/services/usb' , platform ) )
 addi( sf( 'src/platform/%s/ASF/common/services/usb/class/cdc' , platform ) )
 addi( sf( 'src/platform/%s/ASF/common/services/usb/class/cdc/device' , platform ) )
 addi( sf( 'src/platform/%s/ASF/common/services/usb/udc' , platform ) )
+addi( sf( 'src/platform/%s/ASF/common/services/delay' , platform ) )   -- busy wait delay
+addi( sf( 'src/platform/%s/ASF/common/services/fifo' , platform ) )    -- general small fifos
 addi( sf( 'src/platform/%s/ASF/common/utils' , platform ) )
 addi( sf( 'src/platform/%s/ASF/common/utils/stdio/stdio_serial', platform ) )
+addi( sf( 'src/platform/%s/ASF/common/utils/stdio/stdio_usb' , platform ) )
 addi( sf( 'src/platform/%s/ASF/sam/boards' , platform ) )
 addi( sf( 'src/platform/%s/ASF/sam/boards/arduino_due_x' , platform ) )
 addi( sf( 'src/platform/%s/ASF/sam/drivers/adc' , platform ) )
@@ -45,6 +48,8 @@ addi( sf( 'src/platform/%s/ASF/sam/utils/header_files' , platform ) )
 addi( sf( 'src/platform/%s/ASF/sam/utils/preprocessor' , platform ) )
 addi( sf( 'src/platform/%s/ASF/thirdparty/CMSIS/Include' , platform ) )
 addi( sf( 'src/platform/%s/ASF/thirdparty/CMSIS/Lib/GCC' , platform ) )
+
+
 local cpu = comp.cpu:upper()
 local board = comp.board:upper()
 

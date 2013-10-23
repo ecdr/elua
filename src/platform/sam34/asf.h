@@ -68,8 +68,14 @@
 // From module: DACC - Digital-to-Analog Converter
 #include <dacc.h>
 
+// From module: Delay routines
+#include <delay.h>
+
 // From module: EEFC - Enhanced Embedded Flash Controller
 #include <efc.h>
+
+// From module: FIFO - First-In-First-Out circular buffer
+#include <fifo.h>
 
 // From module: Flash - SAM Flash Service API
 #include <flash_efc.h>
@@ -151,6 +157,9 @@
 
 // From module: USB Device CDC (Single Interface Device)
 #include <udi_cdc.h>
+
+// From module: USB Device CDC Standard I/O (stdio) - SAM implementation
+#include <stdio_usb.h>
 
 // From module: USB Device Stack Core (Common API)
 #include <udc.h>
