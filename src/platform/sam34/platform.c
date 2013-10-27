@@ -70,6 +70,10 @@ static void cans_init();
 
 #ifdef BUILD_USB_CDC
 static void usb_init();
+
+void platform_usb_cdc_send( u8 data );
+int platform_usb_cdc_recv( timer_data_type timeout );
+
 #endif
 
 #ifdef BUILD_I2C
@@ -91,13 +95,13 @@ int platform_init()
   pios_init();
 
   // Setup SSIs
-  spis_init();
+//  spis_init();
 
   // Setup UARTs
   uarts_init();
 
   // Setup timers
-  timers_init();
+//  timers_init();
 
 #ifdef BUILD_I2C
   // Setup I2Cs
@@ -106,22 +110,22 @@ int platform_init()
 
 #if NUM_PWM > 0
   // Setup PWMs
-  pwms_init();
+//  pwms_init();
 #endif
 
 #ifdef BUILD_ADC
   // Setup ADCs
-  adcs_init();
+//  adcs_init();
 #endif
 
 #ifdef BUILD_CAN
   // Setup CANs
-  cans_init();
+//  cans_init();
 #endif
 
 #ifdef BUILD_USB_CDC
   // Setup USB
-  usb_init();
+//  usb_init();
 #endif
 
 
@@ -307,7 +311,7 @@ static void spis_init()
 
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
-  if (mode = PLATFORM_SPI_MASTER) 
+  if (mode == PLATFORM_SPI_MASTER) 
   {
     struct spi_device *device;
     
@@ -558,17 +562,31 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
 void platform_s_uart_send( unsigned id, u8 data )
 {
-  usart_putchar(uart_base[id], data);
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    platform_usb_cdc_send( data );
+  else
+#endif
+    usart_putchar(uart_base[id], data);
 }
 
 int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 {
   uint32_t c;
 
+  #ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    return platform_usb_cdc_recv( timeout );
+#endif
+
   if( timeout == 0 )
 //    return MAP_UARTCharGetNonBlocking( base );
 //  Fixme: Need non-blocking read (check if available, if available, then get, else return what)
-      return PLATFORM_ERR;
+// This is a blocking version (I think)
+    if (!usart_getchar(uart_base[id], & c))
+      return c;
+    else
+      return PLATFORM_ERR;   // Fixme
   else
     if (!usart_getchar(uart_base[id], & c)) //TODO: Make it use timout value
       return c;
@@ -1002,12 +1020,27 @@ static void usb_init()
 {
 // From stdio_usb example
   	// Initialize interrupt vector table support.
-//	irq_initialize_vectors();
+	irq_initialize_vectors();
 
 	// Enable interrupts
-//	cpu_irq_enable();
+	cpu_irq_enable();
 
   stdio_usb_init();
+}
+
+void platform_usb_cdc_send( u8 data )
+{
+  putchar(data);
+//  printf("%c", data);   // FIXME: Probably simpler function to use - copied this from example
+}
+
+int platform_usb_cdc_recv( timer_data_type timeout )
+{
+//  char ch;
+  
+  return getchar();
+//  scanf("%c",&ch);    // FIXME: Probably simpler function to use - copied this from example
+//  return ch;
 }
 
 /*
@@ -1045,6 +1078,10 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, 
 // Wait cycles copied from example
 #define FLASH_WAIT_CYCLES 6
 
+// FIXME: Should use an enum, or some other way to designate multiple flash banks
+#define IFLASH0 1
+#define IFLASH1 2
+
 int platform_flash_init()
 {
  // Set access mode, wait cycles
@@ -1066,7 +1103,7 @@ u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 {
   u32 result;
 
- if ( flash_bank(toaddr) != flash_bank(toaddr + size)
+ if ( flash_bank(toaddr) != flash_bank(toaddr + size))
     return PLATFORM_ERR;  // FIXME: Really should do in 2 parts
 	result = flash_write(toaddr, from, size, 1);  // Last arg - 1 if erase first
   return (result == FLASH_RC_OK) ? PLATFORM_OK : PLATFORM_ERR;
@@ -1074,7 +1111,9 @@ u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 
 int platform_flash_erase_sector( u32 sector_id )
 {
-  return (flash_erase_sector(sector_id) == FLASH_RC_OK) ? PLATFORM_OK : PLATFORM_ERR;
+//  return (flash_erase_sector(sector_id) == FLASH_RC_OK) ? PLATFORM_OK : PLATFORM_ERR;
+// FIXME: ?? Thought from example that above would be code, but not defined for SAM3X??
+  return PLATFORM_ERR;
 }
 
 #endif // #ifdef BUILD_WOFS

@@ -168,8 +168,6 @@
 
 //! The includes of classes and other headers must be done at the end of this file to avoid compile error
 #include "udi_cdc_conf.h"
-
-#warning For USB STDIO need stdio_usb.h
-#include "stdio_usb.h"
+#include <stdio_usb.h>
 
 #endif // _CONF_USB_H_

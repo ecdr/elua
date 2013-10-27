@@ -121,10 +121,6 @@ SECTIONS
 
     . = ALIGN(4); 
 
-/* eLua */
-    PROVIDE( flash_used_size = SIZEOF(.text) + SIZEOF(.data) + SIZEOF(.ARM.extab) + SIZEOF(.ARM.exidx) );
-/* Not sure about handling of _srelocate - not in lm3s.ld */
-
     _etext = .;
 
     .relocate : AT (_etext)
@@ -136,6 +132,9 @@ SECTIONS
         . = ALIGN(4);
         _erelocate = .;
     } > ram
+
+/* eLua */
+    PROVIDE( flash_used_size = SIZEOF(.text) + SIZEOF(.relocate) + SIZEOF(.ARM.exidx) );
 
     /* .bss section which is used for uninitialized data */ 
     .bss (NOLOAD) :
