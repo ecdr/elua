@@ -56,7 +56,7 @@ local board = comp.board:upper()
 
 
 
-specific_files = "rand.c platform_rtc.c rtc.c platform.c platform_int.c"
+specific_files = "module_rand.c module_rtc.c platform_rtc.c platform.c platform_int.c"
 
 -- Dig through ASF to find source files
 
@@ -75,22 +75,25 @@ addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
 addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
 addcf{ '-std=gnu99'}									-- From ASF makefile, library uses C99 features
 
---addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
---addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
+addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
+addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
 
 -- From ASF makefile - a bunch more warnings
---addcf{ '-Wchar-subscripts', '-Wcomment', '-Wformat=2', '-Wimplicit-int' }
---addcf{ '-Wmain', '-Wparentheses' }
---addcf{ '-Wsequence-point', '-Wreturn-type', '-Wswitch', '-Wtrigraphs', '-Wunused' }
---addcf{ '-Wuninitialized', '-Wunknown-pragmas', '-Wfloat-equal', '-Wundef' }
---addcf{ '-Wshadow', '-Wbad-function-cast', '-Wwrite-strings' }
---addcf{ '-Wsign-compare', '-Waggregate-return' }
---addcf{ '-Wmissing-declarations' }
---addcf{ '-Wformat', '-Wmissing-format-attribute', '-Wno-deprecated-declarations' }
---addcf{ '-Wpacked', '-Wredundant-decls', '-Wnested-externs', '-Winline', '-Wlong-long' }
---addcf{ '-Wunreachable-code' }
---addcf{ '-Wcast-align' }
---addcf{ '--param max-inline-insns-single=500' }
+addcf{ '-Wchar-subscripts', '-Wcomment', '-Wformat=2', '-Wimplicit-int' }
+addcf{ '-Wmain', '-Wparentheses' }
+addcf{ '-Wsequence-point', '-Wreturn-type', '-Wswitch', '-Wtrigraphs', '-Wunused' }
+addcf{ '-Wuninitialized', '-Wunknown-pragmas',  '-Wundef' }
+addcf{ '-Wshadow', '-Wbad-function-cast', '-Wwrite-strings' }
+addcf{ '-Waggregate-return' }
+addcf{ '-Wmissing-declarations' }
+addcf{ '-Wformat', '-Wmissing-format-attribute', '-Wno-deprecated-declarations' }
+addcf{ '-Wpacked', '-Wredundant-decls', '-Wnested-externs', '-Winline'}
+-- addcf{ '-Wlong-long' }   -- This one is used several places
+-- addcf{ '-Wfloat-equal' } -- There are cases where this is reasonable (how do you tell compiler ok?)
+-- addcf{ '-Wsign-compare' } -- Lots of these - check later
+-- addcf{ '-Wcast-align' }  -- several of these - haven't looked at
+addcf{ '-Wunreachable-code' }
+addcf{ '--param max-inline-insns-single=500' }
 
 addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }

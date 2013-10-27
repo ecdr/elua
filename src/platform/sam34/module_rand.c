@@ -1,5 +1,5 @@
 // ****************************************************************************
-// Random sequence generator
+// Random sequence generator - random sequence of numbers
 
 // TODO: Add range selector (e.g. # of bits or maximum return value)
 
@@ -11,12 +11,7 @@
 
 #ifdef BUILD_RAND
 
-#include "lrotable.h"
-#include "platform_conf.h"
-
-
-extern u8 platform_rand_init(); // Return PLATFORM_ERR if problem (e.g. no random generator)
-extern u32 platform_rand_next();
+#include "module_rand.h"
 
 
 // Lua: data = platform.rand.next()
@@ -25,6 +20,17 @@ static int rand_next( lua_State *L )
   lua_pushnumber( L, ( lua_Number )( platform_rand_next() ) ); 
   return 1;
 }
+
+#ifdef RFC1149 
+// Implementation for platforms that do not have built in random sequence generator
+int getRandomNumber()
+{
+    return 4;     //chosen by fair dice roll.
+                  //guaranteed to be random.
+}
+//RFC 1149.5 specifies 4 as the standard IEEE-vetted random number
+// http://www.xkcd.com/221/
+#endif
 
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"

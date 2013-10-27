@@ -31,12 +31,9 @@ RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct);
 #include "lrotable.h"
 #include "platform_conf.h"
 
-//#include "rtc.h"
+#include "module_rtc.h"
 
 #ifdef BUILD_RTC
-extern int platform_rtc_init(void);
-extern void platform_read_rtc(uint32_t * hour, uint32_t * minute, uint32_t * second, uint32_t * year, uint32_t * month, uint32_t * day, uint32_t * week);
-extern void platform_write_rtc(uint32_t hour, uint32_t minute, uint32_t second, uint32_t year, uint32_t month, uint32_t day, uint32_t week);
 
 #define MSG_NO_RTC "No real-time clock present"
 
