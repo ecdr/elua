@@ -16,11 +16,11 @@ extern void gpioe_handler(void);
 extern void gpiof_handler(void);
 
 extern void tmr0_handler(void);
-extern void tmr1_handler();
-extern void tmr2_handler();
-extern void tmr3_handler();
-extern void tmr4_handler();
-extern void tmr5_handler();
+extern void tmr1_handler(void);
+extern void tmr2_handler(void);
+extern void tmr3_handler(void);
+extern void tmr4_handler(void);
+extern void tmr5_handler(void);
 extern void tmr6_handler(void);
 extern void tmr7_handler(void);
 extern void tmr8_handler(void);

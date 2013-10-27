@@ -2,6 +2,8 @@
 
 
 #include "platform_conf.h"
+#include "platform_int.h"
+
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
 // Generic headers
@@ -28,17 +30,17 @@ static void uart_common_rx_handler( int resnum )
     cmn_int_handler( INT_UART_RX, resnum );  
 }
 
-void uart0_handler()
+void uart0_handler(void)
 {
   uart_common_rx_handler( 0 );
 }
 
-void uart1_handler()
+void uart1_handler(void)
 {
   uart_common_rx_handler( 1 );
 }
 
-void uart2_handler()
+void uart2_handler(void)
 {
   uart_common_rx_handler( 2 );
 }
@@ -50,32 +52,32 @@ static void gpio_common_handler( int port )
 {
 }
 
-void gpioa_handler()
+void gpioa_handler(void)
 {
   gpio_common_handler( 0 );
 }
 
-void gpiob_handler()
+void gpiob_handler(void)
 {
   gpio_common_handler( 1 );
 }
 
-void gpioc_handler()
+void gpioc_handler(void)
 {
   gpio_common_handler( 2 );
 }
 
-void gpiod_handler()
+void gpiod_handler(void)
 {
   gpio_common_handler( 3 );
 }
 
-void gpioe_handler()
+void gpioe_handler(void)
 {
   gpio_common_handler( 4 );
 }
 
-void gpiof_handler()
+void gpiof_handler(void)
 {
   gpio_common_handler( 5 );
 }
@@ -207,7 +209,7 @@ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Interrupt initialization
 
-void platform_int_init()
+void platform_int_init(void)
 {
 }
 
@@ -225,64 +227,64 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
 
 #else // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
-void gpioa_handler()
+void gpioa_handler(void)
 {
 }
 
-void gpiob_handler()
+void gpiob_handler(void)
 {
 }
 
-void gpioc_handler()
+void gpioc_handler(void)
 {
 }
 
-void gpiod_handler()
+void gpiod_handler(void)
 {
 }
 
-void gpioe_handler()
+void gpioe_handler(void)
 {
 }
 
-void gpiof_handler()
+void gpiof_handler(void)
 {
 }
 
 
-void tmr0_handler()
+void tmr0_handler(void)
 {
 }
 
-void tmr1_handler()
+void tmr1_handler(void)
 {
 }
 
-void tmr2_handler()
+void tmr2_handler(void)
 {
 }
 
-void tmr3_handler()
+void tmr3_handler(void)
 {
 }
 
-void tmr4_handler()
+void tmr4_handler(void)
 {
 }
 
-void tmr5_handler()
+void tmr5_handler(void)
 {
 }
 
-void tmr6_handler()
+void tmr6_handler(void)
 {
 }
 
-void tmr7_handler()
+void tmr7_handler(void)
 {
 }
 
-void tmr8_handler()
+void tmr8_handler(void)
 {
 }
 

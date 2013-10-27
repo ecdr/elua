@@ -50,26 +50,29 @@
 // Platform initialization
 
 // forward
-static void pios_init();
-static void spis_init();
-static void uarts_init();
-static void timers_init();
+static void pios_init( void );
+static void spis_init( void );
+static void uarts_init( void );
+static void timers_init( void );
 
 
 #if NUM_PWM > 0
-static void pwms_init();
+static void pwms_init( void );
 #endif
 
 #ifdef BUILD_ADC
-static void adcs_init();
+void ADCIntHandler( void );
+static void adcs_init( void );
 #endif
 
 #ifdef BUILD_CAN
-static void cans_init();
+void CANIntHandler(void);
+
+static void cans_init( void );
 #endif
 
 #ifdef BUILD_USB_CDC
-static void usb_init();
+static void usb_init( void );
 
 void platform_usb_cdc_send( u8 data );
 int platform_usb_cdc_recv( timer_data_type timeout );
@@ -77,7 +80,7 @@ int platform_usb_cdc_recv( timer_data_type timeout );
 #endif
 
 #ifdef BUILD_I2C
-static void i2cs_init();
+static void i2cs_init( void );
 #endif
 
 int platform_init()
@@ -286,7 +289,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 const u32 spi_id[]     = { ID_SPI0 };
 Spi * const spi_base[] = { SPI0 };
 
-static void spis_init()
+static void spis_init( void )
 {
   unsigned i;
   
@@ -748,7 +751,7 @@ timer_data_type platform_timer_read_sys()
 const uint32_t pwm_chan[] = { PWM_CHANNEL_0, PWM_CHANNEL_1, PWM_CHANNEL_2, PWM_CHANNEL_3, 
                               PWM_CHANNEL_4, PWM_CHANNEL_5, PWM_CHANNEL_6, PWM_CHANNEL_7 };
 
-static void pwms_init()
+static void pwms_init( void )
 {
   pmc_enable_periph_clk(ID_PWM);
 }
@@ -962,9 +965,9 @@ void platform_pwm_stop( unsigned id )
 #define ADC_TIMER_FIRST_ID 8
 #define ADC_NUM_TIMERS 1
 
-int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
+int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 {
-  return ( ( timer_id >= ADC_TIMER_FIRST_ID ) && ( timer_id < ( ADC_TIMER_FIRST_ID + ADC_NUM_TIMERS ) ) );
+  return ( ( adc_timer_id >= ADC_TIMER_FIRST_ID ) && ( adc_timer_id < ( ADC_TIMER_FIRST_ID + ADC_NUM_TIMERS ) ) );
 }
 
 void platform_adc_stop( unsigned id )
@@ -1016,7 +1019,7 @@ int platform_adc_start_sequence( void )
 
 #if defined( BUILD_USB_CDC )
 
-static void usb_init()
+static void usb_init( void )
 {
 // From stdio_usb example
   	// Initialize interrupt vector table support.
@@ -1082,7 +1085,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, 
 #define IFLASH0 1
 #define IFLASH1 2
 
-int platform_flash_init()
+int platform_flash_init( void )
 {
  // Set access mode, wait cycles
   return (flash_init(FLASH_ACCESS_MODE_128, FLASH_WAIT_CYCLES) == FLASH_RC_OK) 
@@ -1128,6 +1131,8 @@ int platform_flash_erase_sector( u32 sector_id )
 
 #ifdef BUILD_RAND
 
+#include "module_rand.h"
+
 // TODO: Add buffer (so can generate ahead of need)
 // TODO: Add interface to check if number available
 
@@ -1154,7 +1159,7 @@ void TRNG_Handler(void)
 }
 */
 
-u8 platform_rand_init()
+u8 platform_rand_init( void )
 {
   if ( !f_rand_init ) {
     f_rand_init = true;
@@ -1174,7 +1179,7 @@ u8 platform_rand_init()
   return TRUE;
 }
 
-u32 platform_rand_next()
+u32 platform_rand_next( void )
 {
   if ( !f_rand_init )
     platform_rand_init();
