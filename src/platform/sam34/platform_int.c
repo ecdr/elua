@@ -56,11 +56,12 @@ void USART2_Handler(void)
 
 static void gpio_common_handler( u8 port )
 {
-
-//  for( pin = 0, pinmask = 1; pin < 8; pin ++, pinmask <<= 1 )
+//  for( pin = 0, pinmask = 1; pin < platform_pio_get_num_pins( port ); pin ++, pinmask <<= 1 )
+//  {
 //  cmn_int_handler( INT_GPIO_POSEDGE, resnum );
 //  cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 //  cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
+//  }
 }
 
 void PIOA_Handler(void)
@@ -83,22 +84,13 @@ void PIOD_Handler(void)
   gpio_common_handler( 3 );
 }
 
-void PIOE_Handler(void)
-{
-  gpio_common_handler( 4 );
-}
-
-void gpiof_handler(void)
-{
-  gpio_common_handler( 5 );
-}
-
 
 // ----------------------------------------------------------------------------
 // Timer interrupts
 
 static void tmr_common_handler( elua_int_resnum id )
 {
+// FIXME: Need to find timer channel
   cmn_int_handler( INT_TMR_MATCH, id );
 }
 
@@ -223,8 +215,24 @@ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Interrupt initialization
 
+const IRQn_Type pio_irq[] =   { PIOA_IRQn, PIOB_IRQn, PIOC_IRQn, PIOD_IRQn };
+const IRQn_Type uart_irq[] =  { UART_IRQn, USART0_IRQn, USART1_IRQn, USART2_IRQn, USART3_IRQn };
+const IRQn_Type timer_irq[] = { TC0_IRQn, TC1_IRQn, TC2_IRQn, TC3_IRQn, 
+  TC4_IRQn, TC5_IRQn, TC6_IRQn, TC7_IRQn, TC8_IRQn};
+  // Not sure why sam3x8e defines TC0 .. TC8 IRQ
+
 void platform_int_init(void)
 {
+// PIO
+//  pio_enable_interrupt(PIOA, PIO_PA16);
+//  NVIC_EnableIRQ(pio_irq[port_id]);
+
+//  tc_enable_interrupt (tc[tcid], uint32_t ul_channel, uint32_t ul_sources);
+//  NVIC_EnableIRQ(PIOA_IRQn);
+    
+// USART
+//  usart_enable_interrupt(uart_base[uartid], US_IER_RXRDY);  // Int when receive character
+//  NVIC_EnableIRQ(USART_SERIAL_IRQ); // Need to figure out IRQ from uartid
 }
 
 // ****************************************************************************
@@ -241,71 +249,7 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
 
 #else // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
-/* 
-// ASF provides default implementations, so don't need to provide dummies here
-void PIOA_Handler(void)
-{
-}
-
-void PIOB_Handler(void)
-{
-}
-
-void PIOC_Handler(void)
-{
-}
-
-void PIOD_Handler(void)
-{
-}
-
-void PIOE_Handler(void)
-{
-}
-
-/*
-void gpiof_handler(void)
-{
-} */
-
-/*
-void TC0_Handler(void)
-{
-}
-
-void TC1_Handler(void)
-{
-}
-
-void TC2_Handler(void)
-{
-}
-
-void TC3_Handler(void)
-{
-}
-
-void TC4_Handler(void)
-{
-}
-
-void TC5_Handler(void)
-{
-}
-
-void TC6_Handler(void)
-{
-}
-
-void TC7_Handler(void)
-{
-}
-
-void TC8_Handler(void)
-{
-}
-
-*/
+// ASF provides default handlers, so don't need to provide dummies
 
 
 #endif // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )

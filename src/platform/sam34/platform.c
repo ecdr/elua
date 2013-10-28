@@ -97,7 +97,7 @@ int platform_init()
   // Setup PIO
   pios_init();
 
-  // Setup SSIs
+  // Setup SPIs
 //  spis_init();
 
   // Setup UARTs
@@ -151,7 +151,7 @@ int platform_init()
 const u32 pio_id[] =     { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
 Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 
-#define PIO_MASK_ALL  0xFFFFFFFF
+#define PIO_MASK_ALL  0xFFFFFFFFUL
 
 
 static void pios_init()
@@ -1160,6 +1160,7 @@ static u8 f_rand_init = false;
 static u8 buf_space = true;
 static u32 rand_buffer;
 
+
 void TRNG_Handler(void)
 {
 	u32 status;
@@ -1185,7 +1186,7 @@ u8 platform_rand_init( void )
     trng_enable(TRNG);
 
 	/* Enable TRNG interrupt */
-/*
+  /*
 	NVIC_DisableIRQ(TRNG_IRQn);
 	NVIC_ClearPendingIRQ(TRNG_IRQn);
 	NVIC_SetPriority(TRNG_IRQn, 0);
