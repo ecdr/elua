@@ -73,6 +73,7 @@ addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
 
 -- Standard GCC flags
 addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
+
 addcf{ '-std=gnu99'}									-- From ASF makefile, library uses C99 features
 
 addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
@@ -83,17 +84,22 @@ addcf{ '-Wchar-subscripts', '-Wcomment', '-Wformat=2', '-Wimplicit-int' }
 addcf{ '-Wmain', '-Wparentheses' }
 addcf{ '-Wsequence-point', '-Wreturn-type', '-Wswitch', '-Wtrigraphs', '-Wunused' }
 addcf{ '-Wuninitialized', '-Wunknown-pragmas',  '-Wundef' }
-addcf{ '-Wshadow', '-Wbad-function-cast', '-Wwrite-strings' }
-addcf{ '-Waggregate-return' }
-addcf{ '-Wmissing-declarations' }
-addcf{ '-Wformat', '-Wmissing-format-attribute', '-Wno-deprecated-declarations' }
-addcf{ '-Wpacked', '-Wredundant-decls', '-Wnested-externs', '-Winline'}
+addcf{ '-Wwrite-strings' }
+addcf{ '-Wmissing-declarations', '-Wno-deprecated-declarations', '-Wredundant-decls' }
+-- addcf{ '-Wformat', '-Wmissing-format-attribute' }
+addcf{ '-Wpacked', '-Wnested-externs' } 
+addcf{ '-Wunreachable-code' }
 -- addcf{ '-Wlong-long' }   -- This one is used several places
--- addcf{ '-Wfloat-equal' } -- There are cases where this is reasonable (how do you tell compiler ok?)
+-- addcf{ '-Wfloat-equal' } -- There are cases where this is reasonable (how do you tell compiler this one ok?)
 -- addcf{ '-Wsign-compare' } -- Lots of these - check later
 -- addcf{ '-Wcast-align' }  -- several of these - haven't looked at
-addcf{ '-Wunreachable-code' }
-addcf{ '--param max-inline-insns-single=500' }
+
+-- addcf{ '-Wbad-function-cast' } -- Not sure what bad about these (they seem to work, no obvious other way to do)
+-- addcf{ '-Waggregate-return' } -- I See no point in flagging this
+-- addcf{ '-Wshadow' }
+-- addcf{ '-Winline', '--param max-inline-insns-single=500' }
+
+-- End of extra warnings
 
 addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }
