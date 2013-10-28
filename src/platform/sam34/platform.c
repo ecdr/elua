@@ -61,12 +61,12 @@ static void pwms_init( void );
 #endif
 
 #ifdef BUILD_ADC
-void ADCIntHandler( void );
+void ADC_Handler( void );
 static void adcs_init( void );
 #endif
 
 #ifdef BUILD_CAN
-void CANIntHandler(void);
+void can_common_handler(u8 id);
 
 static void cans_init( void );
 #endif
@@ -240,10 +240,22 @@ Can * const can_base[] = { CAN0,    CAN1 };
 
 can_mb_conf_t can_rx_mailbox;
 
-
-void CANIntHandler(void)
+// Interrupt handlers
+void can_common_handler(u8 id)
 {
 }
+
+void CAN0_Handler(void)
+{
+  can_common_handler(0);
+}
+  
+void CAN1_Handler(void)
+{
+  can_common_handler(0);
+}
+
+// Setup
 
 void cans_init( void )
 {
@@ -261,6 +273,8 @@ void cans_init( void )
   can_rx_mailbox.ul_id = CAN_MID_MIDvA(0x00);
   can_mailbox_init(CAN0, &can_rx_mailbox);
 }
+
+// Platform 
 
 u32 platform_can_setup( unsigned id, u32 clock )
 {
@@ -789,7 +803,8 @@ pwm_clock_t pwm_clock = { .ul_clka = 0, .ul_clkb = 0 };
 // Use counters - how many channels using each custom clock
  u8 pwm_clka_users = 0, pwm_clkb_users = 0;
 
- 
+// void PWM_Handler(void)
+
 /*
  * Helper function:
  * Find a prescaler to generate the closest available clock frequency.
@@ -975,7 +990,7 @@ void platform_adc_stop( unsigned id )
 }
 
 // Handle ADC interrupts
-void ADCIntHandler( void )
+void ADC_Handler( void )
 {
 }
 
@@ -1018,6 +1033,8 @@ int platform_adc_start_sequence( void )
 
 
 #if defined( BUILD_USB_CDC )
+
+// void UOTGHS_Handler( void )
 
 static void usb_init( void )
 {

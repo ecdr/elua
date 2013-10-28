@@ -2,7 +2,7 @@
 
 
 #include "platform_conf.h"
-#include "platform_int.h"
+// #include "platform_int.h"
 
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
@@ -23,56 +23,67 @@
 // ----------------------------------------------------------------------------
 // UART_RX interrupt
 
-static void uart_common_rx_handler( int resnum )
+static void uart_common_rx_handler( elua_int_resnum resnum )
 {
-  MAP_UARTIntClear( uart_base[ resnum ], uart_int_mask );
-  while( MAP_UARTCharsAvail( uart_base[ resnum ] ) )  
-    cmn_int_handler( INT_UART_RX, resnum );  
+//  MAP_UARTIntClear( uart_base[ resnum ], uart_int_mask );
+//  while( MAP_UARTCharsAvail( uart_base[ resnum ] ) )  
+//    cmn_int_handler( INT_UART_RX, resnum );  
 }
 
-void uart0_handler(void)
+// __attribute__((__interrupt__))  - this was in avr platform ??
+void UART_Handler(void)
 {
   uart_common_rx_handler( 0 );
 }
 
-void uart1_handler(void)
+void USART0_Handler(void)
 {
   uart_common_rx_handler( 1 );
 }
 
-void uart2_handler(void)
+void USART1_Handler(void)
 {
   uart_common_rx_handler( 2 );
+}
+
+void USART2_Handler(void)
+{
+  uart_common_rx_handler( 3 );
 }
 
 // ----------------------------------------------------------------------------
 // GPIO interrupts (POSEDGE/NEGEDGE)
 
-static void gpio_common_handler( int port )
+static void gpio_common_handler( u8 port )
 {
+
+//  for( pin = 0, pinmask = 1; pin < 8; pin ++, pinmask <<= 1 )
+//  cmn_int_handler( INT_GPIO_POSEDGE, resnum );
+//  cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
+//  cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 }
 
-void gpioa_handler(void)
+void PIOA_Handler(void)
 {
   gpio_common_handler( 0 );
 }
 
-void gpiob_handler(void)
+void PIOB_Handler(void)
 {
   gpio_common_handler( 1 );
 }
 
-void gpioc_handler(void)
+void PIOC_Handler(void)
 {
   gpio_common_handler( 2 );
 }
 
-void gpiod_handler(void)
+void PIOD_Handler(void)
 {
   gpio_common_handler( 3 );
 }
 
-void gpioe_handler(void)
+void PIOE_Handler(void)
 {
   gpio_common_handler( 4 );
 }
@@ -91,51 +102,54 @@ static void tmr_common_handler( elua_int_resnum id )
   cmn_int_handler( INT_TMR_MATCH, id );
 }
 
-void tmr0_handler()
+void TC0_Handler()
 {
   tmr_common_handler( 0 );
 }
 
-void tmr1_handler()
+void TC1_Handler()
 {
   tmr_common_handler( 1 );
 }
 
-void tmr2_handler()
+void TC2_Handler()
 {
   tmr_common_handler( 2 );
 }
 
-void tmr3_handler()
+void TC3_Handler()
 {
   tmr_common_handler( 3 );
 }
 
-void tmr4_handler()
+void TC4_Handler()
 {
   tmr_common_handler( 4 );
 }
 
-void tmr5_handler()
+void TC5_Handler()
 {
   tmr_common_handler( 5 );
 }
 
-void tmr6_handler()
+#if NUM_TIMERS > 6
+
+void TC6_Handler()
 {
   tmr_common_handler( 6 );
 }
 
-void tmr7_handler()
+void TC7_Handler()
 {
   tmr_common_handler( 7 );
 }
 
-void tmr8_handler()
+void TC8_Handler()
 {
   tmr_common_handler( 8 );
 }
 
+#endif
 
 
 // ****************************************************************************
@@ -227,67 +241,71 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
 
 #else // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
-void gpioa_handler(void)
+/* 
+// ASF provides default implementations, so don't need to provide dummies here
+void PIOA_Handler(void)
 {
 }
 
-void gpiob_handler(void)
+void PIOB_Handler(void)
 {
 }
 
-void gpioc_handler(void)
+void PIOC_Handler(void)
 {
 }
 
-void gpiod_handler(void)
+void PIOD_Handler(void)
 {
 }
 
-void gpioe_handler(void)
+void PIOE_Handler(void)
 {
 }
 
+/*
 void gpiof_handler(void)
 {
-}
+} */
 
-
-void tmr0_handler(void)
+/*
+void TC0_Handler(void)
 {
 }
 
-void tmr1_handler(void)
+void TC1_Handler(void)
 {
 }
 
-void tmr2_handler(void)
+void TC2_Handler(void)
 {
 }
 
-void tmr3_handler(void)
+void TC3_Handler(void)
 {
 }
 
-void tmr4_handler(void)
+void TC4_Handler(void)
 {
 }
 
-void tmr5_handler(void)
+void TC5_Handler(void)
 {
 }
 
-void tmr6_handler(void)
+void TC6_Handler(void)
 {
 }
 
-void tmr7_handler(void)
+void TC7_Handler(void)
 {
 }
 
-void tmr8_handler(void)
+void TC8_Handler(void)
 {
 }
 
+*/
 
 
 #endif // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
