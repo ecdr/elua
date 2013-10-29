@@ -54,16 +54,47 @@ void USART2_Handler(void)
 // ----------------------------------------------------------------------------
 // GPIO interrupts (POSEDGE/NEGEDGE)
 
+// TODO: Instead should consider just using ASF pio int handlers (and access functions)
+
+/*
 static void gpio_common_handler( u8 port )
 {
+/* example - from pio_handler.c
+	uint32_t status;
+	uint32_t i;
+
+	/* Read PIO controller status */
+/*
+	status = pio_get_interrupt_status(p_pio[port]);
+	status &= pio_get_interrupt_mask(p_pio[port]);
+
+	/* Check pending events */
+//	if (status != 0) {
+		/* Find triggering source */
+//		i = 0;
+//		while (status != 0) {
+			/* Source is configured on the same controller */
+//			if (gs_interrupt_sources[i].id == ul_id[port]) {
+				/* Source has PIOs whose statuses have changed */
+//				if ((status & gs_interrupt_sources[i].mask) != 0) {
+//					gs_interrupt_sources[i].handler(gs_interrupt_sources[i].id,
+//							gs_interrupt_sources[i].mask);
+//					status &= ~(gs_interrupt_sources[i].mask);
+//				}
+//			}
+//			i++;
+//		}
+//	}
+  
 //  for( pin = 0, pinmask = 1; pin < platform_pio_get_num_pins( port ); pin ++, pinmask <<= 1 )
 //  {
 //  cmn_int_handler( INT_GPIO_POSEDGE, resnum );
 //  cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 //  cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 //  }
-}
+//}
 
+/*
 void PIOA_Handler(void)
 {
   gpio_common_handler( 0 );
@@ -82,6 +113,21 @@ void PIOC_Handler(void)
 void PIOD_Handler(void)
 {
   gpio_common_handler( 3 );
+}
+*/
+
+void negedge_handler(uint32_t id, uint32_t mask)
+{
+  u8 pin = MASK_TO_PIN(mask);
+
+  cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
+}
+  
+void posedge_handler(uint32_t id, uint32_t mask)
+{
+  u8 pin = MASK_TO_PIN(mask);
+
+  cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 }
 
 
@@ -185,16 +231,53 @@ static int int_gpio_posedge_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Interrupt: INT_GPIO_NEGEDGE
 
+// Is the interrupt configured for this port/pin?
 static int int_gpio_negedge_get_status( elua_int_resnum resnum )
 {
+  const Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
+  u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
+
+  return (pio_get_interrupt_mask(port) & pinmask);  // Not right - have to find if NEGEDGE int set
 }
 
+// 
 static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
 {
+  const u8 port_num = PLATFORM_IO_GET_PORT( resnum );
+  const Pio * port = pio_base[ port_num ];
+  const port_id = pio_id[ port_num ];
+  u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
+  
+  if (status)
+  {
+    pio_handler_set(port, port_id, pinmask, PIO_IT_FALL_EDGE, negedge_handler);
+    NVIC_EnableIRQ(pio_irq[port_num]);
+    pio_enable_interrupt(port, pinmask);
+    // Record that int handler set
+  }
+  else
+  {
+    pio_disable_interrupt(port, pinmask);
+  }
+  return ;  //FIXME: What
 }
 
+// Is there an interrupt from this port/pin?
 static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
 {
+  const Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
+  u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
+
+  if( pio_get(port, PIO_TYPE_PIO_INPUT, pinmask) != 0 )
+    return 0;
+  if( pio_get_interrupt_status(port) & pinmask )
+  {
+    if( clear )
+//      MAP_GPIOPinIntClear( portbase, pinmask );   // Not sure how to clear an interrupt
+      return 0;
+    return 1;
+  }
+  return 0;
 }
 
 // ****************************************************************************

@@ -162,6 +162,8 @@ static void pios_init()
     pmc_enable_periph_clk(pio_id[i]);
 }
 
+// TODO: I think platform modules generally return 0 for error, though seems to vary some?
+
 pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 {
   pio_type retval = 1; 
@@ -212,8 +214,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
       pio_pull_up( base, pinmask, DISABLE);
       break;
 
-    case PLATFORM_IO_PIN_PULLDOWN:
-#warning Check to see if has pulldown
+    case PLATFORM_IO_PIN_PULLDOWN:    // No pulldown on this platform, so return error
     default:
       retval = 0;
       break;
@@ -229,6 +230,10 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 const u32 can_id[]     = { ID_CAN0, ID_CAN1 };
 Can * const can_base[] = { CAN0,    CAN1 };
+
+PIO const can_pio[] = { PIO_PA1A_CANRX0, PIO_PA0A_CANTX0, PIO_PB15A_CANRX1, PIO_PB14A_CANTX1 };
+// Should be divided by CAN, function
+
 
 // Speed used in INIT
 #ifndef CAN_INIT_SPEED
@@ -473,6 +478,9 @@ Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 //#define USART_SERIAL_TYPE PINS_USART_TYPE
 //#define USART_SERIAL_PINS PINS_USART_PINS
 //#define USART_SERIAL_MASK PINS_USART_MASK
+
+//PIO_PA8A_URXD
+//PIO_PA9A_UTXD 
 
 static void uarts_init()
 {
@@ -1102,6 +1110,14 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, 
 #define IFLASH0 1
 #define IFLASH1 2
 
+/* Unlock entire flash
+	ul_error = flash_unlock(IFLASH_ADDR, (IFLASH_ADDR + IFLASH_SIZE - 1), 0, 0);
+	if (FLASH_RC_OK != ul_error) {
+		puts("Unlock internal flash failed.\r\n");
+		return 0;
+	}
+  */
+  
 int platform_flash_init( void )
 {
  // Set access mode, wait cycles
