@@ -90,7 +90,9 @@
  * \def UNUSED
  * \brief Marking \a v as a unused parameter or value.
  */
+#ifndef UNUSED
 #define UNUSED(v)          (void)(v)
+#endif
 
 /**
  * \def unused
