@@ -77,18 +77,19 @@ addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall'
 addcf{ '-std=gnu99'}									-- From ASF makefile, library uses C99 features
 
 addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
-addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
+--addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
 
 -- From ASF makefile - a bunch more warnings
-addcf{ '-Wchar-subscripts', '-Wcomment', '-Wformat=2', '-Wimplicit-int' }
-addcf{ '-Wmain', '-Wparentheses' }
-addcf{ '-Wsequence-point', '-Wreturn-type', '-Wswitch', '-Wtrigraphs', '-Wunused' }
-addcf{ '-Wuninitialized', '-Wunknown-pragmas',  '-Wundef' }
-addcf{ '-Wwrite-strings' }
-addcf{ '-Wmissing-declarations', '-Wno-deprecated-declarations', '-Wredundant-decls' }
--- addcf{ '-Wformat', '-Wmissing-format-attribute' }
-addcf{ '-Wpacked', '-Wnested-externs' } 
-addcf{ '-Wunreachable-code' }
+--addcf{ '-Wformat=2', '-Wmissing-format-attribute', '-Wno-format-nonliteral'}
+--addcf{ '-Wswitch', '-Wunused', '-Wundef',  '-Wwrite-strings' }
+--addcf{ '-Wmissing-declarations', '-Wno-deprecated-declarations', '-Wredundant-decls' }
+--addcf{ '-Wpacked', '-Wnested-externs' } 
+--addcf{ '-Wunreachable-code' }
+
+-- addcf{ '-Wshadow' }
+-- addcf{ '-Winline', '--param max-inline-insns-single=500' }
+
+-- Don't see a lot of point in checking for these - used a bunch and not obvious alternative
 -- addcf{ '-Wlong-long' }   -- This one is used several places
 -- addcf{ '-Wfloat-equal' } -- There are cases where this is reasonable (how do you tell compiler this one ok?)
 -- addcf{ '-Wsign-compare' } -- Lots of these - check later
@@ -96,10 +97,11 @@ addcf{ '-Wunreachable-code' }
 
 -- addcf{ '-Wbad-function-cast' } -- Not sure what bad about these (they seem to work, no obvious other way to do)
 -- addcf{ '-Waggregate-return' } -- I See no point in flagging this
--- addcf{ '-Wshadow' }
--- addcf{ '-Winline', '--param max-inline-insns-single=500' }
 
 -- End of extra warnings
+
+-- addcf{ '-Wextra'} -- another batch of warning, from GCC manual
+
 
 addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
 addaf{ '-x', 'assembler-with-cpp', '-Wall' }

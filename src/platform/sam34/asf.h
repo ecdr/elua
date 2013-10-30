@@ -152,6 +152,7 @@
 // From module: USART - Univ. Syn Async Rec/Trans
 #include <usart.h>
 
+#ifdef BUILD_USB_CDC
 // From module: USB CDC Protocol
 #include <usb_protocol_cdc.h>
 
@@ -164,6 +165,7 @@
 // From module: USB Device Stack Core (Common API)
 #include <udc.h>
 #include <udd.h>
+#endif // BUILD_USB_CDC
 
 // From module: pio_handler support enabled
 #include <pio_handler.h>

@@ -3,6 +3,7 @@
 return {
   cpu = 'sam3x8e',
   components = {
+--    sercon = { uart = "cdc", speed = 115200 },
     sercon = { uart = 0, speed = 115200 },
     wofs = false,		-- See cpu file
     romfs = true,
