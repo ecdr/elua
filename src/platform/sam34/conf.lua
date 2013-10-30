@@ -45,7 +45,7 @@ local board = comp.board:upper()
 
 
 
-specific_files = "ASF/sam/utils/cmsis/sam3x/source/templates/gcc/startup_sam3x.c platform.c platform_int.c"
+specific_files = "platform.c platform_int.c"
 
 -- Dig through ASF to find source files
 
@@ -62,9 +62,10 @@ addm{ "FOR" .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
 
 -- Standard GCC flags
 addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
+addcf{ '-std=gnu99'}									-- From ASF makefile, library uses C99 features
+
 --addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
 --addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
---addcf{ '-std=gnu99'}									-- From ASF makefile
 
 -- From ASF makefile - a bunch more warnings
 -- -Wchar-subscripts -Wcomment -Wformat=2 -Wimplicit-int
@@ -85,7 +86,9 @@ addaf{ '-x', 'assembler-with-cpp', '-Wall' }
 addlib{ 'c','gcc','m' }
 
 -- FIXME: From ASF makefile - need to define part
-local target_flags =  {'-mcpu=cortex-m3','-mthumb', '-D=__SAM3X8E__' }
+-- FIXME: From AtmelStudio - board=ARDUINO_DUE_X - should be contingent on eLua board spec
+--   Would be better if specify in board file (but not sure how to set a compiler flag in there)
+local target_flags =  {'-mcpu=cortex-m3','-mthumb','-D=__SAM3X8E__','-DBOARD=ARDUINO_DUE_X' }
 
 -- Configure general flags for target
 addcf{ target_flags, '-mlittle-endian' }

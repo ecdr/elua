@@ -9,10 +9,18 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
+
+// FIXME: These ifdefs may not work, since those symbols may not be defined until later
+#ifdef BUILD_UIP
 #include "uip_arp.h"
 #include "elua_uip.h"
-#include "elua_adc.h"
 #include "uip-conf.h"
+#endif
+
+#ifdef BUILD_ADC
+#include "elua_adc.h"
+#endif
+
 #include "platform_conf.h"
 #include "common.h"
 #include "math.h"
@@ -66,7 +74,7 @@ int platform_init()
   
   // Set the clocking to run from PLL
 
-FIXME
+#warning FIXME - needs clock initialization
   
   // Setup PIO
   pios_init();
@@ -106,7 +114,7 @@ FIXME
 #endif
 
   // Setup system timer
-FIXME
+#warning FIXME - setup system timer
 
   cmn_platform_init();
 
@@ -158,6 +166,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 
 // ****************************************************************************
 // UART
+
 static void uarts_init()
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 void platform_s_uart_send( unsigned id, u8 data )
@@ -211,6 +220,9 @@ int platform_adc_start_sequence()
 
 // ****************************************************************************
 // Ethernet functions
+#ifdef BUILD_UIP
+#endif // BUILD_UIP
+
 
 // ****************************************************************************
 // USB functions

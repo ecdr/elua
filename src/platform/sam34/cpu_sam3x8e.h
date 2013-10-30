@@ -4,6 +4,7 @@
 #define __CPU_AT91SAM3X8E__
 
 #include "platform_ints.h"
+#include "stacks.h"
 
 // Number of resources (0 if not available/not implemented)
 #define NUM_PIO               5
@@ -24,7 +25,8 @@
 
 
 // CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)
-#define CPU_FREQUENCY         
+#define CPU_FREQUENCY         84*1000*1000
+// Fixme - find CPU frequency (should be system call for it)
 
 // PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
 #define PIO_PREFIX            'A'
@@ -36,9 +38,11 @@
 
 // Internal Flash data
 #define INTERNAL_FLASH_SIZE             ( 512 * 1024 )
-#define INTERNAL_FLASH_WRITE_UNIT_SIZE  
-#define INTERNAL_FLASH_SECTOR_SIZE      
-#define INTERNAL_FLASH_START_ADDRESS    
+//#define INTERNAL_FLASH_WRITE_UNIT_SIZE  
+//#define INTERNAL_FLASH_SECTOR_SIZE      
+#define INTERNAL_FLASH_START_ADDRESS    0x00080000
+// FIXME: Check FLASH start address in documentation (got from flash.ld, what about boot loader, etc.)
+// FIXME: Need to get write unit size and sector size before can use WOFS
 
 #define SRAM_ORIGIN           0x20070000
 #ifndef SRAM_SIZE
@@ -49,7 +53,7 @@
 #define INTERNAL_RAM1_LAST_FREE  ( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 )
 
 #define PLATFORM_CPU_CONSTANTS_INTS\
-  _C( INT_UART_RX ),
+  _C( INT_UART_RX ),\
   _C( INT_GPIO_POSEDGE ),\
   _C( INT_GPIO_NEGEDGE ),\
   _C( INT_TMR_MATCH ),
