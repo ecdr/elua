@@ -20,7 +20,7 @@ return {
     sam34_rtc = true,
   },
   config = {
-      vtmr = { num = 4, freq = 4 },
+      vtmr = { num = 4, freq = 6 },   -- Frequency should be same as systickhz
   },
   modules = {
     generic = { 'all', '-net', '-mmc' },

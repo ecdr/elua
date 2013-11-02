@@ -43,8 +43,19 @@
 
 // NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
 // same value, as they're served by the same timer (the systick)
-#define SYSTICKHZ 5
+#define SYSTICKHZ 10
 
+#if (SYSTICKHZ < 6)
+// SAM3X8E - SYSTICKHZ must be greater than system clock/16.77 million (i.e. >5 for system clock 84MHz)
+// SysTick_LOAD_RELOAD_Msk
+#warning SYSTICKHZ too small
+#endif 
+
+#if (VTMR_NUM_TIMERS > 0)
+#if (SYSTICKHZ != VTMR_FREQ_HZ)
+#warning SYSTICKHZ and VTMR_FREQ_HZ should have the same value
+#endif
+#endif // VTMR_NUM_TIMERS > 0
 
 // ****************************************************************************
 // Platform initialization
@@ -134,8 +145,9 @@ int platform_init()
 
 
   // Setup system timer
-  	if (SysTick_Config(platform_cpu_get_frequency() / SYSTICKHZ))
-      return PLATFORM_ERR;    // SysTick error
+// FIXME: This is returning an error
+//  	if (SysTick_Config(platform_cpu_get_frequency() / SYSTICKHZ))
+//      return PLATFORM_ERR;    // SysTick error
 
   cmn_platform_init();
 
@@ -231,7 +243,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 const u32 can_id[]     = { ID_CAN0, ID_CAN1 };
 Can * const can_base[] = { CAN0,    CAN1 };
 
-PIO const can_pio[] = { PIO_PA1A_CANRX0, PIO_PA0A_CANTX0, PIO_PB15A_CANRX1, PIO_PB14A_CANTX1 };
+// PIO const can_pio[] = { PIO_PA1A_CANRX0, PIO_PA0A_CANTX0, PIO_PB15A_CANRX1, PIO_PB14A_CANTX1 };
 // Should be divided by CAN, function
 
 
@@ -630,41 +642,75 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 const u32 timer_id[] = {ID_TC0, ID_TC1, ID_TC2};
 Tc * const timer_base[] = {TC0, TC1, TC2};
 
-#define NUM_TC (sizeof timer_id/sizeof u32)
+#define NUM_TC (sizeof(timer_id)/sizeof (u32))
+const unsigned num_tc = (sizeof(timer_id)/sizeof(u32));
 
 // FIXME: Something said there were 9 counter timers, but only TC0 through 2??
-#define PLATFORM_TIMER_COUNT_MAX ((u32) 0xFFFFFFFF )
+#define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
 
-static void timers_init()
-{
-//  unsigned i;
+// Helper functions
 
-//  for( i = 0; i < NUM_TC; i ++ )
-//    pmc_enable_periph_clk(timer_id[i]);
-  pmc_enable_periph_clk(ID_TC0);
-}
+// Each TC has 3 timer channels
+static unsigned const channels_per_tc = 3;
 
-void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
-{
-}
-
-// Return timer number for given timer ID
+// Return timer number for given eLua timer ID
 static u32 timer(unsigned id)
 {
-  return id/3;
+  return id/channels_per_tc;
 }
 
+// Return pointer to Tc for given eLua timer ID
 static Tc * tc(unsigned id)
 {
   return timer_base[timer(id)];
 }
 
-// Timer id -> channel # 
+// channel number from timer id 
 static u32 tchanel(unsigned id) 
 {
   return (u32) id - timer(id);
 }
 
+
+static void timers_init()
+{
+  unsigned i;
+
+  for( i = 0; i < NUM_TC; i ++ )
+    pmc_enable_periph_clk(timer_id[i]);
+//  pmc_enable_periph_clk(ID_TC0);
+}
+
+
+static uint32_t tmr_div[NUM_TIMER] = {0};
+
+
+static u32 platform_timer_get_clock( unsigned id )
+{
+  if (tmr_div[id])
+    return sysclk_get_cpu_hz()/tmr_div[id];
+  else
+    return 0;
+}
+
+
+void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
+{
+  u32 freq;
+  timer_data_type final;
+
+  freq = platform_timer_get_clock( id );
+  final = ( ( u64 )delay_us * freq ) / 1000000;
+  
+  if( final > PLATFORM_TIMER_COUNT_MAX )
+    final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead
+// TODO: stop timer, set count to 0, start timer
+  tc_init(tc(id), tchanel(id), TC_CMR_WAVE);
+  tc_start( tc(id), tchanel(id) );
+  while( ( tc_read_cv(tc(id), tchanel(id)) < final ) );
+// FIXME: Busy waiting (should do low power/sleep and wake on interrupt)
+}
+// Example code using timer
 //	uint32_t ul_div;
 //	uint32_t ul_tcclks;
 //	static uint32_t ul_sysclk;
@@ -715,26 +761,43 @@ TC_CMR_EEVTEDG - external event edge
 timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
   u32 res = 0;
+	static uint32_t ul_sysclk;    // FIXME: What static for?
+	uint32_t tmr_tcclks;
 
   data = data;
   switch( op )
   {
     case PLATFORM_TIMER_OP_START:
-        res = 0xFFFFFFFF;      // FIXME
-//      MAP_TimerControlTrigger(base, TIMER_A, false);
-//      MAP_TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
-        tc_init(TC0, id, TC_CMR_WAVE);   // FIXME - figure out mode
-        tc_start(TC0, id);    // FIXME
+      tc_start(tc(id), tchanel(id));
       break;
 
     case PLATFORM_TIMER_OP_READ:
-      res = tc_read_cv(TC0, id);
+      res = tc_read_cv(tc(id), tchanel(id));
       break;
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
+      res = 0xFFFFFFFFUL;      // FIXME: this was from lm3s implementation
+
+	/* Get system clock. */
+      ul_sysclk = sysclk_get_cpu_hz();
+      
+      if (tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
+      {
+        tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_WAVE);   // FIXME - figure out mode
+/* Configure TC for a data Hz frequency and trigger on RC compare. */
+//    	tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_CPCTRG);
+//      tc_write_rc(tc(id), tchanel(id), (ul_sysclk / tmr_div[id]) / data);
+        res = platform_timer_get_clock( id );
+      }
+      else  // Could not find suitable divisor
+      {
+        res = 0;
+        tmr_div[id] = 0;
+      }
+      break;
+      
     case PLATFORM_TIMER_OP_GET_CLOCK:
-//      res = MAP_SysCtlClockGet();
-// FIXME
+      res = platform_timer_get_clock( id );
       break;
 
     case PLATFORM_TIMER_OP_GET_MAX_CNT:
@@ -747,6 +810,8 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
 }
+
+// Systimer
 
 u64 platform_timer_sys_raw_read()
 {

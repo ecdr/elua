@@ -76,6 +76,8 @@ addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall'
 
 addcf{ '-std=gnu99'}									-- From ASF makefile, library uses C99 features
 
+addcf{ '-g' }                         -- Debugging flags
+
 addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
 --addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
 
