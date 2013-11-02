@@ -46,7 +46,7 @@
 #define SYSTICKHZ 10
 
 #if (SYSTICKHZ < 6)
-// SAM3X8E - SYSTICKHZ must be greater than system clock/16.77 million (i.e. >5 for system clock 84MHz)
+// SAM3X8E - SYSTICKHZ must be greater than system clock/16777215 (i.e. >5 for system clock 84MHz)
 // SysTick_LOAD_RELOAD_Msk
 #warning SYSTICKHZ too small
 #endif 
@@ -56,6 +56,12 @@
 #warning SYSTICKHZ and VTMR_FREQ_HZ should have the same value
 #endif
 #endif // VTMR_NUM_TIMERS > 0
+
+
+
+// FIXME: Busy waiting (should do low power/sleep and wake on interrupt, or do something useful)
+#define WAIT_WHILE( cond ) while( cond );
+
 
 // ****************************************************************************
 // Platform initialization
@@ -103,7 +109,6 @@ int platform_init()
   board_init();		// ASF
 
 //	LED_Off(LED0_GPIO);
-//	LED_Off(LED1_GPIO);
   
   // Setup PIO
   pios_init();
@@ -143,11 +148,12 @@ int platform_init()
 #endif
 
 
-
+#if defined(PLATFORM_HAS_SYSTIMER) && defined(SYSTICKHZ)
   // Setup system timer
 // FIXME: This is returning an error
-//  	if (SysTick_Config(platform_cpu_get_frequency() / SYSTICKHZ))
+//  	if (SysTick_Config(platform_cpu_get_frequency() / ((u32) SYSTICKHZ)))
 //      return PLATFORM_ERR;    // SysTick error
+#endif //SYSTIMER
 
   cmn_platform_init();
 
@@ -159,7 +165,7 @@ int platform_init()
 // ****************************************************************************
 // PIO
 
-// FIXME: PIOE net defined, but thought there were 5 ports - ??
+// FIXME: PIOE not defined, but thought there were 5 ports - ??
 const u32 pio_id[] =     { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
 Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 
@@ -269,7 +275,7 @@ void CAN0_Handler(void)
   
 void CAN1_Handler(void)
 {
-  can_common_handler(0);
+  can_common_handler(1);
 }
 
 // Setup
@@ -281,7 +287,7 @@ void cans_init( void )
 #warning Need to check speed - use default from above
   can_reset_all_mailbox(CAN0);
 //  can_enable_interrupt(CAN0, uint32_t dw_mask)
-#warning - What is dw_mask?
+// FIXME: What is dw_mask?
 
   #warning Need to check mailbox particular
   can_rx_mailbox.ul_mb_idx = 0;
@@ -303,11 +309,13 @@ u32 platform_can_setup( unsigned id, u32 clock )
 
 void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
+  lua_assert(false);
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
 #warning Not finished - return bogus result
+  lua_assert(false);
   return PLATFORM_ERR;
 }
 
@@ -465,10 +473,12 @@ int platform_i2c_send_byte( unsigned id, u8 data )
 #warning: i2c_send_start and send_stop not implemented
 void platform_i2c_send_start( unsigned id )
 {
+  lua_assert(false);
 }
 
 void platform_i2c_send_stop( unsigned id )
 {
+  lua_assert(false);
 }
 
 // FIXME: What is ack for?
@@ -496,18 +506,23 @@ Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 
 static void uarts_init()
 {
-//  unsigned i;
+  unsigned i;
 
-//  for( i = 0; i < NUM_UART; i ++ )
-//    sysclk_enable_peripheral_clock(uart_id[i]);
-  sysclk_enable_peripheral_clock(ID_UART);
+  for( i = 0; i < NUM_UART; i ++ )
+    sysclk_enable_peripheral_clock(uart_id[i]);
+//  sysclk_enable_peripheral_clock(ID_UART);
+
 //  stdio_serial_init(CONF_UART, &uart_serial_options);
-
 }
 
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
   sam_usart_opt_t usart_settings;
+
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID )
+    return 0; //FIXME
+#endif
 
   if( id < NUM_UART )
   {
@@ -573,24 +588,24 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
     g_APinDescription[PINS_UART].ulPin, g_APinDescription[PINS_UART].ulPinConfiguration); */
     
 // FIXME: Make something data driven (table) here
-  switch(id)
-  {
-    case 0:
-    break;
-    case 1:
-    gpio_configure_pin(PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS);
-    gpio_configure_pin(PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS);
-    break;
-    case 2:
-    gpio_configure_pin(PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS);
-    gpio_configure_pin(PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS);
-    break;
-    case 3:
-    gpio_configure_pin(PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS);
-    gpio_configure_pin(PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS);
-    default:
+    switch(id)
+    {
+      case 0:
+        break;
+      case 1:
+        gpio_configure_pin(PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS);
+        gpio_configure_pin(PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS);
+        break;
+      case 2:
+        gpio_configure_pin(PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS);
+        gpio_configure_pin(PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS);
+        break;
+      case 3:
+        gpio_configure_pin(PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS);
+        gpio_configure_pin(PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS);
+      default:
     
-    break;
+      break;
     }
   }
 
@@ -604,31 +619,39 @@ void platform_s_uart_send( unsigned id, u8 data )
     platform_usb_cdc_send( data );
   else
 #endif
+  {
+    WAIT_WHILE(!usart_is_tx_ready(uart_base[id]));
     usart_putchar(uart_base[id], data);
+  }
 }
 
+// return character, or -1 for error
 int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 {
   uint32_t c;
+// usart_getchar - wait for character or timeout
+// usart_read - nonblocking, get character if available now
 
-  #ifdef BUILD_USB_CDC
+#ifdef BUILD_USB_CDC
   if( id == CDC_UART_ID )
     return platform_usb_cdc_recv( timeout );
 #endif
 
-  if( timeout == 0 )
-//    return MAP_UARTCharGetNonBlocking( base );
-//  Fixme: Need non-blocking read (check if available, if available, then get, else return what)
-// This is a blocking version (I think)
-    if (!usart_getchar(uart_base[id], & c))
+// If character already waiting, get it
+  if( timeout == 0 || usart_is_rx_ready(uart_base[id]))
+    if (!usart_read(uart_base[id], & c))  // Nonblocking read
       return c;
     else
-      return PLATFORM_ERR;   // Fixme
+      return -1;
   else
-    if (!usart_getchar(uart_base[id], & c)) //TODO: Make it use timout value
+  {
+    usart_set_rx_timeout(uart_base[id], timeout);
+    usart_start_rx_timeout(uart_base[id]);
+    if (!usart_getchar(uart_base[id], & c)) // Wait for character or timeout
       return c;
     else
-      return PLATFORM_ERR;   // Fixme
+      return -1;
+  }
 }
 
 int platform_s_uart_set_flow_control( unsigned id, int type )
@@ -639,6 +662,7 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 
 // ****************************************************************************
 // Timers
+
 const u32 timer_id[] = {ID_TC0, ID_TC1, ID_TC2};
 Tc * const timer_base[] = {TC0, TC1, TC2};
 
@@ -693,7 +717,6 @@ static u32 platform_timer_get_clock( unsigned id )
     return 0;
 }
 
-
 void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 {
   u32 freq;
@@ -707,9 +730,9 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 // TODO: stop timer, set count to 0, start timer
   tc_init(tc(id), tchanel(id), TC_CMR_WAVE);
   tc_start( tc(id), tchanel(id) );
-  while( ( tc_read_cv(tc(id), tchanel(id)) < final ) );
-// FIXME: Busy waiting (should do low power/sleep and wake on interrupt)
+  WAIT_WHILE( ( tc_read_cv(tc(id), tchanel(id)) < final ) );
 }
+
 // Example code using timer
 //	uint32_t ul_div;
 //	uint32_t ul_tcclks;
@@ -776,7 +799,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       break;
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
-      res = 0xFFFFFFFFUL;      // FIXME: this was from lm3s implementation
+      res = PLATFORM_TIMER_COUNT_MAX;      // FIXME: this was from lm3s implementation
 
 	/* Get system clock. */
       ul_sysclk = sysclk_get_cpu_hz();
@@ -809,24 +832,45 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
+  lua_assert(false);
 }
 
-// Systimer
+// *****************
+// Systic timer - interrupt every SYSTICKHZ
 
-u64 platform_timer_sys_raw_read()
+//static volatile u64 g_ms_ticks = 0;
+
+// interrupt handler
+void SysTick_Handler(void)
 {
+//	g_ms_ticks++;
+  cmn_virtual_timer_cb();
+
+  // System timer handling
+  cmn_systimer_periodic();
 }
 
-void platform_timer_sys_disable_int()
+u64 platform_timer_sys_raw_read(void)
 {
+//  return g_ms_ticks;
+  return SysTick->LOAD - SysTick->VAL;
 }
 
-void platform_timer_sys_enable_int()
+void platform_timer_sys_disable_int(void)
 {
+  SysTick->CTRL &= ~(SysTick_CTRL_TICKINT_Msk);   // based on core_cm3.h and stm32 platform.h
+//	NVIC_DisableIRQ(SysTick_IRQn);
 }
 
-timer_data_type platform_timer_read_sys()
+void platform_timer_sys_enable_int(void)
 {
+  SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+//  NVIC_EnableIRQ(SysTick_IRQn);
+}
+
+timer_data_type platform_timer_read_sys(void)
+{
+  return cmn_systimer_get();
 }
 
 
@@ -1060,6 +1104,7 @@ int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 
 void platform_adc_stop( unsigned id )
 {
+  lua_assert(false);
 }
 
 // Handle ADC interrupts
@@ -1069,6 +1114,7 @@ void ADC_Handler( void )
 
 static void adcs_init( void )
 {
+  lua_assert(false);
 }
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
@@ -1223,6 +1269,9 @@ int platform_flash_erase_sector( u32 sector_id )
 // ****************************************************************************
 // Platform specific modules go here
 
+// Interrupt priorities (0 is highest)
+#define PRI_RAND  8
+
 
 // ****************************************************************************
 // Random sequence generator
@@ -1234,7 +1283,7 @@ int platform_flash_erase_sector( u32 sector_id )
 // TODO: Add buffer (so can generate ahead of need)
 // TODO: Add interface to check if number available
 
-// Need to arrange to call rand_init - maybe should be in system init(?)
+// Indicate if need to arrange to call rand_init - maybe should just call in system init(?)
 static u8 f_rand_init = false;
 
 /*
@@ -1270,7 +1319,7 @@ u8 platform_rand_init( void )
   /*
 	NVIC_DisableIRQ(TRNG_IRQn);
 	NVIC_ClearPendingIRQ(TRNG_IRQn);
-	NVIC_SetPriority(TRNG_IRQn, 0);
+	NVIC_SetPriority(TRNG_IRQn, PRI_RAND);
 	NVIC_EnableIRQ(TRNG_IRQn);
 	trng_enable_interrupt(TRNG);
  */
@@ -1283,6 +1332,7 @@ u32 platform_rand_next( void )
   if ( !f_rand_init )
     platform_rand_init();
 
+  WAIT_WHILE(!trng_get_interrupt_status(TRNG));
   return trng_read_output_data(TRNG);
 }
 
