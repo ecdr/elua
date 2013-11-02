@@ -27,7 +27,7 @@ The list of CPUs and boards currently supported by eLua is given below:
 | _LM3S6918      |  Cortex-M3    o|    LM3S               |  _Eagle-100       | _sok
 | _LM3S9B92      |  Cortex-M3    o|    LM3S               |  _EK-LM3S9B92     | _sok
 | _LM3S1968      |  Cortex-M3    o|    LM3S               |  _EK-LM3S1968     | _sok
-| _SAM3x8e       |  Cortex-M3    o|    SAM34              |  _ArduinoDue      | _sni
+| _SAM3x8e       |  Cortex-M3    o|    SAM34              |  _ArduinoDue      | _snt
 | _AT32UC3A0128  |  AVR32        o|    AVR32              |  _Mizar32         | _sok
 | _AT32UC3A0256  |  AVR32        o|    AVR32              |  _Mizar32         | _sok
 | _AT32UC3A0512  |  AVR32        o|    AVR32              |  _Mizar32         | _sok
@@ -157,7 +157,7 @@ o| _mmizar32rtc| Real time clock               | _Mizar32                       
 o| _mstr9pio  | Extended PIO configuration     | _STR-E912 _br _STR9-comStick   | _sok
 o| _mstr9rtc  | Real time clock                | _STR-E912 _br _STR9-comStick   | _sok
 o| _msamrtc   | Real time clock                | _arduino_due                   | _snt
-o| _msamrng   | Random number generator        | _arduino_due                   | _snt
+o| _msamrand  | Random number generator        | _arduino_due                   | _sok
 |=======================================================================================
 
 [[roadmap]]

@@ -4,6 +4,8 @@
 #ifndef __MODULE_RAND_H__
 #define __MODULE_RAND_H__
 
+#define PLATFORM_RAND_MAX ( 0xFFFFFFFFUL )
+
 extern u8 platform_rand_init(void); // Return PLATFORM_ERR if problem (e.g. no random generator)
 extern u32 platform_rand_next(void);
 
