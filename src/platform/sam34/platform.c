@@ -108,10 +108,11 @@ int platform_init()
 
   board_init();		// ASF
 
-//	LED_Off(LED0_GPIO);
-  
   // Setup PIO
   pios_init();
+
+//	LED_Off(LED0_GPIO);
+//  platform_pio_op( 1, pio_type pinmask, PLATFORM_IO_PIN_SET );
 
   // Setup SPIs
 //  spis_init();
@@ -151,8 +152,8 @@ int platform_init()
 #if defined(PLATFORM_HAS_SYSTIMER) && defined(SYSTICKHZ)
   // Setup system timer
 // FIXME: This is returning an error
-//  	if (SysTick_Config(platform_cpu_get_frequency() / ((u32) SYSTICKHZ)))
-//      return PLATFORM_ERR;    // SysTick error
+  	if (SysTick_Config(platform_cpu_get_frequency() / ((u32) SYSTICKHZ)))
+      return PLATFORM_ERR;    // SysTick error
 #endif //SYSTIMER
 
   cmn_platform_init();
