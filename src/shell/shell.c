@@ -356,6 +356,10 @@ const SHELL_COMMAND* shellh_execute_command( char* cmd, int interactive_mode )
   return pcmd;
 }
 
+#ifdef SHELL_SHOW_INFO 
+extern char flash_used_size[];  // Exported by linker, see common.c
+#endif
+
 // Execute the eLua "shell" in an infinite loop
 void shell_start( void )
 {
@@ -364,8 +368,16 @@ void shell_start( void )
 #ifdef BUILD_UIP
   int i;
 #endif
-
+#ifdef SHELL_SHOW_INFO 
+  u32 mstart[] = MEM_START_ADDRESS; // see common.c
+#endif
+  
   printf( SHELL_WELCOMEMSG, ELUA_STR_VERSION );
+#ifdef SHELL_SHOW_INFO 
+  printf( "CPU speed: %ld\n", CPU_FREQUENCY);
+  printf( "Free mem: %ld flash, %ld RAM\n",  INTERNAL_FLASH_SIZE - (u32) flash_used_size, 
+    INTERNAL_RAM1_LAST_FREE - (u32) mstart);
+#endif
   while( 1 )
   {
     while( linenoise_getline( LINENOISE_ID_SHELL, cmd, SHELL_MAXSIZE - 1, SHELL_PROMPT ) == -1 )

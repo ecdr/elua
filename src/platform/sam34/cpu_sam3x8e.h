@@ -51,6 +51,7 @@
 // FIXME: Need to get write unit size and sector size before can use WOFS
 // TODO: Consider reading flash size, RAM size from chipid?
 
+
 // TODO: Check RAM origin - (header says something else, but this may be because of remapping)
 #define SRAM_ORIGIN           0x20070000
 #ifndef SRAM_SIZE
@@ -60,6 +61,8 @@
 
 // NFC_RAM_ADDR /**< NAND Flash Controller RAM base address */
 
+// In order for the following macro to work you need this declaration
+extern char end[];
 
 #define INTERNAL_RAM1_FIRST_FREE end
 #define INTERNAL_RAM1_LAST_FREE  ( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 )

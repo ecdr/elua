@@ -27,7 +27,7 @@ return {
     platform = {'all', '-mmc'},
   },
   macros = { -- { "SPI0_NPCS_PIN1", "" }, -- Select which pin to use for SPI0 NPCS (define for PA29)
---		 { "", ""}
+	 { "SHELL_SHOW_INFO ", ""}
   },
   build = {
   }
