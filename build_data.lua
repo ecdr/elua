@@ -107,7 +107,7 @@ local platform_list =
   i386 = { cpus = { 'I386' }, arch = 'i386' },
   sim = { cpus = { 'LINUX' }, arch = 'i386' },
   lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92' }, arch = 'cortexm' },
-  lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' }
+  lpc17xx = { cpus = { 'LPC1768' }, arch = 'cortexm' },
   lpc24xx = { cpus = { 'LPC2468' }, arch = 'arm' },
   lpc288x = { cpus = { 'LPC2888' }, arch = 'arm' },
   sam34 = { cpus = { 'SAM3X8E' }, arch = 'cortexm' },
