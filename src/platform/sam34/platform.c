@@ -46,8 +46,8 @@
 #define SYSTICKHZ 10
 
 #if (SYSTICKHZ < 6)
-// SAM3X8E - SYSTICKHZ must be greater than system clock/16777215 (i.e. >5 for system clock 84MHz)
-// SysTick_LOAD_RELOAD_Msk
+// SAM3X8E - SYSTICKHZ must be greater than system clock/16777215 (SysTick_LOAD_RELOAD_Msk)
+// (i.e. >5 for system clock 84MHz)
 #warning SYSTICKHZ too small
 #endif 
 
@@ -57,10 +57,6 @@
 #endif
 #endif // VTMR_NUM_TIMERS > 0
 
-
-
-// FIXME: Busy waiting (should do low power/sleep and wake on interrupt, or do something useful)
-#define WAIT_WHILE( cond ) while( cond );
 
 
 // ****************************************************************************
@@ -151,7 +147,6 @@ int platform_init()
 
 #if defined(PLATFORM_HAS_SYSTIMER) && defined(SYSTICKHZ)
   // Setup system timer
-// FIXME: This is returning an error
   	if (SysTick_Config(platform_cpu_get_frequency() / ((u32) SYSTICKHZ)))
       return PLATFORM_ERR;    // SysTick error
 #endif //SYSTIMER
@@ -166,7 +161,6 @@ int platform_init()
 // ****************************************************************************
 // PIO
 
-// FIXME: PIOE not defined, but thought there were 5 ports - ??
 const u32 pio_id[] =     { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
 Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 
@@ -212,6 +206,16 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
     case PLATFORM_IO_PORT_DIR_OUTPUT:
       pinmask = PIO_MASK_ALL;
+// TODO: Arduino source code says that can save power by disabling clock on a port 
+//  if all pins on port are output.
+// Could wait to enable clock on port until pins set as input, 
+//  and disable clock after all pins set as output
+/* if all pins are output, disable PIO Controller clocking, reduce power consumption */
+//            if ( g_APinDescription[ulPin].pPort->PIO_OSR == PIO_MASK_ALL )
+//            {
+//                pmc_disable_periph_clk( pio_id[port] ) ;
+//            }
+//
     case PLATFORM_IO_PIN_DIR_OUTPUT:
       pio_set_output( base, pinmask, LOW, DISABLE, DISABLE );
 #warning Need to figure settings for default level, open drain, pull up
@@ -837,7 +841,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 }
 
 // *****************
-// Systic timer - interrupt every SYSTICKHZ
+// Systic timer - interrupt SYSTICKHZ times/second
 
 //static volatile u64 g_ms_ticks = 0;
 
