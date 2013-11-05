@@ -7,8 +7,9 @@
 // Lua's isdst (daylight savings time) field is ignored and not returned 
 // (so t.isdst is nil==false).
 
-// TODO: Copied from mizar32 RTC, should split into platform part and elua module part (part way done, but 
-//  Some of the mizar32 material removed (so would have to restore it to get version for mizar)
+// TODO: Copied from mizar32 RTC, should go back and split into platform part and elua module part 
+//  (part way done, but some of the mizar32 material removed 
+//  (so would have to restore it to get version for mizar)
 //  Documentation says there is also an RTC module in one of the other platforms, but haven't found it.
 // TODO: add to other platforms - RTC hardware on lpc17xx, stm32f10x, stm32f4, maybe str7, str9, maybe on lm3
 
@@ -16,8 +17,7 @@
 // we may one day either use this or just calculate the DOW.
 
 /* 
-SAM
-// Also has time, date alarms
+// SAM Also has time, date alarms
 
 // STM32
 RTC_Init(RTC_InitTypeDef* RTC_InitStruct);
@@ -73,8 +73,12 @@ static int rtc_get( lua_State *L )
   if( platform_rtc_init() )       // No RTC or init failed
     return luaL_error( L, MSG_NO_RTC );
 
+debug("RTC get - Init done.");
   platform_read_rtc( &hour, &minute, &second, &year, &month, &day, &week );
-
+debug("RTC get - platform read done.");
+//debug("Values: hour: %lu, min: %lu, sec: %lu, year: %lu, day: %lu, week: %lu",
+//   hour, minute, second, year, month, day, week);
+   
   // Construct the table to return the result
   lua_createtable( L, 0, 7 );
 
@@ -123,10 +127,15 @@ static int rtc_set( lua_State *L )
   
   if( platform_rtc_init() )       // No RTC or init failed
     return luaL_error( L, MSG_NO_RTC );
+debug("RTC set - Init done.");
   
   // Read the rtc so that unspecified fields remain at the same value as before
   // FIXME: This introduces an error if value not being set changes during processing
   platform_read_rtc( &hour, &minute, &second, &year, &month, &day, &week );
+
+debug("RTC set - Old values:");
+// hour: %lu, min: %lu, sec: %lu, year: %lu, day: %lu, week: %lu",
+//   hour, minute, second, year, month, day, week);
 
   // Set any values that they specified as table entries
   // TODO: May make more sense to unroll this loop, 
@@ -178,8 +187,13 @@ static int rtc_set( lua_State *L )
     lua_pop( L, 1 );
   }
 
-  platform_write_rtc( hour, minute, second, year, month, day, week );
+debug("RTC set - new values:");
+// hour: %lu, min: %lu, sec: %lu, year: %lu, day: %lu, week: %lu",
+//   hour, minute, second, year, month, day, week);
 
+   platform_write_rtc( hour, minute, second, year, month, day, week );
+debug("RTC set - done.");
+   
   return 0;
 }
 
