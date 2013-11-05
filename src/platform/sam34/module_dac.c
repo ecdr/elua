@@ -14,6 +14,11 @@
 //  get interrupt when done
 //  loop values(?)
 //  what else?
+//Set up buffer
+//ISR to feed FIFO from buffer
+//Regular interrupts to transfer to FIFO
+//Handle both channels
+
 
 //#define DACC_CHANNEL        0 // CH0 (PB15) labelled A12
 //#define DACC_CHANNEL        1 // CH1 (PB16) labelled A13
@@ -54,10 +59,6 @@ Half word - use lower 16 bits of data, full word - write 2 data items at once (l
 Can tag values (using 2 high bits of 16 bit halfword) to tell which channel to use
 // So - could use full word mode to write left and right audio channel data simultaneously
 
-Set up buffer
-ISR to feed FIFO from buffer
-Regular interrupts to transfer to FIFO
-Handle both channels
 
 */
 
@@ -115,7 +116,7 @@ void platform_dac_setup(unsigned id)
 		/* Set up analog current */
 		dacc_set_analog_control(DACC, DACC_ACR_IBCTLCH0(0x02) | DACC_ACR_IBCTLCH1(0x02) |
 											DACC_ACR_IBCTLDACCORE(0x01));
-			/* Disable TAG and select output channel dac_channel(id) */
+		/* Disable TAG and select output channel dac_channel(id) */
     dacc_set_channel_selection(DACC, dac_channel(id));
 
     // enable channel if not enabled
@@ -130,6 +131,8 @@ u32 platform_dac_write(u32 id, u32 value)
 {
   if (value > DACC_MAX_DATA)
     return PLATFORM_ERR;    // Might be better to move error check to module
+  dacc_set_channel_selection(DACC, dac_channel(id)); // Maybe cache id, or maybe use TAGs
+
   // Wait until DAC FIFO ready to accept data
   WAIT_WHILE((dacc_get_interrupt_status(DACC) & DACC_IMR_TXRDY) == 0);
   // Could offer non-blocking version (return error if FIFO full)

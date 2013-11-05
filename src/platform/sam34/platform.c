@@ -126,7 +126,7 @@ int platform_init()
 
 #if NUM_PWM > 0
   // Setup PWMs
-//  pwms_init();
+  pwms_init();
 #endif
 
 #ifdef BUILD_ADC
@@ -167,7 +167,7 @@ Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 #define PIO_MASK_ALL  0xFFFFFFFFUL
 
 
-static void pios_init()
+static void pios_init(void)
 {
   unsigned i;
   
@@ -895,35 +895,42 @@ static void pwms_init( void )
 // PWM clock - master, /1,2,4,8,16,32,64,128,256,512,1024
 // clocka, clockb - dividers, each can divide one of above by (1 to 255)
 
-#define PWM_CLOCK_PRE_MAX  11
-
 #define PWM_MAX_CLOCK 84*1000*1000
 #warning PWM_MAX_CLOCK needs fixing
 // FIXME: Should read from system clock
 
+#define PWM_MAX_PERIOD  ((1<<16) - 1)
+
+
 // PWM channel prescalers
-const static u32 pwm_div_ctl[] = 
-{ PWM_CMR_CPRE_MCK,         PWM_CMR_CPRE_MCK_DIV_2,   PWM_CMR_CPRE_MCK_DIV_4,  PWM_CMR_CPRE_MCK_DIV_8, 
-  PWM_CMR_CPRE_MCK_DIV_16,  PWM_CMR_CPRE_MCK_DIV_32,  PWM_CMR_CPRE_MCK_DIV_64, PWM_CMR_CPRE_MCK_DIV_128, 
+const static u32 pwm_div_ctl[] = { PWM_CMR_CPRE_MCK,  PWM_CMR_CPRE_MCK_DIV_2,
+  PWM_CMR_CPRE_MCK_DIV_4,   PWM_CMR_CPRE_MCK_DIV_8,   PWM_CMR_CPRE_MCK_DIV_16,
+  PWM_CMR_CPRE_MCK_DIV_32,  PWM_CMR_CPRE_MCK_DIV_64,  PWM_CMR_CPRE_MCK_DIV_128, 
   PWM_CMR_CPRE_MCK_DIV_256, PWM_CMR_CPRE_MCK_DIV_512, PWM_CMR_CPRE_MCK_DIV_1024, 
-  PWM_CMR_CPRE_CLKA, PWM_CMR_CPRE_CLKB };
+  PWM_CMR_CPRE_CLKA,        PWM_CMR_CPRE_CLKB };
 
 // const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 };
 // prescalers[11] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 };
 #define pwm_prescalers( n ) ( 1 << (n) )
+
+#define PWM_CLOCK_PRE_MAX  11
 const unsigned nprescalers = PWM_CLOCK_PRE_MAX;
+
 #define PWM_PRE_CLOCKA (nprescalers)
-#define PWM_PRE_CLOCKB (nprescalers+1)
+#define PWM_PRE_CLOCKB (PWM_PRE_CLOCKA+1)
 #define PWM_PRE_UNUSED (PWM_CLOCK_PRE_MAX+2)
 
 // Which clock is each channel using
 u32 pwm_chan_clock[NUM_PWM] = { 0 };
+
+// Prescaler used by each channel
 u8 pwm_chan_pre[NUM_PWM] = { PWM_PRE_UNUSED };
 
 // Frequency for custom channel clocks
 pwm_clock_t pwm_clock = { .ul_clka = 0, .ul_clkb = 0 };
+
 // Use counters - how many channels using each custom clock
- u8 pwm_clka_users = 0, pwm_clkb_users = 0;
+u8 pwm_clka_users = 0, pwm_clkb_users = 0;
 
 // void PWM_Handler(void)
 
@@ -940,7 +947,7 @@ static u32 pwm_find_clock_prescaler( u32 frequency )
   if ( frequency > PWM_MAX_CLOCK )
     return 0; // Select master clock frequency
 
-  for (prescaler = 0; prescaler < nprescalers; prescaler++)
+  for (prescaler = 1; prescaler < nprescalers; prescaler++)
     if ( pwm_prescalers( prescaler ) * frequency > PWM_MAX_CLOCK)
       break;
 //  Assert( max/prescalers( prescaler-1) > frequency > max/prescalers(prescaler) or prescaler = nprescalers )
@@ -1028,9 +1035,10 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
   return clock; // FIXME - what is it supposed to return?
 }
 
+static int pwm_enable_pin(unsigned id);
 
-#define PWM_MAX_PERIOD  ((1<<16) - 1)
 
+//uint32_t bitmask = pwm_channel_get_status(PWM)
 
 /*
  * Configure a PWM channel to run at "frequency" Hz with a duty cycle of
@@ -1048,11 +1056,11 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   
   if (id >= NUM_PWM || duty > 100 || pwm_chan_clock[id] == 0) return 0;
 
-  pwmclk = pwm_chan_clock[id];  
-
+  pwmclk = platform_pwm_get_clock( id );
+  
   // Compute period and duty period in clock cycles.
   //
-  // PWM output wave frequency is requested in Hz but programmed as a
+  // PWM output wave frequency is requested in Hz, but programmed as a
   // number of cycles of the master PWM clock frequency.
   //
   // Here, we use rounding to select the numerically closest available
@@ -1063,19 +1071,76 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   if (period > PWM_MAX_PERIOD) period = PWM_MAX_PERIOD;
   duty_clocks = (period * duty + 50) / 100;
   
-  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;
+  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;  // FIXME: Should be whichever prescaler selected
   pwm_inst.channel = pwm_chan[id];
   pwm_inst.ul_period = period;
   pwm_inst.ul_duty = duty_clocks;
   pwm_channel_init(PWM, &pwm_inst);
   //FIXME: Need to configure associated pin appropriately
-
+  pwm_enable_pin(id);
   return (pwmclk + period/2) / period;
 }
 
 //  pwm_inst.alignment = PWM_ALIGN_LEFT;
 //  pwm_inst.polarity = PWM_LOW;
 // PWM_CMR_CPRE_CLKB
+
+// Ideas about pin mapping and initialization
+// For now - just provide a structure to initialize fixed pins for PWM (where can fill in which pin to use)
+
+// See variant.cpp (Adruino.h)
+// See wiring_analog.c - for ideas on timer use
+// See arduino analog pin for ideas on ADC use
+// See pio_sam3x8e.h for complete pin name/map list
+
+u8 pwm_pin_enabled[NUM_PWM] = {false};
+
+// pin -> port, pinmask, portID, 
+typedef struct {
+  Pio* port;
+  uint32_t pin;
+  EPioType pin_type;
+  } pin_inf;
+
+//  PIO_NOT_A_PIN, /* Not under control of a peripheral. */
+//  PIO_PERIPH_A, /* The pin is controlled by the associated signal of peripheral A. */
+//  PIO_PERIPH_B, /* The pin is controlled by the associated signal of peripheral B. */
+//  PIO_INPUT, /* The pin is an input. */
+//  PIO_OUTPUT_0, /* The pin is an output and has a default level of 0. */
+//  PIO_OUTPUT_1
+
+
+// 8 PWMs (0-7), each have 2 outputs (H, L) [appear to be at least approximately complementary]
+//   also some have one input FI (0-2)
+// Output signals can be mapped to various pins
+// PWMH0 - PA8(B), PB12(B), PC3(B)
+
+static const pin_inf pwm_pin[NUM_PWM] = {
+//  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
+  { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED
+// PIO_PA21B_PWML0, PIO_PB16B_PWML0
+  { PIOC, PIO_PC4B_PWML1, PIO_PERIPH_B}, // PWML1
+  { PIOC, PIO_PC6B_PWML2, PIO_PERIPH_B}, // PWML2
+  { PIOC, PIO_PC8B_PWML3, PIO_PERIPH_B}, // PWML3
+  { PIOC, PIO_PC21B_PWML4, PIO_PERIPH_B}, // PWML4
+  { PIOC, PIO_PC22B_PWML5, PIO_PERIPH_B}, // PWML5
+  { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
+  { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B} // PWML7
+  };
+
+// set mapping PWM channel -> pin (or pin -> PWM channel)
+// PIN_ATTR_PWM
+
+static int pwm_enable_pin(unsigned id)
+{
+  if (!pwm_pin_enabled[id]) {
+		// Setup PWM for this pin
+    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
+    pwm_pin_enabled[id] = true;
+  }
+  return 0;
+}
+
 
 
 void platform_pwm_start( unsigned id )
