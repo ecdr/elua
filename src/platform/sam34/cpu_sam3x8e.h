@@ -25,7 +25,7 @@
 
 #define ADC_BIT_RESOLUTION    12
 
-#define DAC_BIT_RESOLUTION    12
+#define DAC_BIT_RESOLUTION    DACC_RESOLUTION
 
 // CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)
 #define CPU_FREQUENCY         sysclk_get_cpu_hz()

@@ -56,7 +56,7 @@ local board = comp.board:upper()
 
 
 
-specific_files = "module_rand.c module_rtc.c platform_rtc.c platform.c platform_int.c"
+specific_files = "module_dac.c module_rand.c module_rtc.c platform_rtc.c platform.c platform_int.c"
 
 -- Dig through ASF to find source files
 
@@ -76,7 +76,8 @@ addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall'
 
 addcf{ '-std=gnu99'}									-- From ASF makefile, library uses C99 features
 
-addcf{ '-g' }                         -- Debugging flags
+addcf{ '-g' }                         -- Debugging flags (-g3 - include macros)
+-- addcf{ '-O' }        -- ?? for final versions?
 
 addcf{ '-Wstrict-prototypes', '-Wmissing-prototypes' }			-- From ASF makefile
 --addcf{ '-Werror-implicit-function-declaration', '-Wpointer-arith' }	-- From ASF makefile
