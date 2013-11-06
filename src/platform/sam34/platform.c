@@ -899,13 +899,21 @@ timer_data_type platform_timer_read_sys(void)
 
 #if NUM_PWM > 0
 
+
+// FIXME: There should be enough code here to get PWMs to work, but something isn't right
+//  When tested with PWM chanel 0, outputing on pin PA_21 (one of onboard LEDs)
+//  nothing happens (LED does not light)
+//
+//  Checked code against the pwm_led_example
+//  Tried various frequencies, periods, etc.
+//  Tried using a different mapping method
+//
+//  ToTrynext: Try a different pin/channel (maybe the headers and documentation are wrong, 
+//    maybe there is some extra special incantation to get that particular pin/channel to work)
+//    
+
 const uint32_t pwm_chan[] = { PWM_CHANNEL_0, PWM_CHANNEL_1, PWM_CHANNEL_2, PWM_CHANNEL_3, 
                               PWM_CHANNEL_4, PWM_CHANNEL_5, PWM_CHANNEL_6, PWM_CHANNEL_7 };
-
-static void pwms_init( void )
-{
-  pmc_enable_periph_clk(ID_PWM);
-}
 
 // PWM clock - master, /1,2,4,8,16,32,64,128,256,512,1024
 // clocka, clockb - dividers, each can divide one of above by (1 to 255)
@@ -1015,6 +1023,7 @@ typedef struct {
   u32 pin_type; // EPioType
   } pin_inf;
 
+// pin_type:  
 //  PIO_NOT_A_PIN, /* Not under control of a peripheral. */
 //  PIO_PERIPH_A, /* The pin is controlled by the associated signal of peripheral A. */
 //  PIO_PERIPH_B, /* The pin is controlled by the associated signal of peripheral B. */
@@ -1044,18 +1053,27 @@ static const pin_inf pwm_pin[NUM_PWM] = {
 // set mapping PWM channel -> pin (or pin -> PWM channel)
 // PIN_ATTR_PWM
 
+
 static int pwm_enable_pin(unsigned id)
 {
   if (!pwm_pin_enabled[id]) {
 		// Setup PWM for this pin
     pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
+// For testing - PA21 (one of the pin options for PWML0) should be one of onboard LEDs
+//    gpio_configure_pin(PIO_PA21_IDX, (PIO_PERIPH_B | PIO_DEFAULT));
     pwm_pin_enabled[id] = true;
   }
   return 0; // Return 0 for success
 }
 
+// gpio_configure_pin = pio_configure_pin
 
 // Platform functions
+
+static void pwms_init( void )
+{
+  pmc_enable_periph_clk(ID_PWM);
+}
 
 u32 platform_pwm_get_clock( unsigned id )
 {
@@ -1093,12 +1111,14 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
   Make do with closest match
     how close is prescaler vs clocka vs clockb
 */
+  platform_pwm_stop(id);
   if (clock)
   {
     // FIXME: Should disable any active PWM channels before setting clock
     // FIXME: Allow use clockb and fixed divisors
     //  e.g. keep track of clock value settings (and accept 2 different values, plus using divisions of mck)
     pwm_clock.ul_clka = clock;
+    pwm_clock.ul_clkb = 0;      // FIXME: Should already be 0, but just to be sure
     pwm_clock.ul_mck = CPU_FREQUENCY;
     pwm_init(PWM, &pwm_clock);
     if (pwm_chan_clock[id] == 0) pwm_clka_users++;        // Increment use count if wasn't already using
@@ -1132,6 +1152,11 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   
   if (id >= NUM_PWM || duty > 100 || pwm_chan_clock[id] == 0) return 0;
 
+  //FIXME: Need to configure associated pin appropriately
+  //FIXME: Had tried enabling pin after channel init, but some examples showed it before, so trying it here
+  if (pwm_enable_pin(id))
+    return 0; // Error
+
   pwmclk = platform_pwm_get_clock( id );
   
   // Compute period and duty period in clock cycles.
@@ -1146,20 +1171,22 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   if (period == 0) period = 1;  
   if (period > PWM_MAX_PERIOD) period = PWM_MAX_PERIOD;
   duty_clocks = (period * duty + 50) / 100;
+
+  printf("PWM Setup: period = %u, duty clocks = %u\n", period, duty_clocks);
   
-  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;  // FIXME: Should be whichever prescaler selected
+  pwm_channel_disable(PWM, pwm_chan[id]);  
+  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;    // FIXME: Should be whichever prescaler selected
   pwm_inst.channel = pwm_chan[id];
   pwm_inst.ul_period = period;
   pwm_inst.ul_duty = duty_clocks;
-  pwm_channel_init(PWM, &pwm_inst);
-  //FIXME: Need to configure associated pin appropriately
-  if (pwm_enable_pin(id))
+//  pwm_inst.b_deadtime_generator = true;       // FIXME: Just fooling around - trying to get it to output to pins
+  pwm_inst.alignment = PWM_ALIGN_LEFT;
+  pwm_inst.polarity = PWM_LOW;                // Start low
+  if(pwm_channel_init(PWM, &pwm_inst))
     return 0; // Error
   return (pwmclk + period/2) / period;
 }
 //  TODO: Other bits from example code - consider
-//  pwm_inst.alignment = PWM_ALIGN_LEFT;
-//  pwm_inst.polarity = PWM_LOW;
 // PWM_CMR_CPRE_CLKB
 
 
@@ -1169,7 +1196,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 
 void platform_pwm_start( unsigned id )
 {
-  if ( pwm_chan_clock[id] )
+//  if ( pwm_chan_clock[id] )
     pwm_channel_enable(PWM, pwm_chan[id]);
 }
 
