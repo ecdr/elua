@@ -509,6 +509,7 @@ Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 //PIO_PA8A_URXD
 //PIO_PA9A_UTXD 
 
+
 static void uarts_init()
 {
   unsigned i;
@@ -519,6 +520,7 @@ static void uarts_init()
 
 //  stdio_serial_init(CONF_UART, &uart_serial_options);
 }
+
 
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
@@ -587,12 +589,16 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
       
     usart_enable_tx(uart_base[id]);
     usart_enable_rx(uart_base[id]);
-  // Need to configure pins for ports other than UART0 (assuming UART0 handled by ASF)
 
-/*    PIO_Configure( g_APinDescription[PINS_UART].pPort, g_APinDescription[PINS_UART].ulPinType,
+    // Configure pins for ports other than UART0 (assuming UART0 handled by ASF)
+// TODO: handle alternative pin mapping
+// TODO: handle auxilary pins (handshake, etc., if exist)
+
+/* sample code from some example
+    PIO_Configure( g_APinDescription[PINS_UART].pPort, g_APinDescription[PINS_UART].ulPinType,
     g_APinDescription[PINS_UART].ulPin, g_APinDescription[PINS_UART].ulPinConfiguration); */
     
-// FIXME: Make something data driven (table) here
+// FIXME: Make pin setup data driven (also make consistent with other pin selection)
     switch(id)
     {
       case 0:
@@ -617,6 +623,7 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
   return baud;
 }
 
+
 void platform_s_uart_send( unsigned id, u8 data )
 {
 #ifdef BUILD_USB_CDC
@@ -625,24 +632,23 @@ void platform_s_uart_send( unsigned id, u8 data )
   else
 #endif
   {
-    WAIT_WHILE(!usart_is_tx_ready(uart_base[id]));
+    WAIT_WHILE(!usart_is_tx_ready(uart_base[id]));  // FIXME: Should probably add timeout on wait
     usart_putchar(uart_base[id], data);
   }
 }
 
-// return character, or -1 for error
+
+// platform_s_uart_recv - return character, or -1 for error
 int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 {
   uint32_t c;
-// usart_getchar - wait for character or timeout
-// usart_read - nonblocking, get character if available now
 
 #ifdef BUILD_USB_CDC
   if( id == CDC_UART_ID )
     return platform_usb_cdc_recv( timeout );
 #endif
 
-// If character already waiting, get it
+// If character already waiting, don't check timeout, just get it
   if( timeout == 0 || usart_is_rx_ready(uart_base[id]))
     if (!usart_read(uart_base[id], & c))  // Nonblocking read
       return c;
@@ -659,6 +665,8 @@ int platform_s_uart_recv( unsigned id, timer_data_type timeout )
   }
 }
 
+
+// TODO: Implement flow control
 int platform_s_uart_set_flow_control( unsigned id, int type )
 {
   return PLATFORM_ERR;
@@ -671,11 +679,16 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 const u32 timer_id[] = {ID_TC0, ID_TC1, ID_TC2};
 Tc * const timer_base[] = {TC0, TC1, TC2};
 
+// FIXME: NUM_TC or num_tc - Pick one (if it will work the const might be more type safe)
 #define NUM_TC (sizeof(timer_id)/sizeof (u32))
 const unsigned num_tc = (sizeof(timer_id)/sizeof(u32));
 
 // FIXME: Something said there were 9 counter timers, but only TC0 through 2??
+//  Think may be counting 3 channels for each TC
+
+// TODO: See if library files provide a name for this
 #define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
+
 
 // Helper functions
 
@@ -707,7 +720,6 @@ static void timers_init()
 
   for( i = 0; i < NUM_TC; i ++ )
     pmc_enable_periph_clk(timer_id[i]);
-//  pmc_enable_periph_clk(ID_TC0);
 }
 
 
@@ -721,6 +733,7 @@ static u32 platform_timer_get_clock( unsigned id )
   else
     return 0;
 }
+
 
 void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 {
@@ -754,7 +767,7 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 #warning FIXME: Need to figure out what timer mode to use
 #define TC_MODE_COUNTER 0
 
-/*
+/* Notes on Timers/timer drivers:
 component_tc.h
 Capture mode - TIOA,B are inputs (trigger/measure signals)
 Wave mode - free running (wave gen, etc.) TIOA output, TIOB out if not trigger
@@ -775,7 +788,7 @@ Burst - gate clock with external signal (XC0-2)
  TC_CMR_BURST_NONE, TC_CMR_BURST_XC0-2
 TC_CMR_LDBSTOP, TC_CMR_LDBDIS
 Edge trigger - 
-TC_CMR_ETRGEDG_NONE, TC_CMR_ETRGEDG_RISING, TC_CMR_ETRGEDG_FALLING, TC_CMR_ETRGEDG_EDGE (both)
+  TC_CMR_ETRGEDG_NONE, TC_CMR_ETRGEDG_RISING, TC_CMR_ETRGEDG_FALLING, TC_CMR_ETRGEDG_EDGE (both)
 
 TC_CMR_ABETRG
 TC_CMR_CPCTRG
@@ -812,7 +825,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       if (tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
       {
         tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_WAVE);   // FIXME - figure out mode
-/* Configure TC for a data Hz frequency and trigger on RC compare. */
+/* example - Configure TC for a data Hz frequency and trigger on RC compare. */
 //    	tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_CPCTRG);
 //      tc_write_rc(tc(id), tchanel(id), (ul_sysclk / tmr_div[id]) / data);
         res = platform_timer_get_clock( id );
@@ -835,15 +848,17 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
   return res;
 }
 
+// FIXME: Write function
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
   lua_assert(false);
 }
 
+
 // *****************
 // Systic timer - interrupt SYSTICKHZ times/second
 
-//static volatile u64 g_ms_ticks = 0;
+//static volatile u64 g_ms_ticks = 0;   // Workaround in case system timer doesn't work
 
 // interrupt handler
 void SysTick_Handler(void)
@@ -895,10 +910,9 @@ static void pwms_init( void )
 // PWM clock - master, /1,2,4,8,16,32,64,128,256,512,1024
 // clocka, clockb - dividers, each can divide one of above by (1 to 255)
 
-#define PWM_MAX_CLOCK 84*1000*1000
-#warning PWM_MAX_CLOCK needs fixing
-// FIXME: Should read from system clock
+#define PWM_MAX_CLOCK sysclk_get_cpu_hz()
 
+// TODO: Check PWM library see if it exports a constant to replace this
 #define PWM_MAX_PERIOD  ((1<<16) - 1)
 
 
@@ -929,10 +943,24 @@ u8 pwm_chan_pre[NUM_PWM] = { PWM_PRE_UNUSED };
 // Frequency for custom channel clocks
 pwm_clock_t pwm_clock = { .ul_clka = 0, .ul_clkb = 0 };
 
-// Use counters - how many channels using each custom clock
+// Use counters - how many channels using each custom clock (if no channels using, can change clock)
 u8 pwm_clka_users = 0, pwm_clkb_users = 0;
 
 // void PWM_Handler(void)
+
+
+/* Helper functions */
+
+#define FREQ_EPSILON  100
+
+// Scaler for relative difference (100 would be % difference)
+#define PWM_PARTS_PER 1000
+
+// TODO: Use relative difference, rather than absolute difference in clock selection
+static int rel_diff(u32 f1, u32 f2)
+{
+  return (PWM_PARTS_PER * 2 * (f1 - f2)) / (f1 + f2);
+}
 
 /*
  * Helper function:
@@ -967,15 +995,67 @@ static u32 freq_from_prescaler( unsigned prescaler )
 }
 
 
-#define FREQ_EPSILON  100
-// Scaler for relative difference (100 would be % difference)
-#define PWM_PARTS_PER 1000
+static int pwm_enable_pin(unsigned id);
 
-// TODO: Use relative difference, rather than absolute difference
-static int rel_diff(u32 f1, u32 f2)
+// Ideas about pin mapping and initialization
+// For now - just provide a way to initialize fixed pins for PWM (where can fill in which pin to use)
+
+// See variant.cpp (Adruino.h)
+// See wiring_analog.c - for ideas on timer use
+// See arduino analog pin for ideas on ADC use
+// See pio_sam3x8e.h for complete pin name/map list
+// Also look at the pinmap fork of eLua (and how handled by current platforms - LM3, STM32, etc.)
+
+u8 pwm_pin_enabled[NUM_PWM] = {false};
+
+// pin -> port, pinmask, portID, 
+typedef struct {
+  Pio* port;
+  uint32_t pin;
+  u32 pin_type; // EPioType
+  } pin_inf;
+
+//  PIO_NOT_A_PIN, /* Not under control of a peripheral. */
+//  PIO_PERIPH_A, /* The pin is controlled by the associated signal of peripheral A. */
+//  PIO_PERIPH_B, /* The pin is controlled by the associated signal of peripheral B. */
+//  PIO_INPUT, /* The pin is an input. */
+//  PIO_OUTPUT_0, /* The pin is an output and has a default level of 0. */
+//  PIO_OUTPUT_1
+
+
+// 8 PWMs (0-7), each have 2 outputs (H, L) [appear to be at least approximately complementary]
+//   also some have one input FI (0-2)
+// Output signals can be mapped to various pins
+// PWMH0 - PA8(B), PB12(B), PC3(B)
+
+static const pin_inf pwm_pin[NUM_PWM] = {
+//  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
+  { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED
+// PIO_PA21B_PWML0, PIO_PB16B_PWML0
+  { PIOC, PIO_PC4B_PWML1, PIO_PERIPH_B}, // PWML1
+  { PIOC, PIO_PC6B_PWML2, PIO_PERIPH_B}, // PWML2
+  { PIOC, PIO_PC8B_PWML3, PIO_PERIPH_B}, // PWML3
+  { PIOC, PIO_PC21B_PWML4, PIO_PERIPH_B}, // PWML4
+  { PIOC, PIO_PC22B_PWML5, PIO_PERIPH_B}, // PWML5
+  { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
+  { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B} // PWML7
+  };
+
+// set mapping PWM channel -> pin (or pin -> PWM channel)
+// PIN_ATTR_PWM
+
+static int pwm_enable_pin(unsigned id)
 {
-  return (PWM_PARTS_PER * 2 * (f1 - f2)) / (f1 + f2);
+  if (!pwm_pin_enabled[id]) {
+		// Setup PWM for this pin
+    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
+    pwm_pin_enabled[id] = true;
+  }
+  return 0; // Return 0 for success
 }
+
+
+// Platform functions
 
 u32 platform_pwm_get_clock( unsigned id )
 {
@@ -1029,16 +1109,12 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
     if (pwm_chan_clock[id])           // Clearing clock on channel that was in use
     {
     pwm_chan_clock[id] = 0;
-    pwm_clka_users--;
+    pwm_clka_users--;         // FIXME: Should reduce count for a or b depending which was in use
     }
   Assert(pwm_clka_users < NUM_PWM);
   return clock; // FIXME - what is it supposed to return?
 }
 
-static int pwm_enable_pin(unsigned id);
-
-
-//uint32_t bitmask = pwm_channel_get_status(PWM)
 
 /*
  * Configure a PWM channel to run at "frequency" Hz with a duty cycle of
@@ -1077,70 +1153,18 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   pwm_inst.ul_duty = duty_clocks;
   pwm_channel_init(PWM, &pwm_inst);
   //FIXME: Need to configure associated pin appropriately
-  pwm_enable_pin(id);
+  if (pwm_enable_pin(id))
+    return 0; // Error
   return (pwmclk + period/2) / period;
 }
-
+//  TODO: Other bits from example code - consider
 //  pwm_inst.alignment = PWM_ALIGN_LEFT;
 //  pwm_inst.polarity = PWM_LOW;
 // PWM_CMR_CPRE_CLKB
 
-// Ideas about pin mapping and initialization
-// For now - just provide a structure to initialize fixed pins for PWM (where can fill in which pin to use)
 
-// See variant.cpp (Adruino.h)
-// See wiring_analog.c - for ideas on timer use
-// See arduino analog pin for ideas on ADC use
-// See pio_sam3x8e.h for complete pin name/map list
-
-u8 pwm_pin_enabled[NUM_PWM] = {false};
-
-// pin -> port, pinmask, portID, 
-typedef struct {
-  Pio* port;
-  uint32_t pin;
-  EPioType pin_type;
-  } pin_inf;
-
-//  PIO_NOT_A_PIN, /* Not under control of a peripheral. */
-//  PIO_PERIPH_A, /* The pin is controlled by the associated signal of peripheral A. */
-//  PIO_PERIPH_B, /* The pin is controlled by the associated signal of peripheral B. */
-//  PIO_INPUT, /* The pin is an input. */
-//  PIO_OUTPUT_0, /* The pin is an output and has a default level of 0. */
-//  PIO_OUTPUT_1
-
-
-// 8 PWMs (0-7), each have 2 outputs (H, L) [appear to be at least approximately complementary]
-//   also some have one input FI (0-2)
-// Output signals can be mapped to various pins
-// PWMH0 - PA8(B), PB12(B), PC3(B)
-
-static const pin_inf pwm_pin[NUM_PWM] = {
-//  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
-  { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED
-// PIO_PA21B_PWML0, PIO_PB16B_PWML0
-  { PIOC, PIO_PC4B_PWML1, PIO_PERIPH_B}, // PWML1
-  { PIOC, PIO_PC6B_PWML2, PIO_PERIPH_B}, // PWML2
-  { PIOC, PIO_PC8B_PWML3, PIO_PERIPH_B}, // PWML3
-  { PIOC, PIO_PC21B_PWML4, PIO_PERIPH_B}, // PWML4
-  { PIOC, PIO_PC22B_PWML5, PIO_PERIPH_B}, // PWML5
-  { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
-  { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B} // PWML7
-  };
-
-// set mapping PWM channel -> pin (or pin -> PWM channel)
-// PIN_ATTR_PWM
-
-static int pwm_enable_pin(unsigned id)
-{
-  if (!pwm_pin_enabled[id]) {
-		// Setup PWM for this pin
-    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
-    pwm_pin_enabled[id] = true;
-  }
-  return 0;
-}
-
+// TODO: Should there be way to test channel status?
+//uint32_t bitmask = pwm_channel_get_status(PWM)
 
 
 void platform_pwm_start( unsigned id )
@@ -1148,6 +1172,7 @@ void platform_pwm_start( unsigned id )
   if ( pwm_chan_clock[id] )
     pwm_channel_enable(PWM, pwm_chan[id]);
 }
+
 
 void platform_pwm_stop( unsigned id )
 {
