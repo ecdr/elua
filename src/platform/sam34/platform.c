@@ -900,18 +900,6 @@ timer_data_type platform_timer_read_sys(void)
 #if NUM_PWM > 0
 
 
-// FIXME: There should be enough code here to get PWMs to work, but something isn't right
-//  When tested with PWM chanel 0, outputing on pin PA_21 (one of onboard LEDs)
-//  nothing happens (LED does not light)
-//
-//  Checked code against the pwm_led_example
-//  Tried various frequencies, periods, etc.
-//  Tried using a different mapping method
-//
-//  ToTrynext: Try a different pin/channel (maybe the headers and documentation are wrong, 
-//    maybe there is some extra special incantation to get that particular pin/channel to work)
-//    
-
 const uint32_t pwm_chan[] = { PWM_CHANNEL_0, PWM_CHANNEL_1, PWM_CHANNEL_2, PWM_CHANNEL_3, 
                               PWM_CHANNEL_4, PWM_CHANNEL_5, PWM_CHANNEL_6, PWM_CHANNEL_7 };
 
@@ -996,10 +984,10 @@ static u32 pwm_find_clock_prescaler( u32 frequency )
       return prescaler;
 }
 
-// Return the frequency of master clock divided by given prescaler
+// Return the frequency of master clock divided by 2 ^ given prescaler
 static u32 freq_from_prescaler( unsigned prescaler )
 {
-  return PWM_MAX_CLOCK / pwm_prescalers( prescaler );
+  return PWM_MAX_CLOCK >> prescaler;
 }
 
 
@@ -1036,10 +1024,18 @@ typedef struct {
 //   also some have one input FI (0-2)
 // Output signals can be mapped to various pins
 // PWMH0 - PA8(B), PB12(B), PC3(B)
+// PIN_ATTR_PWM
+
+
+// set mapping PWM channel -> pin (or pin -> PWM channel)
+// Consider alternate interface 
+//    gpio_configure_pin(PIO_PA21_IDX, (PIO_PERIPH_B | PIO_DEFAULT));
+// gpio_configure_pin = pio_configure_pin
+
 
 static const pin_inf pwm_pin[NUM_PWM] = {
 //  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
-  { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED
+  { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED Tx (low = on?)
 // PIO_PA21B_PWML0, PIO_PB16B_PWML0
   { PIOC, PIO_PC4B_PWML1, PIO_PERIPH_B}, // PWML1
   { PIOC, PIO_PC6B_PWML2, PIO_PERIPH_B}, // PWML2
@@ -1050,23 +1046,16 @@ static const pin_inf pwm_pin[NUM_PWM] = {
   { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B} // PWML7
   };
 
-// set mapping PWM channel -> pin (or pin -> PWM channel)
-// PIN_ATTR_PWM
-
 
 static int pwm_enable_pin(unsigned id)
 {
   if (!pwm_pin_enabled[id]) {
 		// Setup PWM for this pin
     pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
-// For testing - PA21 (one of the pin options for PWML0) should be one of onboard LEDs
-//    gpio_configure_pin(PIO_PA21_IDX, (PIO_PERIPH_B | PIO_DEFAULT));
     pwm_pin_enabled[id] = true;
   }
   return 0; // Return 0 for success
 }
-
-// gpio_configure_pin = pio_configure_pin
 
 // Platform functions
 
@@ -1075,10 +1064,58 @@ static void pwms_init( void )
   pmc_enable_periph_clk(ID_PWM);
 }
 
+
+#define GET_FIELD(value, mask, pos) ((mask & (value)) >> pos)
+
+//#define PWM_CLK_DIVA_GET(value) ((PWM_CLK_DIVA_Msk & (value)) >> PWM_CLK_DIVA_Pos)))
+#define PWM_CLK_DIVA_GET(value) GET_FIELD(value, PWM_CLK_DIVA_Msk, PWM_CLK_DIVA_Pos)
+#define PWM_CLK_DIVB_GET(value) GET_FIELD(value, PWM_CLK_DIVB_Msk, PWM_CLK_DIVB_Pos)
+#define PWM_CLK_PREA_GET(value) GET_FIELD(value, PWM_CLK_PREA_Msk, PWM_CLK_PREA_Pos)
+#define PWM_CLK_PREB_GET(value) GET_FIELD(value, PWM_CLK_PREB_Msk, PWM_CLK_PREB_Pos)
+
+// pwm.c does not provide interface to fetch clock, so use low level component_pwm macros
 u32 platform_pwm_get_clock( unsigned id )
 {
-  return pwm_chan_clock[id];
+	u32 pre = PWM->PWM_CH_NUM[id].PWM_CMR & PWM_CMR_CPRE_Msk;  // Channel clock prescaler
+  u32 div;
+  u32 res = 0;
+  
+  printf("PWM get clock: chanel_pre = %lu", pre);
+  
+  switch (pre)
+  {
+    case PWM_CMR_CPRE_CLKA:
+      div = PWM_CLK_DIVA_GET(PWM->PWM_CLK);
+      printf(" clocka div = %lu", div);
+      if (div)  // if div=0 then clock not set, so return 0
+        {
+        pre = PWM_CLK_PREA_GET(PWM->PWM_CLK);
+        printf(" clocka pre = %lu\n", pre);
+        if (pre < PWM_CLOCK_PRE_MAX)
+          res = (((u32) PWM_MAX_CLOCK) >> pre)/ div;
+//      res = (PWM_MAX_CLOCK / pwm_prescalers( pre ))/ div; // FIXME: Instead of division should use a shift
+        Assert((PWM_MAX_CLOCK >> pre) == (PWM_MAX_CLOCK / pwm_prescalers( pre )));
+        // FIXME: Just for testing to check math
+        }
+      break;
+    case PWM_CMR_CPRE_CLKB:
+      div = PWM_CLK_DIVB_GET(PWM->PWM_CLK);
+      if (div)  // if div=0 then clock not set, so return 0
+        {
+        pre = PWM_CLK_PREB_GET(PWM->PWM_CLK);
+        if (pre < PWM_CLOCK_PRE_MAX)
+          res = (((u32) PWM_MAX_CLOCK) >> pre)/ div;
+        }
+      break;
+    default:
+      if (pre < PWM_CLOCK_PRE_MAX)
+        res = ((u32) PWM_MAX_CLOCK) >> pre ;  // divisor of MCK
+  }
+  return res;
+
+//  return pwm_chan_clock[id];
 }
+
 
 /* 
  TODO: PWM Clock allocation -
@@ -1088,12 +1125,9 @@ u32 platform_pwm_get_clock( unsigned id )
   Keep track of what channels using what clock
     If no channels using a custom clock, then consider it available for (re)use
     Use count
- */
 
-// Set the PWM clock
-u32 platform_pwm_set_clock( unsigned id, u32 clock )
-{
-/*
+  Problem - eLua won't let me feed it a 0 frequency
+  
   if clock == 0
     unuse previous clock;
   
@@ -1110,7 +1144,11 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
     use it
   Make do with closest match
     how close is prescaler vs clocka vs clockb
-*/
+ */
+
+// Set the PWM clock
+u32 platform_pwm_set_clock( unsigned id, u32 clock )
+{
   platform_pwm_stop(id);
   if (clock)
   {
@@ -1118,11 +1156,19 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
     // FIXME: Allow use clockb and fixed divisors
     //  e.g. keep track of clock value settings (and accept 2 different values, plus using divisions of mck)
     pwm_clock.ul_clka = clock;
-    pwm_clock.ul_clkb = 0;      // FIXME: Should already be 0, but just to be sure
+    pwm_clock.ul_clkb = 0;          // FIXME: Should already be 0, but just to be sure
     pwm_clock.ul_mck = CPU_FREQUENCY;
-    pwm_init(PWM, &pwm_clock);
+    if(pwm_init(PWM, &pwm_clock))
+      return 0;
+    // FIXME: Need to find out what clock actually set
+
     if (pwm_chan_clock[id] == 0) pwm_clka_users++;        // Increment use count if wasn't already using
-    pwm_chan_clock[id] = clock;
+    
+    // FIXME: *** Problem is it doesn't assign a clock to channel until init channel, 
+    // so although clocka is set, we are reading giberish.
+    // (So why is it returning system clock value?)
+    
+    pwm_chan_clock[id] = platform_pwm_get_clock(id);
     pwm_chan_pre[id] = PWM_PRE_CLOCKA;
   }
   else
@@ -1132,8 +1178,13 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
     pwm_clka_users--;         // FIXME: Should reduce count for a or b depending which was in use
     }
   Assert(pwm_clka_users < NUM_PWM);
-  return clock; // FIXME - what is it supposed to return?
+  return pwm_chan_clock[id];
+//  return clock; // FIXME - what is it supposed to return?
 }
+
+static pwm_channel_t pwm_inst;
+
+// TODO: Check how others work, should there be way to change duty cycle without having to restart?
 
 
 /*
@@ -1145,7 +1196,7 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
 u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 {
 // FIXME: Probably need to fill in default values for other fields in pwm_inst
-  pwm_channel_t pwm_inst;
+//  pwm_channel_t pwm_inst;
   u32 pwmclk;        // base clock frequency for PWM counter
   u32 period;        // number of base clocks per cycle
   u32 duty_clocks;    // number of base clocks to be high (low?) for
@@ -1172,14 +1223,32 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   if (period > PWM_MAX_PERIOD) period = PWM_MAX_PERIOD;
   duty_clocks = (period * duty + 50) / 100;
 
-  printf("PWM Setup: period = %u, duty clocks = %u\n", period, duty_clocks);
-  
+  // For debugging
+  //printf("PWM Setup: period = %u, duty clocks = %u\n", period, duty_clocks);
+
+  // Put known value in all the other fields that example did not cover.
+  // Or tell it to start whole structure as 0
+  // FIXME: Find out right values for all these
+  pwm_inst.b_deadtime_generator = 0;
+  pwm_inst.b_pwmh_output_inverted = 0;
+  pwm_inst.b_pwml_output_inverted = 0;
+  pwm_inst.us_deadtime_pwml = 0;
+  pwm_inst.us_deadtime_pwmh = 0;
+  pwm_inst.output_selection.b_override_pwmh = 0;
+  pwm_inst.output_selection.b_override_pwml = 0;
+  pwm_inst.output_selection.override_level_pwmh = 0;
+  pwm_inst.output_selection.override_level_pwml = 0;
+  pwm_inst.b_sync_ch  = 0;
+  pwm_inst.ul_fault_output_pwmh = 0;
+  pwm_inst.ul_fault_output_pwml = 0;
+  pwm_inst.fault_id = 0;
+
+  // Fields actually covered by examples
   pwm_channel_disable(PWM, pwm_chan[id]);  
   pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;    // FIXME: Should be whichever prescaler selected
   pwm_inst.channel = pwm_chan[id];
   pwm_inst.ul_period = period;
   pwm_inst.ul_duty = duty_clocks;
-//  pwm_inst.b_deadtime_generator = true;       // FIXME: Just fooling around - trying to get it to output to pins
   pwm_inst.alignment = PWM_ALIGN_LEFT;
   pwm_inst.polarity = PWM_LOW;                // Start low
   if(pwm_channel_init(PWM, &pwm_inst))
