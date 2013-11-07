@@ -99,7 +99,6 @@ static void i2cs_init( void );
 int platform_init()
 {
   // Set the clocking to run from PLL
-#warning FIXME - check clock setup
   sysclk_init();
 
   board_init();		// ASF
@@ -111,16 +110,19 @@ int platform_init()
 //  platform_pio_op( 1, pio_type pinmask, PLATFORM_IO_PIN_SET );
 
   // Setup SPIs
+#warning SPI not done
 //  spis_init();
 
   // Setup UARTs
   uarts_init();
 
   // Setup timers
+#warning TMR not written  
 //  timers_init();
 
 #ifdef BUILD_I2C
   // Setup I2Cs
+#warning I2C not written  
   i2cs_init();
 #endif // ifdef BUILD_I2C
 
@@ -131,16 +133,19 @@ int platform_init()
 
 #ifdef BUILD_ADC
   // Setup ADCs
+#warning ADC not written  
 //  adcs_init();
 #endif
 
 #ifdef BUILD_CAN
   // Setup CANs
+#warning CAN not done
 //  cans_init();
 #endif
 
 #ifdef BUILD_USB_CDC
   // Setup USB
+#warning USB_CDC not done 
 //  usb_init();
 #endif
 
@@ -263,7 +268,7 @@ Can * const can_base[] = { CAN0,    CAN1 };
 #define CAN_INIT_SPEED	500
 #endif
 
-#warning Check CAN controller frequency - just a guess that might be CPU_FREQ
+// FIXME: Check CAN controller frequency - just a guess that might be CPU_FREQ
 #define CANCLK CPU_FREQUENCY
 
 can_mb_conf_t can_rx_mailbox;
@@ -289,12 +294,12 @@ void cans_init( void )
 {
   pmc_enable_periph_clk(ID_CAN0);
   can_init(CAN0, CANCLK, CAN_BPS_1000K);
-#warning Need to check speed - use default from above
+// FIXME: Need to check speed - use default from above
   can_reset_all_mailbox(CAN0);
 //  can_enable_interrupt(CAN0, uint32_t dw_mask)
 // FIXME: What is dw_mask?
 
-  #warning Need to check mailbox particular
+// FIXME: Need to check mailbox particulars
   can_rx_mailbox.ul_mb_idx = 0;
   can_rx_mailbox.uc_obj_type = CAN_MB_RX_MODE;
   can_rx_mailbox.ul_id_msk = CAN_MAM_MIDvA_Msk | CAN_MAM_MIDvB_Msk;
@@ -319,7 +324,6 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
-#warning Not finished - return bogus result
   lua_assert(false);
   return PLATFORM_ERR;
 }
@@ -329,6 +333,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 // ****************************************************************************
 // SPI
+
 
 const u32 spi_id[]     = { ID_SPI0 };
 Spi * const spi_base[] = { SPI0 };
@@ -467,15 +472,18 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 	if (twi_master_write(BOARD_BASE_TWI_EEPROM, &packet_tx) != TWI_SUCCESS) 
   
   */
+  lua_assert(false);
+  return PLATFORM_ERR;  //? what is return
 }
 
 int platform_i2c_send_byte( unsigned id, u8 data )
 {
   twi_write_byte(i2c_base[id], data);
+  lua_assert(false);
+  return ; //? what is return
 }
 
 // FIXME: What are send_start and send_stop for?
-#warning: i2c_send_start and send_stop not implemented
 void platform_i2c_send_start( unsigned id )
 {
   lua_assert(false);
@@ -764,7 +772,7 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 //	tc_init(TC0, 0, ul_tcclks | TC_CMR_CPCTRG);
 //	tc_write_rc(TC0, 0, (ul_sysclk / ul_div) / TC_FREQ);
 
-#warning FIXME: Need to figure out what timer mode to use
+// FIXME: Need to figure out what timer mode to use
 #define TC_MODE_COUNTER 0
 
 /* Notes on Timers/timer drivers:
@@ -1080,20 +1088,20 @@ u32 platform_pwm_get_clock( unsigned id )
   u32 div;
   u32 res = 0;
   
-  printf("PWM get clock: chanel_pre = %lu", pre);
+//  printf("PWM get clock: chanel_pre = %lu", pre);
   
   switch (pre)
   {
     case PWM_CMR_CPRE_CLKA:
       div = PWM_CLK_DIVA_GET(PWM->PWM_CLK);
-      printf(" clocka div = %lu", div);
+//      printf(" clocka div = %lu", div);
       if (div)  // if div=0 then clock not set, so return 0
         {
         pre = PWM_CLK_PREA_GET(PWM->PWM_CLK);
-        printf(" clocka pre = %lu\n", pre);
+//        printf(" clocka pre = %lu\n", pre);
         if (pre < PWM_CLOCK_PRE_MAX)
           res = (((u32) PWM_MAX_CLOCK) >> pre)/ div;
-//      res = (PWM_MAX_CLOCK / pwm_prescalers( pre ))/ div; // FIXME: Instead of division should use a shift
+//      res = (PWM_MAX_CLOCK / pwm_prescalers( pre ))/ div;
         Assert((PWM_MAX_CLOCK >> pre) == (PWM_MAX_CLOCK / pwm_prescalers( pre )));
         // FIXME: Just for testing to check math
         }
@@ -1164,7 +1172,8 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
 
     if (pwm_chan_clock[id] == 0) pwm_clka_users++;        // Increment use count if wasn't already using
     
-    // FIXME: *** Problem is it doesn't assign a clock to channel until init channel, 
+    // FIXME: Returns wrong value 
+    // *** Problem is it doesn't assign a clock to channel until init channel, 
     // so although clocka is set, we are reading giberish.
     // (So why is it returning system clock value?)
     
@@ -1218,6 +1227,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   // Here, we use rounding to select the numerically closest available
   // frequency and return the closest integer in Hz to that.
 
+  // FIXME: from a different platform, check whether for center or left alligned
   period = (pwmclk + frequency/2) / frequency;
   if (period == 0) period = 1;  
   if (period > PWM_MAX_PERIOD) period = PWM_MAX_PERIOD;
@@ -1284,7 +1294,7 @@ void platform_pwm_stop( unsigned id )
 
 #ifdef BUILD_ADC
 
-#warning fix ADC_TIMER_IDs (they are arbitrarily set for now)
+// FIXME: fix ADC_TIMER_IDs (they are arbitrarily set for now)
 #define ADC_TIMER_FIRST_ID 8
 #define ADC_NUM_TIMERS 1
 
@@ -1335,6 +1345,9 @@ int platform_adc_start_sequence( void )
 // ****************************************************************************
 // Ethernet functions
 #ifdef BUILD_UIP
+
+#warning Ethernet platform driver not written.
+
 #endif // BUILD_UIP
 
 
@@ -1395,6 +1408,8 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, 
 // Flash access functions
 
 #ifdef BUILD_WOFS
+
+#warning WOFS not tested
 
 // INTERNAL_FLASH_START_ADDRESS, INTERNAL_FLASH_SIZE
 #ifdef IFLASH0_SIZE

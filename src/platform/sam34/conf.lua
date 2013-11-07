@@ -54,9 +54,11 @@ addi( sf( 'src/platform/%s/ASF/common/utils/stdio/stdio_usb' , platform ) )
 local cpu = comp.cpu:upper()
 local board = comp.board:upper()
 
+-- Working modules
+specific_files = "module_rand.c module_rtc.c platform_rtc.c platform.c platform_int.c"
+-- Under construction
+-- specific_files = "sam_pio.c module_dac.c" .. specific_files
 
-
-specific_files = "module_dac.c module_rand.c module_rtc.c platform_rtc.c platform.c platform_int.c"
 
 -- Dig through ASF to find source files
 
