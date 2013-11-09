@@ -750,7 +750,7 @@ static uint32_t tmr_div[NUM_TIMER] = {0};
 static u32 platform_timer_get_clock( unsigned id )
 {
   if (tmr_div[id])
-    return sysclk_get_cpu_hz()/tmr_div[id];
+    return CPU_FREQUENCY/tmr_div[id];
   else
     return 0;
 }
@@ -778,7 +778,7 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 //	static uint32_t ul_sysclk;
 
 	/* Get system clock. */
-//	ul_sysclk = sysclk_get_cpu_hz();
+//	ul_sysclk = CPU_FREQUENCY;
 
 	/* Configure TC for a 50Hz frequency and trigger on RC compare. */
 //	tc_find_mck_divisor(TC_FREQ, ul_sysclk, &ul_div, &ul_tcclks, ul_sysclk);
@@ -841,7 +841,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       res = PLATFORM_TIMER_COUNT_MAX;      // FIXME: this was from lm3s implementation
 
 	/* Get system clock. */
-      ul_sysclk = sysclk_get_cpu_hz();
+      ul_sysclk = CPU_FREQUENCY;
       
       if (tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
       {
@@ -927,7 +927,7 @@ const uint32_t pwm_chan[] = { PWM_CHANNEL_0, PWM_CHANNEL_1, PWM_CHANNEL_2, PWM_C
 // PWM clock - master, /1,2,4,8,16,32,64,128,256,512,1024
 // clocka, clockb - dividers, each can divide one of above by (1 to 255)
 
-#define PWM_MAX_CLOCK sysclk_get_cpu_hz()
+#define PWM_MAX_CLOCK CPU_FREQUENCY
 
 // TODO: Check PWM library see if it exports a constant to replace this
 #define PWM_MAX_PERIOD  ((1<<16) - 1)
@@ -1307,9 +1307,17 @@ void platform_pwm_stop( unsigned id )
 
 #ifdef BUILD_ADC
 
+// 16 ADC channels, plus Temperature
+
+// See what did with LM4F on temperature sensor
+
 // FIXME: fix ADC_TIMER_IDs (they are arbitrarily set for now)
 #define ADC_TIMER_FIRST_ID 8
 #define ADC_NUM_TIMERS 1
+
+// Temperature sensor - channel 15, 0 to 3.3 v, hence ADVREF must be set to 3300mv
+// TSON bit in ADC_ACR
+//		f_temp = (float)(l_vol - 800) * 0.37736 + 27.0;
 
 int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 {
@@ -1318,23 +1326,62 @@ int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 
 void platform_adc_stop( unsigned id )
 {
+//  adc_stop_sequencer(ADC);
+//	adc_disable_channel(ADC, adc_channel(id));
+//  adc_stop(ADC);
   lua_assert(false);
 }
 
 // Handle ADC interrupts
 void ADC_Handler( void )
 {
+//  if ((adc_get_status(ADC) & ) == ){
+//  }
 }
+//ADC_ISR_DRDY
+//ADC_ISR_RXBUFF
 
 static void adcs_init( void )
 {
+	pmc_enable_periph_clk(ID_ADC);
+
+//  adc_enable_channel( ADC, ulChannel );
+  
+#ifdef ADC_TEMP  
+  // TODO: constant for ADC channel #
+  
+	/* Enable channel for temperature sensor. */
+	adc_enable_channel(ADC, ADC_TEMPERATURE_SENSOR);
+
+	/* Enable the temperature sensor. */
+	adc_enable_ts(ADC);
+#endif //ADC_TEMP
+  
   lua_assert(false);
 }
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
+	/* Initialize ADC. */
+	/*  startup = 8:    512 periods of ADCClock
+	 * for prescale = 4
+	 *     prescale: ADCClock = MCK / ( (PRESCAL+1) * 2 ) => 64MHz / ((4+1)*2) = 6.4MHz
+	 *     ADC clock = 6.4 MHz
+	 */
+//  adc_init(ADC, CPU_FREQUENCY, 6400000, 8 );  
+//    adc_init(ADC, CPU_FREQUENCY, frequency, startup - some number of periods of ADC clock );
+
+//	adc_configure_timing(ADC, 0, ADC_SETTLING_TIME_3, 1);
+
+//	adc_configure_trigger(ADC, ADC_TRIG_SW, 0);  // ADC_TRIG_TIO_CH_0-2
+
+  // Checks ADC settings, prints error messages if problems
+  adc_check(ADC, CPU_FREQUENCY);
+
+  return adc_get_actual_adc_clock(ADC, CPU_FREQUENCY);
+
 //  return frequency;
-  return 0;   // FIXME: Signal an error - should return frequency set
+//  return 0;   // FIXME: Signal an error - should return frequency set
 }
 
 int platform_adc_update_sequence( void )
@@ -1343,8 +1390,18 @@ int platform_adc_update_sequence( void )
   return PLATFORM_ERR;
 }
 
+//			while ((adc_get_status(ADC) & ADC_ISR_DRDY) != ADC_ISR_DRDY);
+//			ulValue = adc_get_latest_value(ADC);
+ 
+ 
+// 		adc_read_buffer(ADC, gs_s_adc_values, BUFFER_SIZE)
+//  	adc_enable_interrupt(ADC, ADC_ISR_RXBUFF);
+
+  
 int platform_adc_start_sequence( void )
 {
+  adc_start_sequencer(ADC);
+//	adc_start(ADC); 	/* Start conversion. */
 //  return PLATFORM_OK;
   return PLATFORM_ERR;
 }
