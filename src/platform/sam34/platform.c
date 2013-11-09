@@ -101,13 +101,14 @@ int platform_init()
   // Set the clocking to run from PLL
   sysclk_init();
 
-  board_init();		// ASF
+  board_init();		// Atmel Software Framework
 
   // Setup PIO
   pios_init();
 
 //	LED_Off(LED0_GPIO);
-//  platform_pio_op( 1, pio_type pinmask, PLATFORM_IO_PIN_SET );
+  platform_pio_op( 1, PIN_LED_0_MASK, PLATFORM_IO_PIN_CLEAR );  
+  // Bootloader leaves LED on, so turn it off signal eLua running
 
   // Setup SPIs
 #warning SPI not done
@@ -187,11 +188,13 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
   pio_type retval = 1; 
   Pio * base = pio_base[ port ];
 
+    
   switch( op )
   {
     case PLATFORM_IO_PORT_SET_VALUE:
-      pio_set_output( base, PIO_MASK_ALL, pinmask, DISABLE, DISABLE );
-#warning Need to figure settings for default level, open drain, pull up      
+    // Is there way to write all pins (low and high) at same time?
+      pio_clear(base, ~(pinmask));
+      pio_set(base, pinmask);
       break;
 
     case PLATFORM_IO_PIN_SET:
@@ -221,7 +224,14 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 //                pmc_disable_periph_clk( pio_id[port] ) ;
 //            }
 //
+//      pio_set_output(Pio *p_pio, const uint32_t ul_mask, const uint32_t ul_default_level,
+//		const uint32_t ul_multidrive_enable,
+//		const uint32_t ul_pull_up_enable)
+
     case PLATFORM_IO_PIN_DIR_OUTPUT:
+      if ((2 == port) && (pinmask & 1))
+        pinmask &= (~ (u32) 1);       // PIN_C0 is erase button - do not reprogram it
+        
       pio_set_output( base, pinmask, LOW, DISABLE, DISABLE );
 #warning Need to figure settings for default level, open drain, pull up
       break;
@@ -249,6 +259,9 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
   }
   return retval;
 }
+
+//void pio_set_multi_driver(Pio *p_pio, const uint32_t ul_mask,
+//		const uint32_t ul_multi_driver_enable);
 
 
 // ****************************************************************************
@@ -864,7 +877,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 
 
 // *****************
-// Systic timer - interrupt SYSTICKHZ times/second
+// SysTick timer - interrupt SYSTICKHZ times/second
 
 //static volatile u64 g_ms_ticks = 0;   // Workaround in case system timer doesn't work
 
@@ -1045,9 +1058,9 @@ static const pin_inf pwm_pin[NUM_PWM] = {
 //  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
   { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED Tx (low = on?)
 // PIO_PA21B_PWML0, PIO_PB16B_PWML0
-  { PIOC, PIO_PC4B_PWML1, PIO_PERIPH_B}, // PWML1
-  { PIOC, PIO_PC6B_PWML2, PIO_PERIPH_B}, // PWML2
-  { PIOC, PIO_PC8B_PWML3, PIO_PERIPH_B}, // PWML3
+  { PIOC, PIO_PC4B_PWML1,  PIO_PERIPH_B}, // PWML1
+  { PIOC, PIO_PC6B_PWML2,  PIO_PERIPH_B}, // PWML2
+  { PIOC, PIO_PC8B_PWML3,  PIO_PERIPH_B}, // PWML3
   { PIOC, PIO_PC21B_PWML4, PIO_PERIPH_B}, // PWML4
   { PIOC, PIO_PC22B_PWML5, PIO_PERIPH_B}, // PWML5
   { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
@@ -1193,7 +1206,7 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
 
 static pwm_channel_t pwm_inst;
 
-// TODO: Check how others work, should there be way to change duty cycle without having to restart?
+// TODO: Check how other platforms work, should there be way to change duty cycle without having to restart?
 
 
 /*
