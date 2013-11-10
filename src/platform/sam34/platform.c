@@ -170,6 +170,28 @@ int platform_init()
 const u32 pio_id[] =     { ID_PIOA, ID_PIOB, ID_PIOC, ID_PIOD };
 Pio * const pio_base[] = { PIOA,    PIOB,    PIOC,    PIOD };
 
+#ifdef PROTECT_PINS
+// PIN_C0 - erase button
+
+// Don't absolutely have to protect these, since startup with special function
+// C0 = 1 on startup will erase, and JTAG active on startup
+// But for the novice/experimenter, might be well to protect from shooting in foot by reprogram console (e.g.)
+
+// UARTRX, TX - console (unless BUILD_USBCDC) FIXME: Find macro definition for pinmask
+// Could extend protection to other devices used (CAN// CANRX, TX
+// JTAG/SWD lines - PB28-31
+
+// Note: C29 connected to A28, C26 to A29
+
+#define PROTECT_BASE  ((u32) 0)
+#define PROTECT_A (PROTECT_BASE | PIN8 | PIN9 )
+#define PROTECT_B (PROTECT_BASE | PROTECT_JTAG )
+#define PROTECT_C (PROTECT_BASE | PROTECT_ERASE )
+#define PROTECT_D PROTECT_BASE
+
+u32 pio_protect[] = { PROTECT_A, PROTECT_B, PROTECT_C, PROTECT_D };
+#endif
+
 #define PIO_MASK_ALL  0xFFFFFFFFUL
 
 
@@ -180,6 +202,8 @@ static void pios_init(void)
   for( i = 0; i < NUM_PIO; i ++)
     pmc_enable_periph_clk(pio_id[i]);
 }
+
+
 
 // TODO: I think platform modules generally return 0 for error, though seems to vary some?
 
@@ -229,8 +253,10 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 //		const uint32_t ul_pull_up_enable)
 
     case PLATFORM_IO_PIN_DIR_OUTPUT:
+#ifdef PROTECT_PINS
       if ((2 == port) && (pinmask & 1))
         pinmask &= (~ (u32) 1);       // PIN_C0 is erase button - do not reprogram it
+#endif // PROTECT_PINS
         
       pio_set_output( base, pinmask, LOW, DISABLE, DISABLE );
 #warning Need to figure settings for default level, open drain, pull up
@@ -700,9 +726,17 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 const u32 timer_id[] = {ID_TC0, ID_TC1, ID_TC2};
 Tc * const timer_base[] = {TC0, TC1, TC2};
 
+u32 timer(unsigned id);
+Tc * tc(unsigned id);
+u32 tchanel(unsigned id);
+
 // FIXME: NUM_TC or num_tc - Pick one (if it will work the const might be more type safe)
 #define NUM_TC (sizeof(timer_id)/sizeof (u32))
 const unsigned num_tc = (sizeof(timer_id)/sizeof(u32));
+
+u8 platform_timer_int_periodic_flag[ NUM_TIMER ] = {0};
+
+static uint32_t tmr_div[NUM_TIMER] = {0};
 
 // FIXME: Something said there were 9 counter timers, but only TC0 through 2??
 //  Think may be counting 3 channels for each TC
@@ -714,22 +748,23 @@ const unsigned num_tc = (sizeof(timer_id)/sizeof(u32));
 // Helper functions
 
 // Each TC has 3 timer channels
-static unsigned const channels_per_tc = 3;
+unsigned const channels_per_tc = 3;
 
 // Return timer number for given eLua timer ID
-static u32 timer(unsigned id)
+u32 timer(unsigned id)
 {
   return id/channels_per_tc;
 }
 
 // Return pointer to Tc for given eLua timer ID
-static Tc * tc(unsigned id)
+Tc * tc(unsigned id)
 {
   return timer_base[timer(id)];
 }
 
+// FIXME: check spelling
 // channel number from timer id 
-static u32 tchanel(unsigned id) 
+u32 tchanel(unsigned id) 
 {
   return (u32) id - timer(id);
 }
@@ -744,9 +779,6 @@ static void timers_init()
 }
 
 
-static uint32_t tmr_div[NUM_TIMER] = {0};
-
-
 static u32 platform_timer_get_clock( unsigned id )
 {
   if (tmr_div[id])
@@ -758,18 +790,18 @@ static u32 platform_timer_get_clock( unsigned id )
 
 void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 {
-  u32 freq;
-  timer_data_type final;
+  timer_data_type final;  // u64?
 
-  freq = platform_timer_get_clock( id );
-  final = ( ( u64 )delay_us * freq ) / 1000000;
-  
+  final = ( ( u64 )delay_us * platform_timer_get_clock( id ) ) / 1000000;
+
+  if( final == 0) return;
   if( final > PLATFORM_TIMER_COUNT_MAX )
-    final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead
+    final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead (on the other hand, unless use u64 for final, this test makes no sense
 // TODO: stop timer, set count to 0, start timer
   tc_init(tc(id), tchanel(id), TC_CMR_WAVE);
   tc_start( tc(id), tchanel(id) );
   WAIT_WHILE( ( tc_read_cv(tc(id), tchanel(id)) < final ) );
+// TODO: should probably stop the timer (?)
 }
 
 // Example code using timer
@@ -801,6 +833,9 @@ Trigger - software,
 
 Counter value
 Registers A, B, C
+
+Counter runs from 0 up to register C
+
 Status
 Timer channel mode:
 TC_CMR_TCCLKS_TIMER_CLOCK1-5 (MCK/2, MCK/8, MCK/32, MCK/128, SLCK), TC_CMR_TCCLKS_XC0-2 
@@ -838,17 +873,14 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       break;
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
-      res = PLATFORM_TIMER_COUNT_MAX;      // FIXME: this was from lm3s implementation
-
-	/* Get system clock. */
-      ul_sysclk = CPU_FREQUENCY;
+      ul_sysclk = CPU_FREQUENCY;  /* Get system clock. */
       
-      if (tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
+      if ( tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
       {
-        tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_WAVE);   // FIXME - figure out mode
-/* example - Configure TC for a data Hz frequency and trigger on RC compare. */
-//    	tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_CPCTRG);
-//      tc_write_rc(tc(id), tchanel(id), (ul_sysclk / tmr_div[id]) / data);
+        tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_WAVE | TC_CMR_CPCTRG | TC_CMR_WAVSEL_UP_RC);
+          // Wave, Clear when count reaches register C, Count up to register C, then reset
+//          | TC_IER_CPCS // Interrupt when count reaches register C
+          // FIXME - figure out mode
         res = platform_timer_get_clock( id );
       }
       else  // Could not find suitable divisor
@@ -869,11 +901,46 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
   return res;
 }
 
+
 // FIXME: Write function
+// period_us - period in microseconds, if period = 0, then use maximum possible period (I think that what means)??
+// type - PLATFORM_TIMER_INT_CYCLIC or PLATFORM_TIMER_INT_ONESHOT
+
+// Possible returns: PLATFORM_TIMER_INT_INVALID_ID
+//PLATFORM_TIMER_INT_TOO_LONG
+//PLATFORM_TIMER_INT_TOO_SHORT
+//PLATFORM_TIMER_INT_OK
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
-  lua_assert(false);
+  u64 final;
+
+  if( period_us == 0 )  // Might be handled by setting period_us to largest possible period and continue
+  {
+    tc_stop(tc(id), tchanel(id));
+//    tc_disable_interrupt(tc(id), tchanel(id), TC_IDR_CPCS);   // Disable reg C interrupt (would only do if set an interrupt on counter overflow)
+    tc_get_status(tc(id), tchanel(id));
+    platform_timer_int_periodic_flag[ id ] = type;              // This was ignored in one example - ??
+    tc_write_rc(tc(id), tchanel(id), PLATFORM_TIMER_COUNT_MAX); // Or could just drop the register C mode and go to full wave (changing interrupt type).
+    // Should set CMR to CPCstop 
+    tc_start(tc(id), tchanel(id));
+    return PLATFORM_TIMER_INT_OK;
+  } 
+  
+  final = ( ( u64 )period_us * platform_timer_get_clock( id ) ) / 1000000;
+  if ( final == 0 )
+    return PLATFORM_TIMER_INT_TOO_SHORT;  
+  if ( final > PLATFORM_TIMER_COUNT_MAX )
+    return PLATFORM_TIMER_INT_TOO_LONG;
+  tc_stop(tc(id), tchanel(id));
+  tc_get_status(tc(id), tchanel(id));    // Guessing that this clears pending interrupt stats (?) - may not need
+  platform_timer_int_periodic_flag[ id ] = type;
+  // FIXME: Need to handle one-shot vs. continuous (stop when reaches register C, vs reset)
+  // FIXME: Should be more elegant way to handle oneshot - set CMR to reset and keep going when reach CPC
+  tc_write_rc(tc(id), tchanel(id), ( u32 )final );  // TODO: Check if that should be final or final - 1
+  tc_start(tc(id), tchanel(id));
+  return PLATFORM_TIMER_INT_OK;
 }
+
 
 
 // *****************

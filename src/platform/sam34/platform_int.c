@@ -134,57 +134,66 @@ void posedge_handler(uint32_t id, uint32_t mask)
 // ----------------------------------------------------------------------------
 // Timer interrupts
 
-static void tmr_common_handler( elua_int_resnum id )
+static void tmr_common_handler( elua_int_resnum id, u8 channel )
 {
+  u32 tc = timer_base[ id ];
+
+  if ((tc_get_status(tc, channel) & TC_SR_CPCS) == TC_SR_CPCS) {
+    if ( platform_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
+    {
+      tc_disable_interrupt(tc(id), tchanel(id), TC_IDR_CPCS);
+      tc_write_rc(tc(id), tchanel(id), PLATFORM_TIMER_COUNT_MAX);
+    }
 // FIXME: Need to find timer channel
-  cmn_int_handler( INT_TMR_MATCH, id );
+  cmn_int_handler( INT_TMR_MATCH, id ); // Need channel also
+  }
 }
 
 void TC0_Handler()
 {
-  tmr_common_handler( 0 );
+  tmr_common_handler( 0, 0 );
 }
 
 void TC1_Handler()
 {
-  tmr_common_handler( 1 );
+  tmr_common_handler( 0, 1 );
 }
 
 void TC2_Handler()
 {
-  tmr_common_handler( 2 );
+  tmr_common_handler( 0, 2 );
 }
 
 void TC3_Handler()
 {
-  tmr_common_handler( 3 );
+  tmr_common_handler( 1, 0 );
 }
 
 void TC4_Handler()
 {
-  tmr_common_handler( 4 );
+  tmr_common_handler( 1, 1 );
 }
 
 void TC5_Handler()
 {
-  tmr_common_handler( 5 );
+  tmr_common_handler( 1, 2 );
 }
 
 #if NUM_TIMERS > 6
 
 void TC6_Handler()
 {
-  tmr_common_handler( 6 );
+  tmr_common_handler( 2, 0 );
 }
 
 void TC7_Handler()
 {
-  tmr_common_handler( 7 );
+  tmr_common_handler( 2, 1 );
 }
 
 void TC8_Handler()
 {
-  tmr_common_handler( 8 );
+  tmr_common_handler( 2, 2 );
 }
 
 #endif
@@ -285,14 +294,41 @@ static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
 
 static int int_tmr_match_get_status( elua_int_resnum resnum )
 {
+  u32 tc = tc(resnum);
+  u32 channel = tchannel(resnum);
+//  return tc_get_interrupt_mask(tc, channel);
 }
 
 static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
 {
+  int prev = int_tmr_match_get_status( resnum );
+  u32 tc = tc(resnum);
+  u32 channel = tchannel(resnum);
+  
+  if( status == PLATFORM_CPU_ENABLE )
+  {
+    tc_start(tc, channel);
+    tc_enable_interrupt(tc, channel, TC_IER_CPCS);
+  }
+  else
+  {
+    tc_disable_interrupt(tc, tchannel, TC_IDR_CPCS);
+    tc_stop(tc, tchannel);    
+  }
+  return prev;
 }
 
 static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 {
+  u32 tc = tc(resnum);
+  u32 channel = tchannel(resnum);
+  
+  u32 status = (tc_get_status(tc, channel) & TC_SR_CPCS)
+
+// FIXME: handle clear (i.e. can I read status without clearing it)?
+//  if( clear )
+//    MAP_TimerIntClear( base, TIMER_TIMA_TIMEOUT );
+  return status && tmr_is_enabled( resnum ) ? 1 : 0;
 }
 
 // ****************************************************************************
