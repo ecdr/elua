@@ -6,10 +6,36 @@
 
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
+
 // Generic headers
 #include "platform.h"
 #include "elua_int.h"
 #include "common.h"
+
+#include "ASF.h"
+
+// header
+
+extern Tc * tc(unsigned id);
+extern u32 tchanel(unsigned id);
+extern u8 platform_timer_int_periodic_flag[ NUM_TIMER ];
+
+extern Pio * const pio_base[];
+extern const u32 pio_id[];
+
+void negedge_handler(uint32_t id, uint32_t mask);
+void posedge_handler(uint32_t id, uint32_t mask);
+
+// TODO: See if library files provide a name for this
+#define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
+
+// End of header
+
+const IRQn_Type pio_irq[] =   { PIOA_IRQn, PIOB_IRQn, PIOC_IRQn, PIOD_IRQn };
+const IRQn_Type uart_irq[] =  { UART_IRQn, USART0_IRQn, USART1_IRQn, USART2_IRQn, USART3_IRQn };
+const IRQn_Type timer_irq[] = { TC0_IRQn, TC1_IRQn, TC2_IRQn, TC3_IRQn, 
+  TC4_IRQn, TC5_IRQn, TC6_IRQn, TC7_IRQn, TC8_IRQn};
+  // Not sure why sam3x8e defines TC0 .. TC8 IRQ
 
 
 #define GPIO_INT_POSEDGE_ENABLED        1
@@ -59,23 +85,23 @@ void USART2_Handler(void)
 /*
 static void gpio_common_handler( u8 port )
 {
-/* example - from pio_handler.c
+// example - from pio_handler.c
 	uint32_t status;
 	uint32_t i;
 
-	/* Read PIO controller status */
-/*
+//	 Read PIO controller status 
+
 	status = pio_get_interrupt_status(p_pio[port]);
 	status &= pio_get_interrupt_mask(p_pio[port]);
 
-	/* Check pending events */
+//  Check pending events
 //	if (status != 0) {
-		/* Find triggering source */
+//		Find triggering source 
 //		i = 0;
 //		while (status != 0) {
-			/* Source is configured on the same controller */
+			// Source is configured on the same controller 
 //			if (gs_interrupt_sources[i].id == ul_id[port]) {
-				/* Source has PIOs whose statuses have changed */
+				// Source has PIOs whose statuses have changed 
 //				if ((status & gs_interrupt_sources[i].mask) != 0) {
 //					gs_interrupt_sources[i].handler(gs_interrupt_sources[i].id,
 //							gs_interrupt_sources[i].mask);
@@ -94,7 +120,6 @@ static void gpio_common_handler( u8 port )
 //  }
 //}
 
-/*
 void PIOA_Handler(void)
 {
   gpio_common_handler( 0 );
@@ -118,15 +143,18 @@ void PIOD_Handler(void)
 
 void negedge_handler(uint32_t id, uint32_t mask)
 {
-  u8 pin = MASK_TO_PIN(mask);
+  u8 port = getport(id);          // FIXME
+  u8 pin = MASK_TO_PIN(mask); // FIXME
+
 
   cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 }
   
 void posedge_handler(uint32_t id, uint32_t mask)
 {
-  u8 pin = MASK_TO_PIN(mask);
-
+  u8 port = getport(id);          // FIXME
+  u8 pin = MASK_TO_PIN(mask); // FIXME
+  
   cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 }
 
@@ -134,69 +162,65 @@ void posedge_handler(uint32_t id, uint32_t mask)
 // ----------------------------------------------------------------------------
 // Timer interrupts
 
-static void tmr_common_handler( elua_int_resnum id, u8 channel )
+static void tmr_common_handler( elua_int_resnum id)
 {
-  u32 tc = timer_base[ id ];
+  Tc * tmr = tc(id);
+  u32 channel = tchanel(id);
 
-  if ((tc_get_status(tc, channel) & TC_SR_CPCS) == TC_SR_CPCS) {
+  if ((tc_get_status(tmr, channel) & TC_SR_CPCS) == TC_SR_CPCS) {
     if ( platform_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
     {
-      tc_disable_interrupt(tc(id), tchanel(id), TC_IDR_CPCS);
-      tc_write_rc(tc(id), tchanel(id), PLATFORM_TIMER_COUNT_MAX);
+      tc_disable_interrupt(tmr, channel, TC_IDR_CPCS);
+      tc_write_rc(tmr, channel, PLATFORM_TIMER_COUNT_MAX);
     }
-// FIXME: Need to find timer channel
-  cmn_int_handler( INT_TMR_MATCH, id ); // Need channel also
+  cmn_int_handler( INT_TMR_MATCH, id );
   }
 }
 
 void TC0_Handler()
 {
-  tmr_common_handler( 0, 0 );
+  tmr_common_handler( 0);
 }
 
 void TC1_Handler()
 {
-  tmr_common_handler( 0, 1 );
+  tmr_common_handler( 1 );
 }
 
 void TC2_Handler()
 {
-  tmr_common_handler( 0, 2 );
+  tmr_common_handler( 2 );
 }
 
 void TC3_Handler()
 {
-  tmr_common_handler( 1, 0 );
+  tmr_common_handler( 3 );
 }
 
 void TC4_Handler()
 {
-  tmr_common_handler( 1, 1 );
+  tmr_common_handler( 4 );
 }
 
 void TC5_Handler()
 {
-  tmr_common_handler( 1, 2 );
+  tmr_common_handler( 5 );
 }
-
-#if NUM_TIMERS > 6
 
 void TC6_Handler()
 {
-  tmr_common_handler( 2, 0 );
+  tmr_common_handler( 6 );
 }
 
 void TC7_Handler()
 {
-  tmr_common_handler( 2, 1 );
+  tmr_common_handler( 7 );
 }
 
 void TC8_Handler()
 {
-  tmr_common_handler( 2, 2 );
+  tmr_common_handler( 8 );
 }
-
-#endif
 
 
 // ****************************************************************************
@@ -243,7 +267,7 @@ static int int_gpio_posedge_get_flag( elua_int_resnum resnum, int clear )
 // Is the interrupt configured for this port/pin?
 static int int_gpio_negedge_get_status( elua_int_resnum resnum )
 {
-  const Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
+  Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
   return (pio_get_interrupt_mask(port) & pinmask);  // Not right - have to find if NEGEDGE int set
@@ -252,9 +276,9 @@ static int int_gpio_negedge_get_status( elua_int_resnum resnum )
 // 
 static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
 {
-  const u8 port_num = PLATFORM_IO_GET_PORT( resnum );
-  const Pio * port = pio_base[ port_num ];
-  const port_id = pio_id[ port_num ];
+  u8 port_num = PLATFORM_IO_GET_PORT( resnum );
+  Pio * port = pio_base[ port_num ];
+  u32 port_id = pio_id[ port_num ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
   
   if (status)
@@ -274,7 +298,7 @@ static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
 // Is there an interrupt from this port/pin?
 static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
 {
-  const Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
+  Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
   if( pio_get(port, PIO_TYPE_PIO_INPUT, pinmask) != 0 )
@@ -294,36 +318,36 @@ static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
 
 static int int_tmr_match_get_status( elua_int_resnum resnum )
 {
-  u32 tc = tc(resnum);
-  u32 channel = tchannel(resnum);
-//  return tc_get_interrupt_mask(tc, channel);
+  Tc * tmr = tc(resnum);
+  u32 channel = tchanel(resnum);
+//  return tc_get_interrupt_mask(tmr, channel);
 }
 
 static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
 {
   int prev = int_tmr_match_get_status( resnum );
-  u32 tc = tc(resnum);
-  u32 channel = tchannel(resnum);
+  Tc * tmr = tc(resnum);
+  u32 channel = tchanel(resnum);
   
   if( status == PLATFORM_CPU_ENABLE )
   {
-    tc_start(tc, channel);
-    tc_enable_interrupt(tc, channel, TC_IER_CPCS);
+    tc_start(tmr, channel);
+    tc_enable_interrupt(tmr, channel, TC_IER_CPCS);
   }
   else
   {
-    tc_disable_interrupt(tc, tchannel, TC_IDR_CPCS);
-    tc_stop(tc, tchannel);    
+    tc_disable_interrupt(tmr, channel, TC_IDR_CPCS);
+    tc_stop(tmr, channel);    
   }
   return prev;
 }
 
 static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 {
-  u32 tc = tc(resnum);
-  u32 channel = tchannel(resnum);
+  Tc * tmr = tc(resnum);
+  u32 channel = tchanel(resnum);
   
-  u32 status = (tc_get_status(tc, channel) & TC_SR_CPCS)
+  u32 status = (tc_get_status(tmr, channel) & TC_SR_CPCS);
 
 // FIXME: handle clear (i.e. can I read status without clearing it)?
 //  if( clear )
@@ -334,11 +358,6 @@ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Interrupt initialization
 
-const IRQn_Type pio_irq[] =   { PIOA_IRQn, PIOB_IRQn, PIOC_IRQn, PIOD_IRQn };
-const IRQn_Type uart_irq[] =  { UART_IRQn, USART0_IRQn, USART1_IRQn, USART2_IRQn, USART3_IRQn };
-const IRQn_Type timer_irq[] = { TC0_IRQn, TC1_IRQn, TC2_IRQn, TC3_IRQn, 
-  TC4_IRQn, TC5_IRQn, TC6_IRQn, TC7_IRQn, TC8_IRQn};
-  // Not sure why sam3x8e defines TC0 .. TC8 IRQ
 
 void platform_int_init(void)
 {
