@@ -1494,6 +1494,7 @@ int platform_adc_start_sequence( void )
 // ****************************************************************************
 // USB functions
 
+// TODO: Clean up, see if can get CDC_STDIO working (now that have something working)
 
 #if defined( BUILD_USB_CDC )
 
@@ -1508,13 +1509,22 @@ static void usb_init( void )
 	// Enable interrupts
 	cpu_irq_enable();
 
+#ifdef USB_CDC_STDIO  
   stdio_usb_init();
+#else  
+	// Initialize the sleep manager
+//	sleepmgr_init();
   
-// sleepmgr_init(); // Optional
+  udc_start();
 // * Add to the main IDLE loop:
-// * \code
 // *     sleepmgr_enter_sleep(); // Optional
+
+#endif  
 }
+
+#ifdef USB_CDC_STDIO
+
+#warning building USB_CDC_STDIO
 
 void platform_usb_cdc_send( u8 data )
 {
@@ -1530,6 +1540,100 @@ int platform_usb_cdc_recv( timer_data_type timeout )
   scanf("%c",&ch);    // FIXME: Probably simpler function to use - copied this from example
   return ch;
 }
+
+#else
+
+#warning building USB_CDC not STDIO
+
+static volatile bool main_b_cdc_enable = false;
+static volatile uint8_t main_port_open;
+
+  
+void platform_usb_cdc_send( u8 data )
+{
+  if (main_b_cdc_enable)
+  {
+    if (!udi_cdc_is_tx_ready()) {
+			// Fifo full
+			udi_cdc_signal_overrun();
+		} else {
+      udi_cdc_putc(data);
+    };
+  };
+    
+//  putchar(data);
+//  printf("%c", data);   // FIXME: Probably simpler function to use - copied this from example
+}
+
+int platform_usb_cdc_recv( timer_data_type timeout )
+{
+  if (main_b_cdc_enable){
+    if (0 == timeout)
+      if (udi_cdc_is_rx_ready())  // No waiting - so get character if available
+        return udi_cdc_getc();   
+      else
+        return -1;      // No character available, so return immediately (FIXME: Check return value)
+    else
+      return udi_cdc_getc();    // FIXME: Need to implement a timeout on this wait
+  } else 
+    return -1;
+    
+//    udi_cdc_is_rx_ready(); // tell if ready
+}
+
+
+
+void main_suspend_action(void)
+{
+//	ui_powerdown();
+}
+
+void main_resume_action(void)
+{
+//	ui_wakeup();
+}
+
+void main_sof_action(void)
+{
+	if (!main_b_cdc_enable)
+		return;
+//	ui_process(udd_get_frame_number());
+}
+
+bool main_cdc_enable(void)
+{
+	main_b_cdc_enable = true;
+	main_port_open = 0;
+	return true;
+}
+
+void main_cdc_disable(void)
+{
+	main_b_cdc_enable = false;
+}
+
+void main_cdc_set_dtr(bool b_enable)
+{
+	if (b_enable) {
+		// Host terminal has open COM
+//		main_port_open |= 1 << port;
+//		ui_com_open(port);
+	}else{
+		// Host terminal has close COM
+//		main_port_open &= ~(1 << port);
+//		ui_com_close(port);
+	}
+}
+
+
+void uart_rx_notify(void)
+{
+// Could do some buffering, or something
+}
+
+
+
+#endif // USB_CDC_STDIO
 
 /*
 unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)

@@ -54,6 +54,10 @@
  * @{
  */
 
+// For windows - Need to use driver from ASF example 
+//  \common\services\usb\class\cdc\device\atmel_devices_cdc.inf
+// TODO: Find a more generic CDC product code, or add option to board file to set vendor ID/product ID
+ 
 //! Device definition (mandatory)
 #define  USB_DEVICE_VENDOR_ID             USB_VID_ATMEL
 #define  USB_DEVICE_PRODUCT_ID            USB_PID_ATMEL_ASF_CDC
@@ -88,6 +92,13 @@
  * USB Device Callbacks definitions (Optional)
  * @{
  */
+
+// From USB CDC Example  
+#define  UDC_VBUS_EVENT(b_vbus_high)
+//#define  UDC_SOF_EVENT()                  main_sof_action()
+//#define  UDC_SUSPEND_EVENT()              main_suspend_action()
+//#define  UDC_RESUME_EVENT()               main_resume_action()
+
 // #define  UDC_VBUS_EVENT(b_vbus_high)      user_callback_vbus_action(b_vbus_high)
 // extern void user_callback_vbus_action(bool b_vbus_high);
 // #define  UDC_SOF_EVENT()                  user_callback_sof_action()
@@ -122,6 +133,8 @@
 #define  UDI_CDC_PORT_NB 1
 
 //! Interface callback definition
+
+#ifdef USB_CDC_STDIO
 #define  UDI_CDC_ENABLE_EXT(port)          stdio_usb_enable()
 //          true
 #define  UDI_CDC_DISABLE_EXT(port)         stdio_usb_disable()
@@ -130,6 +143,21 @@
 #define  UDI_CDC_SET_CODING_EXT(port,cfg)
 #define  UDI_CDC_SET_DTR_EXT(port,set)
 #define  UDI_CDC_SET_RTS_EXT(port,set)
+
+#else
+
+#define  UDI_CDC_ENABLE_EXT(port)         main_cdc_enable()
+#define  UDI_CDC_DISABLE_EXT(port)        main_cdc_disable()
+#define  UDI_CDC_RX_NOTIFY(port)          uart_rx_notify()
+#define  UDI_CDC_TX_EMPTY_NOTIFY(port)
+//#define  UDI_CDC_SET_CODING_EXT(port,cfg) uart_config(cfg)
+#define  UDI_CDC_SET_CODING_EXT(port,cfg) 
+//#define  UDI_CDC_SET_DTR_EXT(port,set)    main_cdc_set_dtr(set)
+#define  UDI_CDC_SET_DTR_EXT(port,set)    
+#define  UDI_CDC_SET_RTS_EXT(port,set)
+
+#endif //USB_CDC_STDIO
+
 /*
  * #define UDI_CDC_ENABLE_EXT(port) my_callback_cdc_enable()
  * extern bool my_callback_cdc_enable(void);
@@ -168,6 +196,51 @@
 
 //! The includes of classes and other headers must be done at the end of this file to avoid compile error
 #include "udi_cdc_conf.h"
-#include <stdio_usb.h>
+
+#ifdef USB_CDC_STDIO
+
+//#include <stdio_usb.h>    // From STDIO_USB
+
+#else
+//#include "main.h"     // Device USB CDC example
+
+// below is what was in main.h
+#include "usb_protocol_cdc.h"
+
+/*! \brief Opens the communication port
+ * This is called by CDC interface when USB Host enable it.
+ *
+ * \retval true if cdc startup is successfully done
+ */
+bool main_cdc_enable(void);
+
+/*! \brief Closes the communication port
+ * This is called by CDC interface when USB Host disable it.
+ */
+void main_cdc_disable(void);
+
+/*! \brief Manages the leds behaviors
+ * Called when a start of frame is received on USB line each 1ms.
+ */
+void main_sof_action(void);
+
+/*! \brief Enters the application in low power mode
+ * Callback called when USB host sets USB line in suspend state
+ */
+void main_suspend_action(void);
+
+/*! \brief Turn on a led to notify active mode
+ * Called when the USB line is resumed from the suspend state
+ */
+void main_resume_action(void);
+
+/*! \brief Save new DTR state to change led behavior.
+ * The DTR notify that the terminal have open or close the communication port.
+ */
+void main_cdc_set_dtr(bool b_enable);
+
+void uart_rx_notify(void);
+#endif // USB_CDC_STDIO
+
 
 #endif // _CONF_USB_H_

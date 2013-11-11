@@ -3,7 +3,8 @@
 return {
   cpu = 'sam3x8e',
   components = {
---    sercon = { uart = "cdc", speed = 115200 },
+--    cdc = true,     --    cdc = { buf_size = 128 }, -- buf doesn't work yet
+--    sercon = { uart = "cdc", speed = 115200 },  -- enable cdc and set sercon uart to "cdc" to use native USB port
     sercon = { uart = 0, speed = 115200 },
     wofs = false,		-- See cpu file
     romfs = true,
@@ -18,6 +19,7 @@ return {
     xmodem = true,
     sam34_rand = true,
     sam34_rtc = true,
+--    sam34_rtc = {crystal = yes, hour_mode = PLATFORM_CLOCK_24HR } -- attributes don't seem to work yet
   },
   config = {
       vtmr = { num = 4, freq = 10 },   -- Frequency should be same as systickhz
