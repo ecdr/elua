@@ -33,7 +33,9 @@ static u8 rtc_initialized = 0;	// Have we set up RTC?
  */
 int platform_rtc_init( void )
 {
-  u32 waitlimit;
+#if PLATFORM_RTC_EXTERNAL_CRYSTAL
+  u32 waitcount;
+#endif //  PLATFORM_RTC_EXTERNAL_CRYSTAL
 
   if (rtc_initialized) return 0;
 
@@ -43,7 +45,7 @@ int platform_rtc_init( void )
 
   pmc_switch_sclk_to_32kxtal(PMC_OSC_XTAL);
 
-  for (waitlimit = 0; RTC_TIMEOUT_COUNT; waitlimit++)
+  for (waitcount = 0; waitcount < RTC_TIMEOUT_COUNT; waitcount++)
     if (pmc_osc_is_ready_32kxtal())
       {
       rtc_set_hour_mode(RTC, PLATFORM_CLOCK_HR_MODE);    // 24 hour mode
