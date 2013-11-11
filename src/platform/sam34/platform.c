@@ -119,7 +119,7 @@ int platform_init()
 
   // Setup timers
 #warning TMR not written  
-//  timers_init();
+  timers_init();
 
 #ifdef BUILD_I2C
   // Setup I2Cs
@@ -147,7 +147,7 @@ int platform_init()
 #ifdef BUILD_USB_CDC
   // Setup USB
 #warning USB_CDC not done 
-//  usb_init();
+  usb_init();
 #endif
 
 
@@ -730,25 +730,26 @@ u32 timer(unsigned id);
 Tc * tc(unsigned id);
 u32 tchanel(unsigned id);
 
-// FIXME: NUM_TC or num_tc - Pick one (if it will work the const might be more type safe)
+// TODO: See if library files provide a name for this
+#define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
+
+
+// 3 timer devices, each with 3 channels
+
+// FIXME: NUM_TC or num_tc - Pick one (if it will work, the const might be more type safe)
 #define NUM_TC (sizeof(timer_id)/sizeof (u32))
 const unsigned num_tc = (sizeof(timer_id)/sizeof(u32));
+
+// Each TC has 3 timer channels
+unsigned const channels_per_tc = 3;
+
 
 u8 platform_timer_int_periodic_flag[ NUM_TIMER ] = {0};
 
 static uint32_t tmr_div[NUM_TIMER] = {0};
 
-// FIXME: Something said there were 9 counter timers, but only TC0 through 2??
-//  Think may be counting 3 channels for each TC
-
-// TODO: See if library files provide a name for this
-#define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
-
 
 // Helper functions
-
-// Each TC has 3 timer channels
-unsigned const channels_per_tc = 3;
 
 // Return timer number for given eLua timer ID
 u32 timer(unsigned id)
@@ -778,6 +779,8 @@ static void timers_init()
     pmc_enable_periph_clk(timer_id[i]);
 }
 
+
+// Platform functions
 
 static u32 platform_timer_get_clock( unsigned id )
 {
@@ -1506,21 +1509,26 @@ static void usb_init( void )
 	cpu_irq_enable();
 
   stdio_usb_init();
+  
+// sleepmgr_init(); // Optional
+// * Add to the main IDLE loop:
+// * \code
+// *     sleepmgr_enter_sleep(); // Optional
 }
 
 void platform_usb_cdc_send( u8 data )
 {
-  putchar(data);
-//  printf("%c", data);   // FIXME: Probably simpler function to use - copied this from example
+//  putchar(data);
+  printf("%c", data);   // FIXME: Probably simpler function to use - copied this from example
 }
 
 int platform_usb_cdc_recv( timer_data_type timeout )
 {
-//  char ch;
+  char ch;
   
-  return getchar();
-//  scanf("%c",&ch);    // FIXME: Probably simpler function to use - copied this from example
-//  return ch;
+//  return getchar();
+  scanf("%c",&ch);    // FIXME: Probably simpler function to use - copied this from example
+  return ch;
 }
 
 /*

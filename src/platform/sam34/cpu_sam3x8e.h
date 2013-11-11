@@ -19,6 +19,7 @@
 #define NUM_I2C               2
 #define NUM_ADC               16
 #define NUM_CAN               2
+// TODO: Add support for temperature from ADC
 
 #define NUM_DAC			          2
 #define NUM_I2S               1
@@ -72,6 +73,34 @@ extern char end[];
   _C( INT_GPIO_POSEDGE ),\
   _C( INT_GPIO_NEGEDGE ),\
   _C( INT_TMR_MATCH ),
+
+// Standard pin names - seem more logical in either PIO or BD rather than CPU
+// PLATFORM_BOARD_CONST_PINS
+
+/*
+#define PLATFORM_BOARD_CONST_PINS \
+  LUA_CONST( "LED1", PLATFORM_IO_ENCODE( 1, 27, 0 ) ) \
+  LUA_CONST( "LED1ON", 1) \
+  LUA_CONST( "LED2", PLATFORM_IO_ENCODE( 0, 21, 0 ) ) \
+  LUA_CONST( "LED2ON", 0) \
+  LUA_CONST( "LED3", PLATFORM_IO_ENCODE( 2, 30, 0 ) ) \
+  LUA_CONST( "LED3ON", 0)
+  */
+
+#define LED1 PLATFORM_IO_ENCODE( 1, 27, 0 )
+#define LED2 PLATFORM_IO_ENCODE( 0, 21, 0 )
+#define LED3 PLATFORM_IO_ENCODE( 2, 30, 0 )
+#define LED1ON 1
+#define LED2ON  0
+#define LED3ON  0
+
+#define PLATFORM_CPU_CONSTANTS_PLATFORM \
+  _C(LED1),\
+  _C(LED2),\
+  _C(LED3),\
+  _C(LED1ON),\
+  _C(LED2ON),\
+  _C(LED3ON),
 
 #endif // #ifndef __CPU_AT91SAM3X8E__
 

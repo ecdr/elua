@@ -1,5 +1,5 @@
-// sam interrupt support
-
+// eLua interrupt support
+// AT91SAM3/4
 
 #include "platform_conf.h"
 // #include "platform_int.h"
@@ -12,10 +12,11 @@
 #include "elua_int.h"
 #include "common.h"
 
-#include "ASF.h"
+#include <asf.h>
 
 // header
 
+// From platform.c
 extern Tc * tc(unsigned id);
 extern u32 tchanel(unsigned id);
 extern u8 platform_timer_int_periodic_flag[ NUM_TIMER ];
@@ -23,11 +24,16 @@ extern u8 platform_timer_int_periodic_flag[ NUM_TIMER ];
 extern Pio * const pio_base[];
 extern const u32 pio_id[];
 
+// TODO: See if library files provide a name for this
+#define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
+
+
+// Function prototypes for platform_int.c
+
 void negedge_handler(uint32_t id, uint32_t mask);
 void posedge_handler(uint32_t id, uint32_t mask);
 
-// TODO: See if library files provide a name for this
-#define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
+
 
 // End of header
 
@@ -80,7 +86,7 @@ void USART2_Handler(void)
 // ----------------------------------------------------------------------------
 // GPIO interrupts (POSEDGE/NEGEDGE)
 
-// TODO: Instead should consider just using ASF pio int handlers (and access functions)
+// TODO: Instead consider just using ASF pio int handlers (and access functions)
 
 /*
 static void gpio_common_handler( u8 port )
@@ -144,7 +150,7 @@ void PIOD_Handler(void)
 void negedge_handler(uint32_t id, uint32_t mask)
 {
   u8 port = getport(id);          // FIXME
-  u8 pin = MASK_TO_PIN(mask); // FIXME
+  u8 pin = MASK_TO_PIN(mask);     // FIXME
 
 
   cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
@@ -153,7 +159,7 @@ void negedge_handler(uint32_t id, uint32_t mask)
 void posedge_handler(uint32_t id, uint32_t mask)
 {
   u8 port = getport(id);          // FIXME
-  u8 pin = MASK_TO_PIN(mask); // FIXME
+  u8 pin = MASK_TO_PIN(mask);     // FIXME
   
   cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 }
@@ -179,7 +185,7 @@ static void tmr_common_handler( elua_int_resnum id)
 
 void TC0_Handler()
 {
-  tmr_common_handler( 0);
+  tmr_common_handler( 0 );
 }
 
 void TC1_Handler()
@@ -249,6 +255,7 @@ static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Interrupt: INT_GPIO_POSEDGE
 
+#warning GPIO Posedge not written
 static int int_gpio_posedge_get_status( elua_int_resnum resnum )
 {
 }
@@ -359,6 +366,8 @@ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 // Interrupt initialization
 
 
+#warning Interrupt init not written
+
 void platform_int_init(void)
 {
 // PIO
@@ -369,7 +378,11 @@ void platform_int_init(void)
 //  NVIC_EnableIRQ(PIOA_IRQn);
     
 // USART
-//  usart_enable_interrupt(uart_base[uartid], US_IER_RXRDY);  // Int when receive character
+//	NVIC_SetPriority(USART_INT_IRQn, USART_INT_LEVEL);
+//	NVIC_EnableIRQ(USART_INT_IRQn);
+//	usart_enable_rx(USART_BASE);
+	// Enable interrupts
+  //  usart_enable_interrupt(uart_base[uartid], US_IER_RXRDY);  // Int when receive character
 //  NVIC_EnableIRQ(USART_SERIAL_IRQ); // Need to figure out IRQ from uartid
 }
 
