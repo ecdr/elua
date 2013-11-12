@@ -152,7 +152,10 @@
 // From module: USART - Univ. Syn Async Rec/Trans
 #include <usart.h>
 
-#ifdef BUILD_USB_CDC
+// #ifdef BUILD_USB_CDC
+// Should make it not try to build the USB_CDC material if not defined
+//  Currently it will build the USB files, just presumably doesn't use them (?)
+
 // From module: USB CDC Protocol
 #include <usb_protocol_cdc.h>
 
@@ -165,7 +168,8 @@
 // From module: USB Device Stack Core (Common API)
 #include <udc.h>
 #include <udd.h>
-#endif // BUILD_USB_CDC
+
+// #endif // BUILD_USB_CDC
 
 // From module: pio_handler support enabled
 #include <pio_handler.h>

@@ -46,7 +46,8 @@
 
 #include "compiler.h"
 
-#warning You must refill the following definitions with a correct values
+#include "platform_conf.h"    // included so can do condition on which version of USB to build
+
 // FIXME: What is power consumption on Due?
 
 /**
@@ -95,9 +96,9 @@
 
 // From USB CDC Example  
 #define  UDC_VBUS_EVENT(b_vbus_high)
-//#define  UDC_SOF_EVENT()                  main_sof_action()
-//#define  UDC_SUSPEND_EVENT()              main_suspend_action()
-//#define  UDC_RESUME_EVENT()               main_resume_action()
+//#define  UDC_SOF_EVENT()                  platform_sof_action()
+//#define  UDC_SUSPEND_EVENT()              platform_suspend_action()
+//#define  UDC_RESUME_EVENT()               platform_resume_action()
 
 // #define  UDC_VBUS_EVENT(b_vbus_high)      user_callback_vbus_action(b_vbus_high)
 // extern void user_callback_vbus_action(bool b_vbus_high);
@@ -135,6 +136,7 @@
 //! Interface callback definition
 
 #ifdef USB_CDC_STDIO
+
 #define  UDI_CDC_ENABLE_EXT(port)          stdio_usb_enable()
 //          true
 #define  UDI_CDC_DISABLE_EXT(port)         stdio_usb_disable()
@@ -144,11 +146,15 @@
 #define  UDI_CDC_SET_DTR_EXT(port,set)
 #define  UDI_CDC_SET_RTS_EXT(port,set)
 
+//#elif defined( BUILD_USB_CDC )            // USB CDC not STDIO
 #else
 
-#define  UDI_CDC_ENABLE_EXT(port)         main_cdc_enable()
-#define  UDI_CDC_DISABLE_EXT(port)        main_cdc_disable()
-#define  UDI_CDC_RX_NOTIFY(port)          uart_rx_notify()
+// If not using USB, enable, disable still need to be define (unless find switch to turn whole thing off)
+// Could define RX notify to nothing and would still compile okay
+
+#define  UDI_CDC_ENABLE_EXT(port)         platform_cdc_enable()
+#define  UDI_CDC_DISABLE_EXT(port)        platform_cdc_disable()
+#define  UDI_CDC_RX_NOTIFY(port)          platform_cdc_rx_notify()
 #define  UDI_CDC_TX_EMPTY_NOTIFY(port)
 //#define  UDI_CDC_SET_CODING_EXT(port,cfg) uart_config(cfg)
 #define  UDI_CDC_SET_CODING_EXT(port,cfg) 
@@ -199,7 +205,7 @@
 
 #ifdef USB_CDC_STDIO
 
-//#include <stdio_usb.h>    // From STDIO_USB
+#include <stdio_usb.h>    // From STDIO_USB
 
 #else
 //#include "main.h"     // Device USB CDC example
@@ -212,34 +218,36 @@
  *
  * \retval true if cdc startup is successfully done
  */
-bool main_cdc_enable(void);
+bool platform_cdc_enable(void);
 
 /*! \brief Closes the communication port
  * This is called by CDC interface when USB Host disable it.
  */
-void main_cdc_disable(void);
+void platform_cdc_disable(void);
 
 /*! \brief Manages the leds behaviors
  * Called when a start of frame is received on USB line each 1ms.
  */
-void main_sof_action(void);
+void platform_sof_action(void);
 
 /*! \brief Enters the application in low power mode
  * Callback called when USB host sets USB line in suspend state
  */
-void main_suspend_action(void);
+void platform_suspend_action(void);
 
-/*! \brief Turn on a led to notify active mode
+/*! \brief Resume the application from low power mode
  * Called when the USB line is resumed from the suspend state
  */
-void main_resume_action(void);
+void platform_resume_action(void);
 
-/*! \brief Save new DTR state to change led behavior.
+/*! \brief Adjust to new DTR state.
  * The DTR notify that the terminal have open or close the communication port.
  */
-void main_cdc_set_dtr(bool b_enable);
+void platform_cdc_set_dtr(bool enable);
 
-void uart_rx_notify(void);
+// Data received from host
+void platform_cdc_rx_notify(void);
+
 #endif // USB_CDC_STDIO
 
 

@@ -1494,11 +1494,12 @@ int platform_adc_start_sequence( void )
 // ****************************************************************************
 // USB functions
 
-// TODO: Clean up, see if can get CDC_STDIO working (now that have something working)
+// TODO: Clean up, 
+
+// TODO: see if can get CDC_STDIO working (works with USB CDC)
+//   CDC_STDIO - get unrecognized device, with VID and PID 0
 
 #if defined( BUILD_USB_CDC )
-
-// void UOTGHS_Handler( void )
 
 static void usb_init( void )
 {
@@ -1524,7 +1525,7 @@ static void usb_init( void )
 
 #ifdef USB_CDC_STDIO
 
-#warning building USB_CDC_STDIO
+#warning building USB_CDC_STDIO - this does not work yet
 
 void platform_usb_cdc_send( u8 data )
 {
@@ -1543,15 +1544,13 @@ int platform_usb_cdc_recv( timer_data_type timeout )
 
 #else
 
-#warning building USB_CDC not STDIO
 
-static volatile bool main_b_cdc_enable = false;
-static volatile uint8_t main_port_open;
+static volatile bool platform_cdc_enable_flag = false;
 
   
 void platform_usb_cdc_send( u8 data )
 {
-  if (main_b_cdc_enable)
+  if (platform_cdc_enable_flag)
   {
     if (!udi_cdc_is_tx_ready()) {
 			// Fifo full
@@ -1560,14 +1559,12 @@ void platform_usb_cdc_send( u8 data )
       udi_cdc_putc(data);
     };
   };
-    
-//  putchar(data);
-//  printf("%c", data);   // FIXME: Probably simpler function to use - copied this from example
 }
+
 
 int platform_usb_cdc_recv( timer_data_type timeout )
 {
-  if (main_b_cdc_enable){
+  if (platform_cdc_enable_flag){
     if (0 == timeout)
       if (udi_cdc_is_rx_ready())  // No waiting - so get character if available
         return udi_cdc_getc();   
@@ -1577,78 +1574,78 @@ int platform_usb_cdc_recv( timer_data_type timeout )
       return udi_cdc_getc();    // FIXME: Need to implement a timeout on this wait
   } else 
     return -1;
-    
-//    udi_cdc_is_rx_ready(); // tell if ready
 }
 
 
-
-void main_suspend_action(void)
+// TODO: Most of these callbacks are not needed - copied from example, but do nothing, could get rid of
+void platform_suspend_action(void)
 {
 //	ui_powerdown();
 }
 
-void main_resume_action(void)
+void platform_resume_action(void)
 {
 //	ui_wakeup();
 }
 
-void main_sof_action(void)
+void platform_sof_action(void)
 {
-	if (!main_b_cdc_enable)
+	if (!platform_cdc_enable_flag)
 		return;
 //	ui_process(udd_get_frame_number());
 }
 
-bool main_cdc_enable(void)
+bool platform_cdc_enable(void)
 {
-	main_b_cdc_enable = true;
-	main_port_open = 0;
+	platform_cdc_enable_flag = true;
+//	platform_port_open = 0;
 	return true;
 }
 
-void main_cdc_disable(void)
+void platform_cdc_disable(void)
 {
-	main_b_cdc_enable = false;
+	platform_cdc_enable_flag = false;
 }
 
-void main_cdc_set_dtr(bool b_enable)
+void platform_cdc_set_dtr(bool enable)
 {
-	if (b_enable) {
+	if ( enable ) {
 		// Host terminal has open COM
-//		main_port_open |= 1 << port;
+//		platform_port_open |= 1 << port;
 //		ui_com_open(port);
 	}else{
 		// Host terminal has close COM
-//		main_port_open &= ~(1 << port);
+//		platform_port_open &= ~(1 << port);
 //		ui_com_close(port);
 	}
 }
 
 
-void uart_rx_notify(void)
+void platform_cdc_rx_notify(void)
 {
-// Could do some buffering, or something
+// TODO: Could do some buffering, or something
 }
-
 
 
 #endif // USB_CDC_STDIO
 
-/*
-unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
+#else
+
+// Callbacks needed even when don't use USB - just to make the library happy
+// TODO: Could remove if build system would not build the USB library when not asked for
+
+bool platform_cdc_enable(void)
+{
+  return true;
+}
+
+void platform_cdc_disable(void)
 {
 }
 
-unsigned long RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
+void platform_cdc_rx_notify(void)
 {
 }
-
-unsigned long
-ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue, void *pvMsgData)
-{
-}
-*/
 
 #endif // BUILD_USB_CDC
 

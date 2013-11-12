@@ -3,14 +3,18 @@
 return {
   cpu = 'sam3x8e',
   components = {
---    cdc = true,     --    cdc = { buf_size = 128 }, -- buf doesn't work yet
---    sercon = { uart = "cdc", speed = 115200 },  -- enable cdc and set sercon uart to "cdc" to use native USB port
+--    cdc = true,     -- enable USB CDC    
+--      cdc = { buf_size = 128 }, -- buf doesn't work yet
+--      cdc = { vid = 0x03EB, pid = 0x2404 }          -- Idea, not implemented
+--    sercon = { uart = "cdc", speed = 115200 },  -- set serial console uart to "cdc" (use native USB port for console)
     sercon = { uart = 0, speed = 115200 },
     wofs = false,		-- See cpu file
     romfs = true,
     shell = true,
     term = { lines = 25, cols = 80 },
     linenoise = { shell_lines = 10, lua_lines = 50 },
+--    cints = true,
+--    luaints = true,
     cints = false,
     luaints = false,
     can = true,
@@ -29,7 +33,8 @@ return {
     platform = {'all', '-mmc'},
   },
   macros = { -- { "SPI0_NPCS_PIN1", "" }, -- Select which pin to use for SPI0 NPCS (define for PA29)
-	 { "SHELL_SHOW_INFO ", ""}
+	 { "SHELL_SHOW_INFO", ""},
+--   { "USB_CDC_STDIO", ""}       -- Use CDC_STDIO (rather than USB_CDC), does not work
   },
   build = {
   }
