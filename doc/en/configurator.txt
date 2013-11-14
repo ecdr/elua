@@ -88,6 +88,7 @@ link:arch_platform_timers.html#the_system_timer[system timer ID].
 |wofs                  |None (true or false)           |Enable the link:arch_wofs.html[WOFS] file system
 |shell                 |None (true or false)           |Enable link:simple_shell.html[the simple shell]
 |advanced_shell        |None (true or false)           |Enable link:advanced_shell.html[the advanced shell]
+|bitarray              |None (true or false)           |Enable bitarray type
 .6+^.^|sercon        2+|*link:using.html#uart[Serial console] (console over UART)*
                        |uart                           |Serial console UART ID 
                        |speed                          |Serial port speed
