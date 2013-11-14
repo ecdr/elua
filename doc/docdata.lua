@@ -180,6 +180,7 @@ local menu =
       { "i386", "installing_i386.html" },
       { "LM3S", "installing_lm3s.html" },
       { "LPC2888", "installing_lpc2888.html" },
+      { "SAM34", "installing_sam34.html" },
       { "STR7", "installing_str7.html" },
       { "STR9", "installing_str9.html" },
       { "STM32", "installing_stm32.html" },
@@ -244,6 +245,7 @@ local menu =
       { { "Platform modules", "Módulos Específicos" }, "refman_dep.html", 
         {
            { "lm3s", "modules_lm3s.html", "refman_ps_lm3s" },
+           { "sam34", "modules_sam34.html", "refman_ps_sam34" },
            { "str9", "modules_str9.html", "refman_ps_str9" },
            { "mbed", "modules_mbed.html", "refman_ps_mbed" },
            { "mizar32", "modules_mizar32.html", "refman_ps_mizar32" },

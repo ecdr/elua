@@ -65,6 +65,7 @@ static const u16 rtc_field_maxval[] = {
 
 
 // Read the time from the RTC.
+// datetime = platform.rtc.get()
 static int rtc_get( lua_State *L )
 {
   uint32_t hour, minute, second;
@@ -113,9 +114,9 @@ debug("RTC get - platform read done.");
   return 1;
 }
 
-// platform.rtc.set()
-// Parameter is a table containing fields with the usual Lua time field
-// names.  
+
+// platform.rtc.set( datetime )
+// Parameter is a table containing fields with the usual Lua time field names.  
 // Missing elements are not set and remain the same as they were.
 
 static int rtc_set( lua_State *L )

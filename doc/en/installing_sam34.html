@@ -1,0 +1,39 @@
+$$HEADER$$
+<h3>Using <b>eLua</b> with the Arduino Due, or AT91SAM3 or SAM4 CPUs from Atmel</h3>
+This example will use the Arduino Due, which uses an Atmel ARM CPU, the AT91SAM3X8E.
+
+<h3> Prerequisites</h3> 
+<p>Before you'll be able to use <b>eLua</b> on the Arduino Due, make sure that:</p>
+<ul>
+<li>you have the Arduino software package.  These instructions are based on using bossac, the bootloader 
+that is part of the Arduino environment.  For Windows you will also need the USB drivers for the Arduino Due.
+Bossac is located in the arduino package in the hardware/tools directory, (bossac.exe in the windows version).
+Follow the Arduino Due instructions for installing the Arduino Due driver, if needed.
+Assuming you have the appropriate hardware, you can 
+instead use a JTAG or SWD programmer, with appropriate software (I have used SAM-ICE with Segger's J-Link; 
+open OCD should work, although I have not tried it).</li>
+<li>you already have your <b>eLua</b> image for the AT91SAM3X8E CPU (<a href="building.html">built</a> or <a href="downloads.html">downloaded</a>).  Select the appropriate console port (UART 0 for Arduino Due programming port, or
+CDC for Due native port.)</li>
+ </ul>
+ 
+<h3>Programming eLua on the Arduino Due board</h3>
+
+<ul>
+  <li>Connect your board to your PC using a suitable USB cable. If you didn't install the board drivers yet, you'll be asked to install them now.</li>
+  <li>If you're already using the USB connection on the board in the UART emulation mode, close your terminal program (or at least disconnect it from the USB COM port).</li>
+  <li>If the board already has a program on it (e.g. a previous version of eLua), you may need to erase the program
+  by pressing the erase button (hold it for a moment), and then the reset button.</li>
+  <li>Note which virtual serial port the Arduino Due is connected to.</li>
+  <li>Note whether you have connected it using the programming USB port (one closer to the barrel plug) or the native USB port (one closer to the reset button).  Either one will work, but the programming command is slightly different.  Also, if using the native port you probably want to build your immage with CDC enabled and console="CDC."  For the programming port you will usually build it with console on UART 0.</li>
+  <li>To program the board, at a shell prompt, if connected to the programming port, type: <code>bossac.exe -Ufalse -pCOMn -e -w -v -b elua_lua_arduinodue.bin -R</code> for the native port the command is the same, except put true after -U, i.e.: <code>bossac.exe -Ufalse -pCOMn -e -w -v -b elua_lua_arduinodue.bin -R</code>  COMn indicates the name of the virtual serial port (under windows it will be COM followed by an integer, e.g., COM8).  The rest of the flags tell bossac to erase the previous program (-e), verify after programming (-v), write new program (-w), the file name following -b is the name of the elua immage to write, finally it resets after verify (-R).  If you are not sure that you have the right serial port, or are having other problems, try <code>bossac -pCOMn -Ufalse -i</code> (or -Utrue, depending on port), which will display information about the connected device.</li>
+</ul>
+
+<b>eLua</b> is now programmed in the CPU, so you can start your terminal emulator and enjoy it, as described in <a href="using.html">using eLua</a>.
+Note, if you use the native USB port, you may need to install yet another driver for the port after eLua starts,
+and use a different COM port number other than the one used to program the Due for the eLua console.
+
+<br />
+<br />
+<br />
+$$FOOTER$$
+
