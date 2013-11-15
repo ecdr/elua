@@ -303,8 +303,16 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 const u32 can_id[]     = { ID_CAN0, ID_CAN1 };
 Can * const can_base[] = { CAN0,    CAN1 };
 
-// PIO const can_pio[] = { PIO_PA1A_CANRX0, PIO_PA0A_CANTX0, PIO_PB15A_CANRX1, PIO_PB14A_CANTX1 };
-// Should be divided by CAN, function
+// Pins
+
+#define PIN_CFG_CANRX0  {PIO_PA1_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_CANTX0  {PIO_PA0_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_CANRX1  {PIO_PB15_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_CANTX1  {PIO_PB14_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+
+const struct { sam_pin_config rx, tx; } can_pins[] = {
+  {PIN_CFG_CANRX0, PIN_CFG_CANTX0}, {PIN_CFG_CANRX1, PIN_CFG_CANTX1}
+  };
 
 
 // Speed used in INIT
@@ -355,6 +363,9 @@ void cans_init( void )
 
 u32 platform_can_setup( unsigned id, u32 clock )
 {
+  gpio_configure_pin(can_pins[id].rx.pin, can_pins[id].rx.flags);
+  gpio_configure_pin(can_pins[id].tx.pin, can_pins[id].tx.flags);
+
   can_disable(can_base[id]);
   can_init(can_base[id], CANCLK, clock);
   can_enable(can_base[id]);
@@ -469,6 +480,13 @@ void platform_spi_select( unsigned id, int is_select )
 const u32 i2c_id[]     = { ID_TWI0, ID_TWI1 };
 Twi * const i2c_base[] = { TWI0,    TWI1 };
 
+
+const struct { sam_pin_config data, clk; } twi_pins[] = {
+  {{TWI0_DATA_GPIO, TWI0_DATA_FLAGS}, {TWI0_CLK_GPIO, TWI0_CLK_FLAGS}}, 
+  {{TWI1_DATA_GPIO, TWI1_DATA_FLAGS}, {TWI1_CLK_GPIO, TWI1_CLK_FLAGS}}
+  };
+
+
 // speed - PLATFORM_I2C_SPEED_FAST, PLATFORM_I2C_SPEED_SLOW
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
@@ -477,7 +495,9 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   pmc_enable_periph_clk(i2c_id[id]);
 
 // Configure pins
-// TODO: Make this data driven (table)
+  gpio_configure_pin(twi_pins[id].data.pin, twi_pins[id].data.flags);
+  gpio_configure_pin(twi_pins[id].clk.pin,  twi_pins[id].clk.flags);
+/*
   if (id == 0)
   {
     gpio_configure_pin(TWI0_DATA_GPIO, TWI0_DATA_FLAGS);
@@ -488,14 +508,15 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
     gpio_configure_pin(TWI1_DATA_GPIO, TWI1_DATA_FLAGS);
     gpio_configure_pin(TWI1_CLK_GPIO, TWI1_CLK_FLAGS);
   }
+*/
   
   opt.master_clk = platform_cpu_get_frequency();
 	opt.speed      = speed;
 
   if (twi_master_init(i2c_base[id], &opt) != TWI_SUCCESS) 
-    return PLATFORM_ERR;
+    return 0;
   else
-    return ;// FIXME: What?
+    return speed;// FIXME: should return actual speed set
 }
 
 // Address is 0..127, direction - from enum (PLATFORM_I2C_DIRECTION_TRANSMITTER, PLATFORM_I2C_DIRECTION_RECEIVER), 
@@ -554,6 +575,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 const u32 uart_id[] = { ID_UART, ID_USART0, ID_USART1, ID_USART3};
 Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 
+// Pins
 #define PIN_CFG_CTS0  {PIO_PB26_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
 #define PIN_CFG_RTS0  {PIO_PB25_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
 #define PIN_CFG_SCK0  {PIO_PA17_IDX, (PIO_PERIPH_B | PIO_DEFAULT)}
@@ -1164,6 +1186,7 @@ typedef struct {
 //    gpio_configure_pin(PIO_PA21_IDX, (PIO_PERIPH_B | PIO_DEFAULT));
 // gpio_configure_pin = pio_configure_pin
 
+// FIXME: Use consistent pin handling
 
 static const pin_inf pwm_pin[NUM_PWM] = {
 //  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
@@ -1175,9 +1198,78 @@ static const pin_inf pwm_pin[NUM_PWM] = {
   { PIOC, PIO_PC21B_PWML4, PIO_PERIPH_B}, // PWML4
   { PIOC, PIO_PC22B_PWML5, PIO_PERIPH_B}, // PWML5
   { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
-  { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B} // PWML7
+  { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B}  // PWML7
   };
 
+/*  
+PIO_PA5B_PWMFI0
+PIO_PA3B_PWMFI1
+PIO_PD6B_PWMFI2 
+
+PIO_PA8B_PWMH0  
+PIO_PB12B_PWMH0 
+PIO_PC3B_PWMH0  
+PIO_PE15A_PWMH0 
+
+PIO_PA19B_PWMH1 
+PIO_PB13B_PWMH1 
+PIO_PC5B_PWMH1  
+PIO_PE16A_PWMH1 
+
+PIO_PA13B_PWMH2 
+PIO_PB14B_PWMH2 
+PIO_PC7B_PWMH2  
+
+PIO_PA9B_PWMH3  
+PIO_PB15B_PWMH3 
+PIO_PC9B_PWMH3  
+PIO_PF3A_PWMH3  
+
+PIO_PC20B_PWMH4 
+PIO_PE20A_PWMH4 
+
+PIO_PC19B_PWMH5 
+PIO_PE22A_PWMH5 
+
+PIO_PC18B_PWMH6 
+PIO_PE24A_PWMH6 
+
+PIO_PE26A_PWMH7 
+
+PIO_PA21B_PWML0 
+PIO_PB16B_PWML0 
+PIO_PC2B_PWML0  
+PIO_PE18A_PWML0 
+
+PIO_PA12B_PWML1 
+PIO_PB17B_PWML1 
+PIO_PC4B_PWML1  
+
+PIO_PA20B_PWML2 
+PIO_PB18B_PWML2 
+PIO_PC6B_PWML2  
+PIO_PE17A_PWML2 
+
+PIO_PA0B_PWML3  
+PIO_PB19B_PWML3 
+PIO_PC8B_PWML3  
+
+PIO_PB6B_PWML4  
+PIO_PC21B_PWML4 
+PIO_PE19A_PWML4 
+
+PIO_PB7B_PWML5  
+PIO_PC22B_PWML5 
+PIO_PE21A_PWML5 
+
+PIO_PB8B_PWML6  
+PIO_PC23B_PWML6 
+PIO_PE23A_PWML6 
+
+PIO_PB9B_PWML7  
+PIO_PC24B_PWML7 
+PIO_PE25A_PWML7 
+*/
 
 static int pwm_enable_pin(unsigned id)
 {
@@ -1420,15 +1512,44 @@ void platform_pwm_stop( unsigned id )
 
 // 16 ADC channels, plus Temperature
 
-// See what did with LM4F on temperature sensor
+
+// Pins
+
+//#define PIO_PA3X1_WKUP1      (1u << 3)  /**< \brief Adc signal: AD1/WKUP1 */
+//#define PIO_PB21X1_WKUP13    (1u << 21) /**< \brief Adc signal: AD14/WKUP13 */
+//#define PIO_PA11B_ADTRG      (1u << 11) /**< \brief Adc signal: ADTRG */
+
+/*  PIOs mapping handled automatically
+const struct sam_pin_config adc_pins[] = {
+  {PIO_PA2_IDX, (PIO_DEFAULT)}   // AD0
+  {PIO_PA3_IDX, (PIO_DEFAULT)}   // AD1
+  {PIO_PA4_IDX, (PIO_DEFAULT)}   // AD2
+  {PIO_PA6_IDX, (PIO_DEFAULT)}   // AD3
+  {PIO_PA22_IDX, (PIO_DEFAULT)}   // AD4
+  {PIO_PA23_IDX, (PIO_DEFAULT)}   // AD5
+  {PIO_PA24_IDX, (PIO_DEFAULT)}   // AD6
+  {PIO_PA16_IDX, (PIO_DEFAULT)}   // AD7
+  {PIO_PB12_IDX, (PIO_DEFAULT)}   // AD8
+  {PIO_PB13_IDX, (PIO_DEFAULT)}   // AD9
+  {PIO_PB17_IDX, (PIO_DEFAULT)}   // AD10
+  {PIO_PB18_IDX, (PIO_DEFAULT)}   // AD11
+  {PIO_PB19_IDX, (PIO_DEFAULT)}   // AD12
+  {PIO_PB20_IDX, (PIO_DEFAULT)}   // AD13
+  {PIO_PB21_IDX, (PIO_DEFAULT)}   // AD14
+  };
+*/
 
 // FIXME: fix ADC_TIMER_IDs (they are arbitrarily set for now)
 #define ADC_TIMER_FIRST_ID 8
 #define ADC_NUM_TIMERS 1
 
+
+// TODO: See what did with LM4F on temperature sensor
+
 // Temperature sensor - channel 15, 0 to 3.3 v, hence ADVREF must be set to 3300mv
 // TSON bit in ADC_ACR
 //		f_temp = (float)(l_vol - 800) * 0.37736 + 27.0;
+
 
 int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 {

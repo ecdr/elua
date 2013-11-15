@@ -19,6 +19,10 @@
 //Regular interrupts to transfer to FIFO
 //Handle both channels
 
+// PIO_PB15X1_DAC0
+// PIO_PB15X1_WKUP12
+// PIO_PB16X1_DAC1
+// PIO_PA10B_DATRG
 
 //#define DACC_CHANNEL        0 // CH0 (PB15) labelled A12
 //#define DACC_CHANNEL        1 // CH1 (PB16) labelled A13
