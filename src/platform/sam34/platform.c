@@ -58,6 +58,11 @@
 #endif // VTMR_NUM_TIMERS > 0
 
 
+typedef struct _sam_pin_config {
+  uint32_t pin;
+  const uint32_t flags;
+  } sam_pin_config;
+
 
 // ****************************************************************************
 // Platform initialization
@@ -548,6 +553,28 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 // FIXME: Think there are only 3 UART/USART on Due
 const u32 uart_id[] = { ID_UART, ID_USART0, ID_USART1, ID_USART3};
 Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
+
+#define PIN_CFG_CTS0  {PIO_PB26_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_RTS0  {PIO_PB25_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_SCK0  {PIO_PA17_IDX, (PIO_PERIPH_B | PIO_DEFAULT)}
+
+#define PIN_CFG_CTS1  {PIO_PA15_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_RTS1  {PIO_PA14_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_SCK1  {PIO_PA16_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+
+#define PIO_INVALID_IDX 0xFFFF
+#define PIN_CFG_CTS3  {PIO_INVALID_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_RTS3  {PIO_INVALID_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
+#define PIN_CFG_SCK3  {PIO_INVALID_IDX, (PIO_PERIPH_B | PIO_DEFAULT)}
+
+const struct { sam_pin_config rx, tx, cts, rts, sck; } usart_pins[] = {
+        {{PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS}, {PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS}, 
+          PIN_CFG_CTS0, PIN_CFG_RTS0, PIN_CFG_SCK0},
+        {{PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS}, {PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS},
+          PIN_CFG_CTS1, PIN_CFG_RTS1, PIN_CFG_SCK1},
+        {{PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS}, {PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS},
+          PIN_CFG_CTS3, PIN_CFG_RTS3, PIN_CFG_SCK3}};
+
 //#define USART_SERIAL_PIO PINS_USART_PIO
 //#define USART_SERIAL_TYPE PINS_USART_TYPE
 //#define USART_SERIAL_PINS PINS_USART_PINS
@@ -641,36 +668,16 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 // TODO: handle alternative pin mapping
 // TODO: handle auxilary pins (handshake, etc., if exist)
 
-/* sample code from some example
-    PIO_Configure( g_APinDescription[PINS_UART].pPort, g_APinDescription[PINS_UART].ulPinType,
-    g_APinDescription[PINS_UART].ulPin, g_APinDescription[PINS_UART].ulPinConfiguration); */
-    
-// FIXME: Make pin setup data driven (also make consistent with other pin selection)
-    switch(id)
-    {
-      case 0:
-        break;
-      case 1:
-        gpio_configure_pin(PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS);
-        gpio_configure_pin(PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS);
-        break;
-      case 2:
-        gpio_configure_pin(PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS);
-        gpio_configure_pin(PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS);
-        break;
-      case 3:
-        gpio_configure_pin(PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS);
-        gpio_configure_pin(PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS);
-      default:
-    
-      break;
-    }
+    if (id) {
+      gpio_configure_pin(usart_pins[id-1].rx.pin, usart_pins[id-1].rx.flags);
+      gpio_configure_pin(usart_pins[id-1].tx.pin, usart_pins[id-1].tx.flags);
+    };
   }
 
   return baud;
 }
 
-
+        
 void platform_s_uart_send( unsigned id, u8 data )
 {
 #ifdef BUILD_USB_CDC
@@ -713,10 +720,44 @@ int platform_s_uart_recv( unsigned id, timer_data_type timeout )
 }
 
 
-// TODO: Implement flow control
+// TODO: Test flow control
 int platform_s_uart_set_flow_control( unsigned id, int type )
 {
-  return PLATFORM_ERR;
+#ifdef BUILD_USB_CDC
+  if( id == CDC_UART_ID)
+  {
+    if (type == PLATFORM_UART_FLOW_NONE)  // For now assume that USB CDC doesn't have flow control
+      return PLATFORM_OK;
+    else
+      return PLATFORM_ERR;
+  };
+#endif
+  
+  if (id == 0)  // UART - does not have RTS/CTS
+  {
+    if (type == PLATFORM_UART_FLOW_NONE)  // For now assume that USB CDC doesn't have flow control
+      return PLATFORM_OK;
+    else
+      return PLATFORM_ERR;
+  };
+
+  if( type != PLATFORM_UART_FLOW_NONE && type != ( PLATFORM_UART_FLOW_RTS | PLATFORM_UART_FLOW_CTS ) )
+    return PLATFORM_ERR;
+
+  if( type != PLATFORM_UART_FLOW_NONE ){ // enable pins for UART functionality
+      gpio_configure_pin(usart_pins[id-1].rts.pin, usart_pins[id-1].rts.flags);
+      gpio_configure_pin(usart_pins[id-1].cts.pin, usart_pins[id-1].cts.flags);
+        // From usart.c - usart_init_hw_handshaking()
+      uart_base[id]->US_MR = (uart_base[id]->US_MR & ~US_MR_USART_MODE_Msk) | US_MR_USART_MODE_HW_HANDSHAKING;
+    }
+  else // release pins to GPIO module
+    {
+      uart_base[id]->US_MR = uart_base[id]->US_MR & ~US_MR_USART_MODE_HW_HANDSHAKING;
+      gpio_configure_pin(usart_pins[id-1].rts.pin, PIO_DEFAULT);
+      gpio_configure_pin(usart_pins[id-1].cts.pin, PIO_DEFAULT);
+    }
+
+  return PLATFORM_OK;
 }
 
 
