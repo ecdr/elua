@@ -314,7 +314,8 @@ Can * const can_base[] = { CAN0,    CAN1 };
 #define PIN_CFG_CANTX1  {PIO_PB14_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
 
 const struct { sam_pin_config rx, tx; } can_pins[] = {
-  {PIN_CFG_CANRX0, PIN_CFG_CANTX0}, {PIN_CFG_CANRX1, PIN_CFG_CANTX1}
+  {PIN_CFG_CANRX0, PIN_CFG_CANTX0}, // CAN0
+  {PIN_CFG_CANRX1, PIN_CFG_CANTX1}  // CAN1
   };
 
 
@@ -376,11 +377,13 @@ u32 platform_can_setup( unsigned id, u32 clock )
   return clock;    // FIXME: Should return clock actually set
 }
 
+// FIXME: To be written
 void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
   lua_assert(false);
 }
 
+// FIXME: To be written
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
   lua_assert(false);
@@ -393,9 +396,11 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 // ****************************************************************************
 // SPI
 
+// TODO: USART can also do SPI
 
 const u32 spi_id[]     = { ID_SPI0 };
 Spi * const spi_base[] = { SPI0 };
+
 
 static void spis_init( void )
 {
@@ -486,8 +491,8 @@ Twi * const i2c_base[] = { TWI0,    TWI1 };
 
 
 const struct { sam_pin_config data, clk; } twi_pins[] = {
-  {{TWI0_DATA_GPIO, TWI0_DATA_FLAGS}, {TWI0_CLK_GPIO, TWI0_CLK_FLAGS}}, 
-  {{TWI1_DATA_GPIO, TWI1_DATA_FLAGS}, {TWI1_CLK_GPIO, TWI1_CLK_FLAGS}}
+  {{TWI0_DATA_GPIO, TWI0_DATA_FLAGS}, {TWI0_CLK_GPIO, TWI0_CLK_FLAGS}}, // I2C0
+  {{TWI1_DATA_GPIO, TWI1_DATA_FLAGS}, {TWI1_CLK_GPIO, TWI1_CLK_FLAGS}}  // I2C1
   };
 
 
@@ -530,8 +535,8 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 /*
 	twi_packet_t packet_tx;
 
-	/* Configure the data packet to be transmitted */
-/*	packet_tx.chip        = AT24C_ADDRESS;
+//   Configure the data packet to be transmitted 
+	packet_tx.chip        = AT24C_ADDRESS;
 	packet_tx.addr[0]     = EEPROM_MEM_ADDR >> 8;
 	packet_tx.addr[1]     = EEPROM_MEM_ADDR;
 	packet_tx.addr_length = EEPROM_MEM_ADDR_LENGTH;
@@ -579,6 +584,9 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 const u32 uart_id[] = { ID_UART, ID_USART0, ID_USART1, ID_USART3};
 Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 
+// Only some usarts have hardware flow control
+const bool no_hw_flow[] = { true, false, false, true };
+
 // Pins
 #define PIN_CFG_CTS0  {PIO_PB26_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
 #define PIN_CFG_RTS0  {PIO_PB25_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
@@ -596,11 +604,11 @@ Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 
 const struct { sam_pin_config rx, tx, cts, rts, sck; } usart_pins[] = {
         {{PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS}, {PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS}, 
-          PIN_CFG_CTS0, PIN_CFG_RTS0, PIN_CFG_SCK0},
+          PIN_CFG_CTS0, PIN_CFG_RTS0, PIN_CFG_SCK0},  // USART0
         {{PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS}, {PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS},
-          PIN_CFG_CTS1, PIN_CFG_RTS1, PIN_CFG_SCK1},
+          PIN_CFG_CTS1, PIN_CFG_RTS1, PIN_CFG_SCK1},  // USART1
         {{PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS}, {PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS},
-          PIN_CFG_NOPIN, PIN_CFG_NOPIN, PIN_CFG_NOPIN}};
+          PIN_CFG_NOPIN, PIN_CFG_NOPIN, PIN_CFG_NOPIN}};  // USART3 (note no RTS/CTS)
 
 //#define USART_SERIAL_PIO PINS_USART_PIO
 //#define USART_SERIAL_TYPE PINS_USART_TYPE
@@ -713,7 +721,7 @@ void platform_s_uart_send( unsigned id, u8 data )
   else
 #endif
   {
-    WAIT_WHILE(!usart_is_tx_ready(uart_base[id]));  // FIXME: Should probably add timeout on wait
+    WAIT_WHILE(!usart_is_tx_ready(uart_base[id]));  // FIXME: Should add timeout on wait
     usart_putchar(uart_base[id], data);
   }
 }
@@ -753,16 +761,16 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 #ifdef BUILD_USB_CDC
   if( id == CDC_UART_ID)
   {
-    if (type == PLATFORM_UART_FLOW_NONE)  // For now assume that USB CDC doesn't have flow control
+    if (type == PLATFORM_UART_FLOW_NONE)  // FIXME: For now assume that USB CDC doesn't have flow control
       return PLATFORM_OK;
     else
       return PLATFORM_ERR;
   };
 #endif
   
-  if (id == 0)  // UART - does not have RTS/CTS
+  if (no_hw_flow[id])  // UART, USART3 - do not have RTS/CTS
   {
-    if (type == PLATFORM_UART_FLOW_NONE)  // For now assume that USB CDC doesn't have flow control
+    if (type == PLATFORM_UART_FLOW_NONE)
       return PLATFORM_OK;
     else
       return PLATFORM_ERR;
@@ -939,11 +947,10 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 }
 
 
-// FIXME: Write function
+// TODO: Needs testing
+
 // period_us - period in microseconds, if period = 0, then use maximum possible period (I think that what means)??
-// type - PLATFORM_TIMER_INT_CYCLIC or PLATFORM_TIMER_INT_ONESHOT
-
-
+// type: PLATFORM_TIMER_INT_CYCLIC or PLATFORM_TIMER_INT_ONESHOT
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
   u64 final;
@@ -974,7 +981,6 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
   tc_start(tc(id), tchanel(id));
   return PLATFORM_TIMER_INT_OK;
 }
-
 
 
 // *****************
@@ -1025,14 +1031,14 @@ timer_data_type platform_timer_read_sys(void)
 const uint32_t pwm_chan[] = { PWM_CHANNEL_0, PWM_CHANNEL_1, PWM_CHANNEL_2, PWM_CHANNEL_3, 
                               PWM_CHANNEL_4, PWM_CHANNEL_5, PWM_CHANNEL_6, PWM_CHANNEL_7 };
 
-// PWM clock - master, /1,2,4,8,16,32,64,128,256,512,1024
-// clocka, clockb - dividers, each can divide one of above by (1 to 255)
-
 #define PWM_MAX_CLOCK CPU_FREQUENCY
 
 // TODO: Check PWM library see if it exports a constant to replace this
 #define PWM_MAX_PERIOD  ((1<<16) - 1)
 
+
+// PWM clock - master, /1,2,4,8,16,32,64,128,256,512,1024
+// clocka, clockb - dividers, each can divide one of above by (1 to 255)
 
 // PWM channel prescalers
 const static u32 pwm_div_ctl[] = { PWM_CMR_CPRE_MCK,  PWM_CMR_CPRE_MCK_DIV_2,
@@ -1052,17 +1058,19 @@ const unsigned nprescalers = PWM_CLOCK_PRE_MAX;
 #define PWM_PRE_CLOCKB (PWM_PRE_CLOCKA+1)
 #define PWM_PRE_UNUSED (PWM_CLOCK_PRE_MAX+2)
 
-// Which clock is each channel using
+// FIXME: pwm_chan_clock and pwm_chan_pre may be redundant? (only need one or other)
+// Clock each channel is using
 u32 pwm_chan_clock[NUM_PWM] = { 0 };
 
 // Prescaler used by each channel
 u8 pwm_chan_pre[NUM_PWM] = { PWM_PRE_UNUSED };
 
+// Use counters - how many channels using each custom clock (if no channels using, can change clock)
+u8 pwm_clka_users = 0, pwm_clkb_users = 0;
+
 // Frequency for custom channel clocks
 pwm_clock_t pwm_clock = { .ul_clka = 0, .ul_clkb = 0 };
 
-// Use counters - how many channels using each custom clock (if no channels using, can change clock)
-u8 pwm_clka_users = 0, pwm_clkb_users = 0;
 
 // void PWM_Handler(void)
 
@@ -1115,31 +1123,10 @@ static u32 freq_from_prescaler( unsigned prescaler )
 
 static int pwm_enable_pin(unsigned id);
 
-// Ideas about pin mapping and initialization
 // For now - just provide a way to initialize fixed pins for PWM (where can fill in which pin to use)
-
-// See variant.cpp (Adruino.h)
-// See wiring_analog.c - for ideas on timer use
-// See arduino analog pin for ideas on ADC use
-// See pio_sam3x8e.h for complete pin name/map list
-// Also look at the pinmap fork of eLua (and how handled by current platforms - LM3, STM32, etc.)
 
 u8 pwm_pin_enabled[NUM_PWM] = {false};
 
-// pin -> port, pinmask, portID, 
-typedef struct {
-  Pio* port;
-  uint32_t pin;
-  u32 pin_type; // EPioType
-  } pin_inf;
-
-// pin_type:  
-//  PIO_NOT_A_PIN, /* Not under control of a peripheral. */
-//  PIO_PERIPH_A, /* The pin is controlled by the associated signal of peripheral A. */
-//  PIO_PERIPH_B, /* The pin is controlled by the associated signal of peripheral B. */
-//  PIO_INPUT, /* The pin is an input. */
-//  PIO_OUTPUT_0, /* The pin is an output and has a default level of 0. */
-//  PIO_OUTPUT_1
 
 // set mapping PWM channel -> pin (or pin -> PWM channel)
 
@@ -1233,21 +1220,6 @@ PIO_PB9B_PWML7
 PIO_PC24B_PWML7 
 */
 
-/* 
-// Old code - using different pin config interface
-static const pin_inf pwm_pin[NUM_PWM] = {
-//  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
-  { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED Tx (low = on?)
-// PIO_PA21B_PWML0, PIO_PB16B_PWML0
-  { PIOC, PIO_PC4B_PWML1,  PIO_PERIPH_B}, // PWML1
-  { PIOC, PIO_PC6B_PWML2,  PIO_PERIPH_B}, // PWML2
-  { PIOC, PIO_PC8B_PWML3,  PIO_PERIPH_B}, // PWML3
-  { PIOC, PIO_PC21B_PWML4, PIO_PERIPH_B}, // PWML4
-  { PIOC, PIO_PC22B_PWML5, PIO_PERIPH_B}, // PWML5
-  { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
-  { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B}  // PWML7
-  };
-*/
 
 static int pwm_enable_pin(unsigned id)
 {
@@ -1255,6 +1227,7 @@ static int pwm_enable_pin(unsigned id)
 		// Setup PWM for this pin
 //    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
     gpio_configure_pin(pwm_pins_l[id].pin, pwm_pins_l[id].flags);
+//    gpio_configure_pin(pwm_pins_h[id].pin, pwm_pins_h[id].flags);
     pwm_pin_enabled[id] = true;
   }
   return 0; // Return 0 for success
@@ -1295,9 +1268,9 @@ u32 platform_pwm_get_clock( unsigned id )
         pre = PWM_CLK_PREA_GET(PWM->PWM_CLK);
 //        printf(" clocka pre = %lu\n", pre);
         if (pre < PWM_CLOCK_PRE_MAX)
-          res = (((u32) PWM_MAX_CLOCK) >> pre)/ div;
+          res = freq_from_prescaler(pre)/ div;
 //      res = (PWM_MAX_CLOCK / pwm_prescalers( pre ))/ div;
-        Assert((PWM_MAX_CLOCK >> pre) == (PWM_MAX_CLOCK / pwm_prescalers( pre )));
+        Assert(freq_from_prescaler(pre) == (PWM_MAX_CLOCK / pwm_prescalers( pre )));
         // FIXME: Just for testing to check math
         }
       break;
@@ -1307,12 +1280,12 @@ u32 platform_pwm_get_clock( unsigned id )
         {
         pre = PWM_CLK_PREB_GET(PWM->PWM_CLK);
         if (pre < PWM_CLOCK_PRE_MAX)
-          res = (((u32) PWM_MAX_CLOCK) >> pre)/ div;
+          res = freq_from_prescaler(pre)/ div;
         }
       break;
     default:
       if (pre < PWM_CLOCK_PRE_MAX)
-        res = ((u32) PWM_MAX_CLOCK) >> pre ;  // divisor of MCK
+        res = freq_from_prescaler(pre) ;  // divisor of MCK
   }
   return res;
 
