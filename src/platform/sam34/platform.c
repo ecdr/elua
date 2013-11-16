@@ -1142,10 +1142,28 @@ PIO_PD6B_PWMFI2
 */
 
 // Alternate pin selection (FIXME: should use a general pin map at runtime)
-// FIXME: Revise this to add way to enable/disable L/H pin 
-//   (Only enable/disable L or H pin if ...)
-#define PWML0 'A'
 
+// Define these constants to port letter of pin to be used.  
+// Define to something else (e.g. nil) if don't want to use.
+
+// TODO: Could make these selectable from the build system
+//  e.g., pwm = {L0 = A, L1 = C, ...}
+
+// PWML0 A -> onboard LED "Tx" (low = on)
+#define PWML0 'A'
+#define PWML1 'C'
+#define PWML2 'C'
+#define PWML3 'C'
+// PWML4 C -> arduino pin "PWM9"
+#define PWML4 'C'
+// PWML5 C -> arduino pin "PWM8"
+#define PWML5 'C'
+// PWML6 C -> arduino pin "PWM7"
+#define PWML6 'C'
+// PWML7 C -> arduino pin "PWM6"
+#define PWML7 'C'
+
+// TODO: Remove #warnings below - were just there for testing
 
 const sam_pin_config pwm_pins_l[] = {
 #if ('A' == PWML0)
@@ -1153,81 +1171,171 @@ const sam_pin_config pwm_pins_l[] = {
 #elif ('B' == PWML0)
   { PIO_PB16_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML0  PIO_PB16B_PWML0
 #elif ('C' == PWML0)
-  { PIO_PC2_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML0
+  { PIO_PC2_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},  //PWML0
 #else
-#error PWML0 should select 'A', 'B', or 'C'
+  PIN_CFG_NOPIN, 
+#warning PWML0 not used
 #endif
-  { PIO_PC4_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML1
-  { PIO_PC6_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML2
+#if ('A' == PWML1)
+  { PIO_PA12_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML1
+#elif ('B' == PWML1)
+  { PIO_PB17_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML1
+#elif ('C' == PWML1)
+  { PIO_PC4_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML1
+#else
+  PIN_CFG_NOPIN, 
+#warning PWML1 not used
+#endif
+
+#if ('A' == PWML2)
+  { PIO_PA20_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('B' == PWML2)
+  { PIO_PB18_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWML2)
+  { PIO_PC6_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWML2 not used
+#endif // PWML2
+
+#if ('A' == PWML3)
+  { PIO_PA0_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('B' == PWML3)
+  { PIO_PB19_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWML3)
   { PIO_PC8_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML3
+#else
+  PIN_CFG_NOPIN, 
+#warning PWML3 not used
+#endif // PWML3
+
+#if ('B' == PWML4)
+  { PIO_PB6_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWML4)
   { PIO_PC21_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML4
+#else
+  PIN_CFG_NOPIN, 
+#warning PWML4 not used
+#endif // PWML4
+
+#if ('B' == PWML5)
+  { PIO_PB7_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWML5)
   { PIO_PC22_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML5
+#else
+  PIN_CFG_NOPIN, 
+#warning PWML5 not used
+#endif // PWML5
+
+#if ('B' == PWML6)
+  { PIO_PB8_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWML6)
   { PIO_PC23_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML6
+#else
+  PIN_CFG_NOPIN, 
+#warning PWML6 not used
+#endif // PWML6
+
+#if ('B' == PWML7)
+  { PIO_PB9_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWML7)
   { PIO_PC24_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}  // PWML7
+#else
+  PIN_CFG_NOPIN 
+#warning PWML7 not used
+#endif // PWML7
   };
 
+#define PWMH no
+//#define PWMH 'C'
 
-/* Pins and peripheral numbers, for conversion to pin config
-PIO_PA8B_PWMH0  
-PIO_PB12B_PWMH0 
-PIO_PC3B_PWMH0  
-
-PIO_PA19B_PWMH1 
-PIO_PB13B_PWMH1 
-PIO_PC5B_PWMH1  
-
-PIO_PA13B_PWMH2 
-PIO_PB14B_PWMH2 
-PIO_PC7B_PWMH2  
-
-PIO_PA9B_PWMH3  
-PIO_PB15B_PWMH3 
-PIO_PC9B_PWMH3  
-
-PIO_PC20B_PWMH4 
-
-PIO_PC19B_PWMH5 
-
-PIO_PC18B_PWMH6 
+#define PWMH0 PWMH
+#define PWMH1 PWMH
+#define PWMH2 PWMH
+#define PWMH3 PWMH
+#define PWMH4 no
+#define PWMH5 PWMH
+#define PWMH6 PWMH
 
 
-PIO_PA21B_PWML0 
-PIO_PB16B_PWML0 
-PIO_PC2B_PWML0  
+const sam_pin_config pwm_pins_h[] = {
+#if ('A' == PWMH0)
+  { PIO_PA8_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('B' == PWMH0)
+  { PIO_PB12_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWMH0)
+  { PIO_PC3_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH0 not used
+#endif
 
-PIO_PA12B_PWML1 
-PIO_PB17B_PWML1 
-PIO_PC4B_PWML1  
+#if ('A' == PWMH1)
+  { PIO_PA19_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('B' == PWMH1)
+  { PIO_PB13_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWMH1)
+  { PIO_PC5_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH1 not used
+#endif
 
-PIO_PA20B_PWML2 
-PIO_PB18B_PWML2 
-PIO_PC6B_PWML2  
+#if ('A' == PWMH2)
+  { PIO_PA13_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('B' == PWMH2)
+  { PIO_PB14_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWMH2)
+  { PIO_PC7_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH2 not used
+#endif // PWMH2
 
-PIO_PA0B_PWML3  
-PIO_PB19B_PWML3 
-PIO_PC8B_PWML3  
+#if ('A' == PWMH3)
+  { PIO_PA9_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('B' == PWMH3)
+  { PIO_PB15_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#elif ('C' == PWMH3)
+  { PIO_PC9_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH3 not used
+#endif // PWMH3
 
-PIO_PB6B_PWML4  
-PIO_PC21B_PWML4 
+#if ('C' == PWMH4)
+  { PIO_PC20_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH4 not used
+#endif // PWMH4
 
-PIO_PB7B_PWML5  
-PIO_PC22B_PWML5 
+#if ('C' == PWMH5)
+  { PIO_PC19_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH5 not used
+#endif // PWMH5
 
-PIO_PB8B_PWML6  
-PIO_PC23B_PWML6 
+#if ('C' == PWMH6)
+  { PIO_PC18_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
+#else
+  PIN_CFG_NOPIN, 
+#warning PWMH6 not used
+#endif // PWMH6
 
-PIO_PB9B_PWML7  
-PIO_PC24B_PWML7 
-*/
+  PIN_CFG_NOPIN 
+  };
 
 
 static int pwm_enable_pin(unsigned id)
 {
   if (!pwm_pin_enabled[id]) {
-		// Setup PWM for this pin
-//    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
-    gpio_configure_pin(pwm_pins_l[id].pin, pwm_pins_l[id].flags);
-//    gpio_configure_pin(pwm_pins_h[id].pin, pwm_pins_h[id].flags);
+		// Setup PWM for pins on this PWM
+    if ( pwm_pins_l[id].pin != PIO_INVALID_IDX)
+      gpio_configure_pin(pwm_pins_l[id].pin, pwm_pins_l[id].flags);
+    if ( pwm_pins_h[id].pin != PIO_INVALID_IDX)
+      gpio_configure_pin(pwm_pins_h[id].pin, pwm_pins_h[id].flags);
     pwm_pin_enabled[id] = true;
   }
   return 0; // Return 0 for success
@@ -1372,7 +1480,6 @@ static pwm_channel_t pwm_inst;
 //duty - PWM channel duty cycle, specified as integer from 0 to 100 (percent).
 u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 {
-// FIXME: Probably need to fill in default values for other fields in pwm_inst
 //  pwm_channel_t pwm_inst;
   u32 pwmclk;        // base clock frequency for PWM counter
   u32 period;        // number of base clocks per cycle
@@ -1380,8 +1487,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   
   if (id >= NUM_PWM || duty > 100 || pwm_chan_clock[id] == 0) return 0;
 
-  //FIXME: Need to configure associated pin appropriately
-  //FIXME: Had tried enabling pin after channel init, but some examples showed it before, so trying it here
+  //Had tried enabling pin after channel init, but some examples showed it before, so trying it here
   if (pwm_enable_pin(id))
     return 0; // Error
 
@@ -1406,7 +1512,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 
   // Put known value in all the other fields that example did not cover.
   // Or tell it to start whole structure as 0
-  // FIXME: Find out right values for all these
+  // FIXME: Find out right values for all of these
   pwm_inst.b_deadtime_generator = 0;
   pwm_inst.b_pwmh_output_inverted = 0;
   pwm_inst.b_pwml_output_inverted = 0;
@@ -1423,7 +1529,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 
   // Fields actually covered by examples
   pwm_channel_disable(PWM, pwm_chan[id]);  
-  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;    // FIXME: Should be whichever prescaler selected
+  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;    // FIXME: Should be whichever clock/prescaler selected
   pwm_inst.channel = pwm_chan[id];
   pwm_inst.ul_period = period;
   pwm_inst.ul_duty = duty_clocks;
