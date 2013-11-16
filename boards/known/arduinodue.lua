@@ -5,7 +5,6 @@ return {
   components = {
 --    cdc = true,     -- enable USB CDC    
 --      cdc = { buf_size = 128 }, -- buf doesn't work yet
---      cdc = { vid = 0x03EB, pid = 0x2404 }          -- Idea, not implemented
 --    sercon = { uart = "cdc", speed = 115200 },  -- set serial console uart to "cdc" (use native USB port for console)
     sercon = { uart = 0, speed = 115200 },
     wofs = false,		-- See cpu file

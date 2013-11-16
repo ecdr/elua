@@ -63,6 +63,10 @@ typedef struct _sam_pin_config {
   const uint32_t flags;
   } sam_pin_config;
 
+// Interrupt priorities (0 is highest)
+//#define RAND_INT_PRI  8
+//#define CAN_INT_PRI   
+//#define ADC_INT_PRI   
 
 // ****************************************************************************
 // Platform initialization
@@ -117,18 +121,18 @@ int platform_init()
 
   // Setup SPIs
 #warning SPI not done
-//  spis_init();
+  spis_init();
 
   // Setup UARTs
   uarts_init();
 
   // Setup timers
-#warning TMR not written  
+#warning TMR not done  
   timers_init();
 
 #ifdef BUILD_I2C
   // Setup I2Cs
-#warning I2C not written  
+#warning I2C/TWI not written  
   i2cs_init();
 #endif // ifdef BUILD_I2C
 
@@ -140,18 +144,17 @@ int platform_init()
 #ifdef BUILD_ADC
   // Setup ADCs
 #warning ADC not written  
-//  adcs_init();
+  adcs_init();
 #endif
 
 #ifdef BUILD_CAN
   // Setup CANs
 #warning CAN not done
-//  cans_init();
+  cans_init();
 #endif
 
 #ifdef BUILD_USB_CDC
   // Setup USB
-#warning USB_CDC not done 
   usb_init();
 #endif
 
@@ -342,6 +345,7 @@ void CAN1_Handler(void)
 
 // Setup
 
+// FIXME: Generalize to cover both CANs
 void cans_init( void )
 {
   pmc_enable_periph_clk(ID_CAN0);
@@ -585,9 +589,10 @@ Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 #define PIN_CFG_SCK1  {PIO_PA16_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
 
 #define PIO_INVALID_IDX 0xFFFF
-#define PIN_CFG_CTS3  {PIO_INVALID_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
-#define PIN_CFG_RTS3  {PIO_INVALID_IDX, (PIO_PERIPH_A | PIO_DEFAULT)}
-#define PIN_CFG_SCK3  {PIO_INVALID_IDX, (PIO_PERIPH_B | PIO_DEFAULT)}
+#define PIN_CFG_NOPIN  {PIO_INVALID_IDX, 0}
+
+// DANGER Will Robinson - Note that this array starts with USART0, not UART so need to use ID-1 as index
+// Might be safer to put in dummy record at the beginning
 
 const struct { sam_pin_config rx, tx, cts, rts, sck; } usart_pins[] = {
         {{PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS}, {PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS}, 
@@ -595,7 +600,7 @@ const struct { sam_pin_config rx, tx, cts, rts, sck; } usart_pins[] = {
         {{PIN_USART1_RXD_IDX, PIN_USART1_RXD_FLAGS}, {PIN_USART1_TXD_IDX, PIN_USART1_TXD_FLAGS},
           PIN_CFG_CTS1, PIN_CFG_RTS1, PIN_CFG_SCK1},
         {{PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS}, {PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS},
-          PIN_CFG_CTS3, PIN_CFG_RTS3, PIN_CFG_SCK3}};
+          PIN_CFG_NOPIN, PIN_CFG_NOPIN, PIN_CFG_NOPIN}};
 
 //#define USART_SERIAL_PIO PINS_USART_PIO
 //#define USART_SERIAL_TYPE PINS_USART_TYPE
@@ -682,14 +687,14 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
     
     if (usart_init_rs232(uart_base[id], &usart_settings, platform_cpu_get_frequency()))
       return 0;     // Fixme: Failure
-      
+
+    /* Disable all uart interrupts. */
+//    usart_disable_interrupt(uart_base[id], ALL_INTERRUPT_MASK);
+  
     usart_enable_tx(uart_base[id]);
     usart_enable_rx(uart_base[id]);
 
     // Configure pins for ports other than UART0 (assuming UART0 handled by ASF)
-// TODO: handle alternative pin mapping
-// TODO: handle auxilary pins (handshake, etc., if exist)
-
     if (id) {
       gpio_configure_pin(usart_pins[id-1].rx.pin, usart_pins[id-1].rx.flags);
       gpio_configure_pin(usart_pins[id-1].tx.pin, usart_pins[id-1].tx.flags);
@@ -886,40 +891,6 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 // FIXME: Need to figure out what timer mode to use
 #define TC_MODE_COUNTER 0
 
-/* Notes on Timers/timer drivers:
-component_tc.h
-Capture mode - TIOA,B are inputs (trigger/measure signals)
-Wave mode - free running (wave gen, etc.) TIOA output, TIOB out if not trigger
-
-?? It several places says 32 bit counter, but it says that counter resets on 0xFFFF 
-(i.e. 16 bits) which one is correct?
-
-Trigger - software, 
-  Compare to register C
-
-Counter value
-Registers A, B, C
-
-Counter runs from 0 up to register C
-
-Status
-Timer channel mode:
-TC_CMR_TCCLKS_TIMER_CLOCK1-5 (MCK/2, MCK/8, MCK/32, MCK/128, SLCK), TC_CMR_TCCLKS_XC0-2 
-TC_CMR_CLKI - invert clock
-Burst - gate clock with external signal (XC0-2)
- TC_CMR_BURST_NONE, TC_CMR_BURST_XC0-2
-TC_CMR_LDBSTOP, TC_CMR_LDBDIS
-Edge trigger - 
-  TC_CMR_ETRGEDG_NONE, TC_CMR_ETRGEDG_RISING, TC_CMR_ETRGEDG_FALLING, TC_CMR_ETRGEDG_EDGE (both)
-
-TC_CMR_ABETRG
-TC_CMR_CPCTRG
-TC_CMR_WAVE - waveform mode
-TC_CMR_LDRA_NONE, RISING, FALLING, EDGE - load reg. A on given edge
-TC_CMR_LDRB_NONE, RISING, FALLING, EDGE - load reg. B on given edge
-TC_CMR_CPCSTOP, TC_CMR_CPCDIS - Stopped/disabled with RC compare
-TC_CMR_EEVTEDG - external event edge
-*/
   
 timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
@@ -972,10 +943,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 // period_us - period in microseconds, if period = 0, then use maximum possible period (I think that what means)??
 // type - PLATFORM_TIMER_INT_CYCLIC or PLATFORM_TIMER_INT_ONESHOT
 
-// Possible returns: PLATFORM_TIMER_INT_INVALID_ID
-//PLATFORM_TIMER_INT_TOO_LONG
-//PLATFORM_TIMER_INT_TOO_SHORT
-//PLATFORM_TIMER_INT_OK
+
 int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int type )
 {
   u64 final;
@@ -1173,21 +1141,100 @@ typedef struct {
 //  PIO_OUTPUT_0, /* The pin is an output and has a default level of 0. */
 //  PIO_OUTPUT_1
 
+// set mapping PWM channel -> pin (or pin -> PWM channel)
 
 // 8 PWMs (0-7), each have 2 outputs (H, L) [appear to be at least approximately complementary]
 //   also some have one input FI (0-2)
 // Output signals can be mapped to various pins
 // PWMH0 - PA8(B), PB12(B), PC3(B)
 // PIN_ATTR_PWM
+/*  
+PIO_PA5B_PWMFI0
+PIO_PA3B_PWMFI1
+PIO_PD6B_PWMFI2 
+*/
+
+// Alternate pin selection (FIXME: should use a general pin map at runtime)
+// FIXME: Revise this to add way to enable/disable L/H pin 
+//   (Only enable/disable L or H pin if ...)
+#define PWML0 'A'
 
 
-// set mapping PWM channel -> pin (or pin -> PWM channel)
-// Consider alternate interface 
-//    gpio_configure_pin(PIO_PA21_IDX, (PIO_PERIPH_B | PIO_DEFAULT));
-// gpio_configure_pin = pio_configure_pin
+const sam_pin_config pwm_pins_l[] = {
+#if ('A' == PWML0)
+  { PIO_PA21_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML0 - onboard LED Tx (low = on?)
+#elif ('B' == PWML0)
+  { PIO_PB16_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML0  PIO_PB16B_PWML0
+#elif ('C' == PWML0)
+  { PIO_PC2_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML0
+#else
+#error PWML0 should select 'A', 'B', or 'C'
+#endif
+  { PIO_PC4_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML1
+  { PIO_PC6_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML2
+  { PIO_PC8_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML3
+  { PIO_PC21_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML4
+  { PIO_PC22_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML5
+  { PIO_PC23_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML6
+  { PIO_PC24_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}  // PWML7
+  };
 
-// FIXME: Use consistent pin handling
 
+/* Pins and peripheral numbers, for conversion to pin config
+PIO_PA8B_PWMH0  
+PIO_PB12B_PWMH0 
+PIO_PC3B_PWMH0  
+
+PIO_PA19B_PWMH1 
+PIO_PB13B_PWMH1 
+PIO_PC5B_PWMH1  
+
+PIO_PA13B_PWMH2 
+PIO_PB14B_PWMH2 
+PIO_PC7B_PWMH2  
+
+PIO_PA9B_PWMH3  
+PIO_PB15B_PWMH3 
+PIO_PC9B_PWMH3  
+
+PIO_PC20B_PWMH4 
+
+PIO_PC19B_PWMH5 
+
+PIO_PC18B_PWMH6 
+
+
+PIO_PA21B_PWML0 
+PIO_PB16B_PWML0 
+PIO_PC2B_PWML0  
+
+PIO_PA12B_PWML1 
+PIO_PB17B_PWML1 
+PIO_PC4B_PWML1  
+
+PIO_PA20B_PWML2 
+PIO_PB18B_PWML2 
+PIO_PC6B_PWML2  
+
+PIO_PA0B_PWML3  
+PIO_PB19B_PWML3 
+PIO_PC8B_PWML3  
+
+PIO_PB6B_PWML4  
+PIO_PC21B_PWML4 
+
+PIO_PB7B_PWML5  
+PIO_PC22B_PWML5 
+
+PIO_PB8B_PWML6  
+PIO_PC23B_PWML6 
+
+PIO_PB9B_PWML7  
+PIO_PC24B_PWML7 
+*/
+
+/* 
+// Old code - using different pin config interface
 static const pin_inf pwm_pin[NUM_PWM] = {
 //  { PIOC, PIO_PC2B_PWML0, PIO_PERIPH_B}, //PWML0
   { PIOA, PIO_PA21B_PWML0, PIO_PERIPH_B}, //PWML0 - onboard LED Tx (low = on?)
@@ -1200,82 +1247,14 @@ static const pin_inf pwm_pin[NUM_PWM] = {
   { PIOC, PIO_PC23B_PWML6, PIO_PERIPH_B}, // PWML6
   { PIOC, PIO_PC24B_PWML7, PIO_PERIPH_B}  // PWML7
   };
-
-/*  
-PIO_PA5B_PWMFI0
-PIO_PA3B_PWMFI1
-PIO_PD6B_PWMFI2 
-
-PIO_PA8B_PWMH0  
-PIO_PB12B_PWMH0 
-PIO_PC3B_PWMH0  
-PIO_PE15A_PWMH0 
-
-PIO_PA19B_PWMH1 
-PIO_PB13B_PWMH1 
-PIO_PC5B_PWMH1  
-PIO_PE16A_PWMH1 
-
-PIO_PA13B_PWMH2 
-PIO_PB14B_PWMH2 
-PIO_PC7B_PWMH2  
-
-PIO_PA9B_PWMH3  
-PIO_PB15B_PWMH3 
-PIO_PC9B_PWMH3  
-PIO_PF3A_PWMH3  
-
-PIO_PC20B_PWMH4 
-PIO_PE20A_PWMH4 
-
-PIO_PC19B_PWMH5 
-PIO_PE22A_PWMH5 
-
-PIO_PC18B_PWMH6 
-PIO_PE24A_PWMH6 
-
-PIO_PE26A_PWMH7 
-
-PIO_PA21B_PWML0 
-PIO_PB16B_PWML0 
-PIO_PC2B_PWML0  
-PIO_PE18A_PWML0 
-
-PIO_PA12B_PWML1 
-PIO_PB17B_PWML1 
-PIO_PC4B_PWML1  
-
-PIO_PA20B_PWML2 
-PIO_PB18B_PWML2 
-PIO_PC6B_PWML2  
-PIO_PE17A_PWML2 
-
-PIO_PA0B_PWML3  
-PIO_PB19B_PWML3 
-PIO_PC8B_PWML3  
-
-PIO_PB6B_PWML4  
-PIO_PC21B_PWML4 
-PIO_PE19A_PWML4 
-
-PIO_PB7B_PWML5  
-PIO_PC22B_PWML5 
-PIO_PE21A_PWML5 
-
-PIO_PB8B_PWML6  
-PIO_PC23B_PWML6 
-PIO_PE23A_PWML6 
-
-PIO_PB9B_PWML7  
-PIO_PC24B_PWML7 
-PIO_PE25A_PWML7 
 */
 
 static int pwm_enable_pin(unsigned id)
 {
   if (!pwm_pin_enabled[id]) {
 		// Setup PWM for this pin
-    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
+//    pio_configure(pwm_pin[id].port, pwm_pin[id].pin_type, pwm_pin[id].pin, PIO_DEFAULT);
+    gpio_configure_pin(pwm_pins_l[id].pin, pwm_pins_l[id].flags);
     pwm_pin_enabled[id] = true;
   }
   return 0; // Return 0 for success
@@ -1656,7 +1635,7 @@ int platform_adc_start_sequence( void )
 // ****************************************************************************
 // USB functions
 
-// TODO: Clean up, 
+// TODO: Clean up (remove extra functions)
 
 // TODO: see if can get CDC_STDIO working (works with USB CDC)
 //   CDC_STDIO - get unrecognized device, with VID and PID 0
@@ -1883,9 +1862,6 @@ int platform_flash_erase_sector( u32 sector_id )
 // ****************************************************************************
 // Platform specific modules go here
 
-// Interrupt priorities (0 is highest)
-#define PRI_RAND  8
-
 
 // ****************************************************************************
 // Random sequence generator
@@ -1933,7 +1909,7 @@ u8 platform_rand_init( void )
   /*
 	NVIC_DisableIRQ(TRNG_IRQn);
 	NVIC_ClearPendingIRQ(TRNG_IRQn);
-	NVIC_SetPriority(TRNG_IRQn, PRI_RAND);
+	NVIC_SetPriority(TRNG_IRQn, RAND_INT_PRI);
 	NVIC_EnableIRQ(TRNG_IRQn);
 	trng_enable_interrupt(TRNG);
  */
