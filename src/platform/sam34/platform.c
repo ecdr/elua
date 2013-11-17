@@ -1174,7 +1174,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC2_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},  //PWML0
 #else
   PIN_CFG_NOPIN, 
-#warning PWML0 not used
+//#warning PWML0 not used
 #endif
 #if ('A' == PWML1)
   { PIO_PA12_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML1
@@ -1184,7 +1184,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC4_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML1
 #else
   PIN_CFG_NOPIN, 
-#warning PWML1 not used
+//#warning PWML1 not used
 #endif
 
 #if ('A' == PWML2)
@@ -1195,7 +1195,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC6_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWML2 not used
+//#warning PWML2 not used
 #endif // PWML2
 
 #if ('A' == PWML3)
@@ -1206,7 +1206,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC8_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML3
 #else
   PIN_CFG_NOPIN, 
-#warning PWML3 not used
+//#warning PWML3 not used
 #endif // PWML3
 
 #if ('B' == PWML4)
@@ -1215,7 +1215,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC21_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML4
 #else
   PIN_CFG_NOPIN, 
-#warning PWML4 not used
+//#warning PWML4 not used
 #endif // PWML4
 
 #if ('B' == PWML5)
@@ -1224,7 +1224,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC22_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML5
 #else
   PIN_CFG_NOPIN, 
-#warning PWML5 not used
+//#warning PWML5 not used
 #endif // PWML5
 
 #if ('B' == PWML6)
@@ -1233,7 +1233,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC23_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, // PWML6
 #else
   PIN_CFG_NOPIN, 
-#warning PWML6 not used
+//#warning PWML6 not used
 #endif // PWML6
 
 #if ('B' == PWML7)
@@ -1242,7 +1242,7 @@ const sam_pin_config pwm_pins_l[] = {
   { PIO_PC24_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}  // PWML7
 #else
   PIN_CFG_NOPIN 
-#warning PWML7 not used
+//#warning PWML7 not used
 #endif // PWML7
   };
 
@@ -1267,7 +1267,7 @@ const sam_pin_config pwm_pins_h[] = {
   { PIO_PC3_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH0 not used
+//#warning PWMH0 not used
 #endif
 
 #if ('A' == PWMH1)
@@ -1278,7 +1278,7 @@ const sam_pin_config pwm_pins_h[] = {
   { PIO_PC5_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH1 not used
+//#warning PWMH1 not used
 #endif
 
 #if ('A' == PWMH2)
@@ -1289,7 +1289,7 @@ const sam_pin_config pwm_pins_h[] = {
   { PIO_PC7_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH2 not used
+//#warning PWMH2 not used
 #endif // PWMH2
 
 #if ('A' == PWMH3)
@@ -1300,28 +1300,28 @@ const sam_pin_config pwm_pins_h[] = {
   { PIO_PC9_IDX,  (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH3 not used
+//#warning PWMH3 not used
 #endif // PWMH3
 
 #if ('C' == PWMH4)
   { PIO_PC20_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH4 not used
+//#warning PWMH4 not used
 #endif // PWMH4
 
 #if ('C' == PWMH5)
   { PIO_PC19_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH5 not used
+//#warning PWMH5 not used
 #endif // PWMH5
 
 #if ('C' == PWMH6)
   { PIO_PC18_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
 #else
   PIN_CFG_NOPIN, 
-#warning PWMH6 not used
+//#warning PWMH6 not used
 #endif // PWMH6
 
   PIN_CFG_NOPIN 
