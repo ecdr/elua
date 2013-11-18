@@ -1,6 +1,5 @@
 // eLua shell
 
-#include "shell.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,6 +14,9 @@
 #include "common.h"
 
 #include "platform_conf.h"
+
+#include "shell.h"
+
 #ifdef BUILD_SHELL
 
 #if defined( USE_GIT_REVISION )
@@ -210,6 +212,9 @@ static const SHELL_COMMAND shell_commands[] =
   { "mkdir", shell_mkdir },
   { "rm", shell_adv_rm },
   { "mv", shell_adv_mv },
+#ifdef PLATFORM_SHELL_COMMANDS
+  PLATFORM_SHELL_COMMANDS
+#endif
   { NULL, NULL }
 };
 

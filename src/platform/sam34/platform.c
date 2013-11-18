@@ -584,7 +584,7 @@ int platform_i2c_recv_byte( unsigned id, int ack )
 const u32 uart_id[] = { ID_UART, ID_USART0, ID_USART1, ID_USART3};
 Usart* const uart_base[] = { (Usart *) UART, USART0, USART1, USART3};
 
-// Only some usarts have hardware flow control
+// Only some U(S)ARTs have hardware flow control
 const bool no_hw_flow[] = { true, false, false, true };
 
 // Pins
@@ -600,7 +600,7 @@ const bool no_hw_flow[] = { true, false, false, true };
 #define PIN_CFG_NOPIN  {PIO_INVALID_IDX, 0}
 
 // DANGER Will Robinson - Note that this array starts with USART0, not UART so need to use ID-1 as index
-// Might be safer to put in dummy record at the beginning
+// Might be safer to put in dummy record for UART at the beginning
 
 const struct { sam_pin_config rx, tx, cts, rts, sck; } usart_pins[] = {
         {{PIN_USART0_RXD_IDX, PIN_USART0_RXD_FLAGS}, {PIN_USART0_TXD_IDX, PIN_USART0_TXD_FLAGS}, 
@@ -610,10 +610,6 @@ const struct { sam_pin_config rx, tx, cts, rts, sck; } usart_pins[] = {
         {{PIN_USART3_RXD_IDX, PIN_USART3_RXD_FLAGS}, {PIN_USART3_TXD_IDX, PIN_USART3_TXD_FLAGS},
           PIN_CFG_NOPIN, PIN_CFG_NOPIN, PIN_CFG_NOPIN}};  // USART3 (note no RTS/CTS)
 
-//#define USART_SERIAL_PIO PINS_USART_PIO
-//#define USART_SERIAL_TYPE PINS_USART_TYPE
-//#define USART_SERIAL_PINS PINS_USART_PINS
-//#define USART_SERIAL_MASK PINS_USART_MASK
 
 //PIO_PA8A_URXD
 //PIO_PA9A_UTXD 
@@ -1246,6 +1242,7 @@ const sam_pin_config pwm_pins_l[] = {
 #endif // PWML7
   };
 
+
 #define PWMH no
 //#define PWMH 'C'
 
@@ -1706,7 +1703,7 @@ int platform_adc_start_sequence( void )
 // Ethernet functions
 #ifdef BUILD_UIP
 
-#warning Ethernet platform driver not written.
+#warning Ethernet - platform driver not written.
 
 #endif // BUILD_UIP
 
@@ -1939,6 +1936,44 @@ int platform_flash_erase_sector( u32 sector_id )
 
 
 // ****************************************************************************
+// Platform specific shell command(s)
+#if defined(BUILD_SHELL_REFLASH)
+
+#include "shell.h"
+
+
+const char shell_help_reflash[] = "\n"
+  "Restart to the bootloader, ready to flash new program.\n";
+const char shell_help_summary_reflash[] = "back to bootloader";
+
+void platform_shell_reflash( int argc, char **argv )
+{
+  if( argc != 1 )
+  {
+    SHELL_SHOW_HELP( reflash );
+    return;
+  }
+  printf( "Reflash command - not written yet\n" );
+/*
+    // Misc code snippents that might be relevant from at91sam forum - but check since may not be for this CPU, etc.
+  flash_clear_gpnvm(1);   // Boot from ROM
+//    Reset_Handler();  // TODO: Find out what this is (was in one examp, but not another)
+
+    // reset processor and periphirals (register address from cmsis)
+  asm  ("dsb"); // What is this?
+    // set key, perrst and  procrst
+  REG_RSTC_CR = RSTC_CR_KEY(0xa5) | RSTC_CR_PERRST | RSTC_CR_PROCRST;
+  asm ("dsb"); // What is this?
+    while (1);
+    
+  */
+}
+
+
+#endif
+
+
+// ****************************************************************************
 // Platform specific modules go here
 
 
@@ -1955,33 +1990,56 @@ int platform_flash_erase_sector( u32 sector_id )
 // Indicate if need to arrange to call rand_init - maybe should just call in system init(?)
 static u8 f_rand_init = false;
 
-/*
-static u8 buf_space = true;
-static u32 rand_buffer;
+#ifdef RAND_BUF
 
+#warning Rand buffer not finished
+
+//static u8 buf_space = true;
+//static u32 rand_buffer;
+
+static fifo_desc_t rand_fifo;
+
+#define RAND_BUF_SIZE 16
+
+static u8 rand_buf[RAND_BUF_SIZE];
 
 void TRNG_Handler(void)
 {
 	u32 status;
+  u32 rand; // make this a union (u32 and array of u8)
 
   status = trng_get_interrupt_status(TRNG);
   
-  if (buf_space)
+  if ((status & TRNG_ISR_DATRDY) == TRNG_ISR_DATRDY) {
+    if (fifo_is_full(&rand_fifo))
+      disable TRNG interrupt
+    else {
+      rand = trng_read_output_data(TRNG)
+      for (i = 0; i < 4; i++)
+        if (fifo_push_uint8(&rand_fifo, rand[i]) == FIFO_ERROR_OVERFLOW){
+          disable TRNG int
+          break;
+        }
+    }
+  }
+  
+/*  if (buf_space)
   {
     if ((status & TRNG_ISR_DATRDY) == TRNG_ISR_DATRDY) {
       buf_space = false;
       rand_buffer = trng_read_output_data(TRNG);
     }
   }
+ */
+  
 }
-*/
+#endif
+
 
 u8 platform_rand_init( void )
 {
   if ( !f_rand_init ) {
-    f_rand_init = true;
     pmc_enable_periph_clk(ID_TRNG);
-  
     trng_enable(TRNG);
 
 	/* Enable TRNG interrupt */
@@ -1992,10 +2050,16 @@ u8 platform_rand_init( void )
 	NVIC_EnableIRQ(TRNG_IRQn);
 	trng_enable_interrupt(TRNG);
  */
+#ifdef RAND_BUF
+    if (fifo_init(&rand_fifo, rand_buf, RAND_BUF_SIZE) == FIFO_ERROR)
+      return FALSE;
+#endif
+    f_rand_init = true;    
   }
   return TRUE;
 }
 
+// TODO: Fetch given number bytes from random sequence next(n) 
 u32 platform_rand_next( void )
 {
   if ( !f_rand_init )
@@ -2004,5 +2068,6 @@ u32 platform_rand_next( void )
   WAIT_WHILE(!trng_get_interrupt_status(TRNG));
   return trng_read_output_data(TRNG);
 }
+
 
 #endif // BUILD_RAND

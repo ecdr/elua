@@ -15,6 +15,18 @@
 #define WAIT_WHILE( cond ) while( cond );
 // FIXME: Busy waiting (should do low power/sleep and wake on interrupt, or do something useful)
 
+#define BUILD_SHELL_REFLASH
+
+#if defined(BUILD_SHELL_REFLASH)
+#define PLATFORM_SHELL_COMMANDS { "reflash", platform_shell_reflash },
+
+#define PLATFORM_SHELL_HELP SHELL_HELP( reflash );
+
+#define PLATFORM_SHELL_HELP_DATA  SHELL_INFO( reflash ),
+
+#define PLATFORM_SHELL_FUNC   SHELL_FUNC( platform_shell_reflash );
+
+#endif // BUILD_SHELL_REFLASH
 
 #endif // #ifndef __PLATFORM_GENERIC_H__
 
