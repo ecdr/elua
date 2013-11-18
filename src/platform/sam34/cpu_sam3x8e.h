@@ -17,7 +17,7 @@
 // FIXME: Check number timers - libraries look like only 3 (?)
 #define NUM_PWM               8
 #define NUM_I2C               2
-#define NUM_ADC               16
+#define NUM_ADC               16  // 15 pins, plust thermometer
 #define NUM_CAN               2
 // TODO: Add support for temperature from ADC
 

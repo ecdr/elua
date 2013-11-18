@@ -1598,6 +1598,12 @@ const struct sam_pin_config adc_pins[] = {
 #define ADC_TIMER_FIRST_ID 8
 #define ADC_NUM_TIMERS 1
 
+/** Reference voltage for ADC, in mv. */
+#define VOLT_REF        (3300)
+
+// Could be useful const (either this or # bits)
+#define MAX_DIGITAL     (4095)
+
 
 // TODO: See what did with LM4F on temperature sensor
 
@@ -1605,6 +1611,14 @@ const struct sam_pin_config adc_pins[] = {
 // TSON bit in ADC_ACR
 //		f_temp = (float)(l_vol - 800) * 0.37736 + 27.0;
 
+// Constant: THERMOMETER
+#define ADC_THERM_ID  ADC_TEMPERATURE_SENSOR
+
+
+static adc_channel_num_t adc_channel(unsigned id)
+{
+  return id;
+}
 
 int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 {
@@ -1613,27 +1627,60 @@ int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 
 void platform_adc_stop( unsigned id )
 {
-//  adc_stop_sequencer(ADC);
+  elua_adc_ch_state *s = adc_get_ch_state( id );
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  s->op_pending = 0;
+  INACTIVATE_CHANNEL(d, id);
+  
+  // If there are no more active channels, stop the sequencer
+  if( d->ch_active == 0 )
+  {
+    adc_stop_sequencer(ADC);
+    d->running = 0;
+  }
+
 //	adc_disable_channel(ADC, adc_channel(id));
 //  adc_stop(ADC);
-  lua_assert(false);
 }
+
+// Given ADC reading with channel number - get just the channel number
+static inline u8 chan_num(u32 adc_val)
+{
+  return ((adc_val & ADC_LCDR_CHNB_Msk) >> ADC_LCDR_CHNB_Pos);
+}
+
 
 // Handle ADC interrupts
 void ADC_Handler( void )
 {
-//  if ((adc_get_status(ADC) & ) == ){
-//  }
+	uint32_t i;
+	uint32_t adctemp;
+	uint8_t ch_num;
+  
+  if ((adc_get_status(ADC) & ADC_ISR_DRDY) == ADC_ISR_DRDY) {
+		adctemp = adc_get_latest_value(ADC);
+    ch_num = chan_num(adctemp);
+/*
+		for (i = 0; i < NUM_CHANNELS; i++) {
+      if (g_adc_sample_data.uc_ch_num[i] == ch_num) {
+				g_adc_sample_data.us_value[i] = (temp & ADC_LCDR_LDATA_Msk);
+				g_adc_sample_data.us_done |= 1 << i;
+			}
+		}
+*/
+  }
 }
 //ADC_ISR_DRDY
 //ADC_ISR_RXBUFF
 
 static void adcs_init( void )
 {
+  unsigned id;
+//  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
 	pmc_enable_periph_clk(ID_ADC);
 
-//  adc_enable_channel( ADC, ulChannel );
-  
 #ifdef ADC_TEMP  
   // TODO: constant for ADC channel #
   
@@ -1643,32 +1690,76 @@ static void adcs_init( void )
 	/* Enable the temperature sensor. */
 	adc_enable_ts(ADC);
 #endif //ADC_TEMP
-  
-  lua_assert(false);
+
+//  adc_enable_channel( ADC, ulChannel );
+
+  for( id = 0; id < NUM_ADC; id ++ )
+    adc_init_ch_state( id );
+
+  // Perform sequencer setup
+  platform_adc_set_clock( 0, 0 );
 }
 
-u32 platform_adc_set_clock( unsigned id, u32 frequency )
-{
+
+	/*
+	 * Formula: ADCClock = MCK / ( (PRESCAL+1) * 2 )
+	 * For example, MCK = 64MHZ, PRESCAL = 4, then:
+	 *     ADCClock = 64 / ((4+1) * 2) = 6.4MHz;
+	 */
+	/* Set ADC clock. */
+	/* Formula:
+	 *     Startup  Time = startup value / ADCClock
+	 *     Transfer Time = (TRANSFER * 2 + 3) / ADCClock
+	 *     Tracking Time = (TRACKTIM + 1) / ADCClock
+	 *     Settling Time = settling value / ADCClock
+	 * For example, ADC clock = 6MHz (166.7 ns)
+	 *     Startup time = 512 / 6MHz = 85.3 us
+	 *     Transfer Time = (1 * 2 + 3) / 6MHz = 833.3 ns
+	 *     Tracking Time = (0 + 1) / 6MHz = 166.7 ns
+	 *     Settling Time = 3 / 6MHz = 500 ns
+	 */
 	/* Initialize ADC. */
 	/*  startup = 8:    512 periods of ADCClock
 	 * for prescale = 4
 	 *     prescale: ADCClock = MCK / ( (PRESCAL+1) * 2 ) => 64MHz / ((4+1)*2) = 6.4MHz
 	 *     ADC clock = 6.4 MHz
 	 */
-//  adc_init(ADC, CPU_FREQUENCY, 6400000, 8 );  
-//    adc_init(ADC, CPU_FREQUENCY, frequency, startup - some number of periods of ADC clock );
 
-//	adc_configure_timing(ADC, 0, ADC_SETTLING_TIME_3, 1);
+u32 platform_adc_set_clock( unsigned id, u32 frequency )
+{
+  uint8_t startup;
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  if ( frequency > 0 )
+  {
+    d->clocked = 1;
+    //  adc_init(ADC, CPU_FREQUENCY, 6400000, 8 );
+    uint8_t startup = function of frequency; // FIXME: look up - some number of periods of ADC clock
+
+    adc_init(ADC, CPU_FREQUENCY, frequency, startup );
+
+    adc_configure_timing(ADC, 0, ADC_SETTLING_TIME_3, 1);
 
 //	adc_configure_trigger(ADC, ADC_TRIG_SW, 0);  // ADC_TRIG_TIO_CH_0-2
 
   // Checks ADC settings, prints error messages if problems
-  adc_check(ADC, CPU_FREQUENCY);
+    adc_check(ADC, CPU_FREQUENCY);
+    
+    adc_configure_trigger(ADC, ADC_TRIG_SW, 0);	/* Disable hardware trigger. */ 
 
-  return adc_get_actual_adc_clock(ADC, CPU_FREQUENCY);
+    frequency = adc_get_actual_adc_clock(ADC, CPU_FREQUENCY);
+  }
+  else
+  {
+    d->clocked = 0;
+    // Conversion will run back-to-back until required samples are acquired
+    adc_configure_trigger(ADC, ADC_TRIG_SW, 1);
+  }
+  
+	/* Enable channel number tag. */
+	adc_enable_tag(ADC);
 
-//  return frequency;
-//  return 0;   // FIXME: Signal an error - should return frequency set
+  return frequency;
 }
 
 int platform_adc_update_sequence( void )
@@ -1684,13 +1775,49 @@ int platform_adc_update_sequence( void )
 // 		adc_read_buffer(ADC, gs_s_adc_values, BUFFER_SIZE)
 //  	adc_enable_interrupt(ADC, ADC_ISR_RXBUFF);
 
-  
+/*enum adc_channel_num_t ch_list[2] = {
+	ADC_TEMPERATURE_SENSOR,
+	ADC_CHANNEL_POTENTIOMETER
+};
+*/
+
 int platform_adc_start_sequence( void )
 {
-  adc_start_sequencer(ADC);
-//	adc_start(ADC); 	/* Start conversion. */
-//  return PLATFORM_OK;
-  return PLATFORM_ERR;
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  if( d->running != 1 )
+  {
+    adc_update_dev_sequence( 0 );
+
+    d->running = 1;
+    if( d->clocked == 1 )
+    {
+//      MAP_TimerControlTrigger(timer_base[d->timer_id], TIMER_A, true);
+//      MAP_TimerEnable(timer_base[d->timer_id], TIMER_A);
+    }
+    else
+    {
+//      MAP_ADCProcessorTrigger( ADC_BASE, d->seq_id );
+        adc_configure_trigger(ADC, ADC_TRIG_SW, 1);  // Free running
+    }
+
+// FIXME: Not sure where rest of this should go
+    /* Set user defined channel sequence. */
+    adc_configure_sequence(ADC, ch_list, NUM_CHAN_IN_LIST);
+
+    /* Enable sequencer. */
+    adc_start_sequencer(ADC);
+
+    /* Enable Data ready interrupt. */
+    adc_enable_interrupt(ADC, ADC_IER_DRDY);
+
+    /* Enable ADC interrupt. */
+    NVIC_EnableIRQ(ADC_IRQn);
+    
+    adc_start(ADC); 	/* Start conversion. */
+  }
+  
+  return PLATFORM_OK;
 }
 
 #endif // ifdef BUILD_ADC
