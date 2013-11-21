@@ -29,10 +29,11 @@ return {
   },
   modules = {
     generic = { 'all', '-net', '-mmc' },
-    platform = {'all', '-mmc'},
+    platform = {'all', '-mmc', '-adc'},
   },
   macros = { -- { "SPI0_NPCS_PIN1", "" }, -- Select which pin to use for SPI0 NPCS (define for PA29)
 	 { "SHELL_SHOW_INFO", ""},
+--   { "PSEUDO_PWM", ""},         -- Use timer pins as PWM (not finished)
 --   { "USB_CDC_STDIO", ""}       -- Use CDC_STDIO (rather than USB_CDC), does not work
   },
   build = {
