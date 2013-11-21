@@ -11,7 +11,15 @@
 #include <ctype.h>
 #include <stdio.h>
 
-// FIXME: These ifdefs may not work, since those symbols may not be defined until later
+#include "platform_conf.h"
+#include "common.h"
+#include "math.h"
+#include "diskio.h"
+#include "lua.h"
+#include "lauxlib.h"
+#include "lrotable.h"
+#include "elua_int.h" 
+
 #ifdef BUILD_UIP
 #include "uip_arp.h"
 #include "elua_uip.h"
@@ -21,15 +29,6 @@
 #ifdef BUILD_ADC
 #include "elua_adc.h"
 #endif
-
-#include "platform_conf.h"
-#include "common.h"
-#include "math.h"
-#include "diskio.h"
-#include "lua.h"
-#include "lauxlib.h"
-#include "lrotable.h"
-#include "elua_int.h" 
 
 // Platform specific includes
 
@@ -800,7 +799,7 @@ Tc * const timer_base[] = {TC0, TC1, TC2};
 
 u32 timer(unsigned id);
 Tc * tc(unsigned id);
-u32 tchanel(unsigned id);
+u32 tchannel(unsigned id);
 
 // TODO: See if library files provide a name for this
 #define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
@@ -837,9 +836,9 @@ Tc * tc(unsigned id)
 
 // FIXME: check spelling
 // channel number from timer id 
-u32 tchanel(unsigned id) 
+u32 tchannel(unsigned id) 
 {
-  return (u32) id - timer(id);
+  return (u32) id - (timer(id) * channels_per_tc);
 }
 
 
@@ -873,9 +872,9 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
   if( final > PLATFORM_TIMER_COUNT_MAX )
     final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead (on the other hand, unless use u64 for final, this test makes no sense
 // TODO: stop timer, set count to 0, start timer
-  tc_init(tc(id), tchanel(id), TC_CMR_WAVE);
-  tc_start( tc(id), tchanel(id) );
-  WAIT_WHILE( ( tc_read_cv(tc(id), tchanel(id)) < final ) );
+  tc_init(tc(id), tchannel(id), TC_CMR_WAVE);
+  tc_start( tc(id), tchannel(id) );
+  WAIT_WHILE( ( tc_read_cv(tc(id), tchannel(id)) < final ) );
 // TODO: should probably stop the timer (?)
 }
 
@@ -906,11 +905,11 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
   switch( op )
   {
     case PLATFORM_TIMER_OP_START:
-      tc_start(tc(id), tchanel(id));
+      tc_start(tc(id), tchannel(id));
       break;
 
     case PLATFORM_TIMER_OP_READ:
-      res = tc_read_cv(tc(id), tchanel(id));
+      res = tc_read_cv(tc(id), tchannel(id));
       break;
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
@@ -918,7 +917,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
       
       if ( tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
       {
-        tc_init(tc(id), tchanel(id), tmr_tcclks | TC_CMR_WAVE | TC_CMR_CPCTRG | TC_CMR_WAVSEL_UP_RC);
+        tc_init(tc(id), tchannel(id), tmr_tcclks | TC_CMR_WAVE | TC_CMR_CPCTRG | TC_CMR_WAVSEL_UP_RC);
           // Wave, Clear when count reaches register C, Count up to register C, then reset
 //          | TC_IER_CPCS // Interrupt when count reaches register C
           // FIXME - figure out mode
@@ -953,13 +952,13 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 
   if( period_us == 0 )  // Might be handled by setting period_us to largest possible period and continue
   {
-    tc_stop(tc(id), tchanel(id));
-//    tc_disable_interrupt(tc(id), tchanel(id), TC_IDR_CPCS);   // Disable reg C interrupt (would only do if set an interrupt on counter overflow)
-    tc_get_status(tc(id), tchanel(id));
+    tc_stop(tc(id), tchannel(id));
+//    tc_disable_interrupt(tc(id), tchannel(id), TC_IDR_CPCS);   // Disable reg C interrupt (would only do if set an interrupt on counter overflow)
+    tc_get_status(tc(id), tchannel(id));
     platform_timer_int_periodic_flag[ id ] = type;              // This was ignored in one example - ??
-    tc_write_rc(tc(id), tchanel(id), PLATFORM_TIMER_COUNT_MAX); // Or could just drop the register C mode and go to full wave (changing interrupt type).
+    tc_write_rc(tc(id), tchannel(id), PLATFORM_TIMER_COUNT_MAX); // Or could just drop the register C mode and go to full wave (changing interrupt type).
     // Should set CMR to CPCstop 
-    tc_start(tc(id), tchanel(id));
+    tc_start(tc(id), tchannel(id));
     return PLATFORM_TIMER_INT_OK;
   } 
   
@@ -968,13 +967,13 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
     return PLATFORM_TIMER_INT_TOO_SHORT;  
   if ( final > PLATFORM_TIMER_COUNT_MAX )
     return PLATFORM_TIMER_INT_TOO_LONG;
-  tc_stop(tc(id), tchanel(id));
-  tc_get_status(tc(id), tchanel(id));    // Guessing that this clears pending interrupt stats (?) - may not need
+  tc_stop(tc(id), tchannel(id));
+  tc_get_status(tc(id), tchannel(id));    // Guessing that this clears pending interrupt stats (?) - may not need
   platform_timer_int_periodic_flag[ id ] = type;
   // FIXME: Need to handle one-shot vs. continuous (stop when reaches register C, vs reset)
   // FIXME: Should be more elegant way to handle oneshot - set CMR to reset and keep going when reach CPC
-  tc_write_rc(tc(id), tchanel(id), ( u32 )final );  // TODO: Check if that should be final or final - 1
-  tc_start(tc(id), tchanel(id));
+  tc_write_rc(tc(id), tchannel(id), ( u32 )final );  // TODO: Check if that should be final or final - 1
+  tc_start(tc(id), tchannel(id));
   return PLATFORM_TIMER_INT_OK;
 }
 
@@ -1145,6 +1144,9 @@ PIO_PD6B_PWMFI2
 // TODO: Could make these selectable from the build system
 //  e.g., pwm = {L0 = A, L1 = C, ...}
 
+// Allow outside pin definition (shortcut for now - assume if define 1, then defined all)
+#ifndef PWML0
+
 // PWML0 A -> onboard LED "Tx" (low = on)
 #define PWML0 'A'
 #define PWML1 'C'
@@ -1159,9 +1161,11 @@ PIO_PD6B_PWMFI2
 // PWML7 C -> arduino pin "PWM6"
 #define PWML7 'C'
 
+#endif
+
 // TODO: Remove #warnings below - were just there for testing
 
-const sam_pin_config pwm_pins_l[] = {
+static const sam_pin_config pwm_pins_l[] = {
 #if ('A' == PWML0)
   { PIO_PA21_IDX, (PIO_PERIPH_B| PIO_DEFAULT)}, //PWML0 - onboard LED Tx (low = on?)
 #elif ('B' == PWML0)
@@ -1243,6 +1247,8 @@ const sam_pin_config pwm_pins_l[] = {
   };
 
 
+#ifndef PWMH0
+
 #define PWMH no
 //#define PWMH 'C'
 
@@ -1254,8 +1260,9 @@ const sam_pin_config pwm_pins_l[] = {
 #define PWMH5 PWMH
 #define PWMH6 PWMH
 
+#endif
 
-const sam_pin_config pwm_pins_h[] = {
+static const sam_pin_config pwm_pins_h[] = {
 #if ('A' == PWMH0)
   { PIO_PA8_IDX, (PIO_PERIPH_B| PIO_DEFAULT)},
 #elif ('B' == PWMH0)
@@ -1338,8 +1345,207 @@ static int pwm_enable_pin(unsigned id)
   return 0; // Return 0 for success
 }
 
+
+//#define PSEUDO_PWM
+
+#ifdef PSEUDO_PWM
+
+// Add PWMs handled by timers
+#define NUM_TMR_PWM NUM_PWM - NUM_REAL_PWM
+
+// TIO pins
+static const sam_pin_config pwm_tc_pins[]  = {
+  };
+
+// Flags -> bitarray?
+static u8 tc_pinEnabled[NUM_TMR_PWM] = { 0 };
+
+
+static bool pwm_id_is_pwm( unsigned id );
+static unsigned pwm_id_to_tc( unsigned id );
+static unsigned pwm_tc_id_to_interface( unsigned id );
+
+static u32 tc_pwm_get_clock( unsigned id );
+static u32 tc_pwm_set_clock( unsigned id, u32 clock );
+static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty );
+static void tc_pwm_start( unsigned id );
+static void tc_pwm_stop( unsigned id );
+
+
+// Using timers as pwms
+
+// Differentiate PWMs handled by pwm vs. by timer (or other mechanism)
+static bool pwm_id_is_pwm( unsigned id )
+{
+  return id < NUM_REAL_PWM;
+}
+
+#define INVALID_PWM NUM_PWM
+
+static unsigned pwm_id_to_tc( unsigned id )
+{
+  if (pwm_id_is_pwm(id))
+    return INVALID_PWM;
+  return id - NUM_REAL_PWM;
+}
+
+// Map PWM id to id of timer that controls that PWM
+// pwm_id -> tc (0-3), tc channel (0-3), A or B
+//0: TC0, Ch0, A; 1: TC0, Ch0, B; 2: TC0, Ch1, A; TC0, Ch1, B
+
+static bool pwm_tc_id_isA( unsigned id)
+{
+  return !(id & 1);
+}
+
+// TODO: Could do this with table lookups, which faster/better space?
+static unsigned pwm_tc_id_to_timer( unsigned id )
+{
+  return pwm_tc_id_to_interface(id) / channels_per_tc;
+}
+
+static unsigned pwm_tc_id_to_channel( unsigned id )
+{
+  return pwm_tc_id_to_interface(id) - (pwm_tc_id_to_timer( id ) * channels_per_tc);
+}
+
+static unsigned pwm_tc_id_to_interface( unsigned id )
+{
+  return (id >> 1);
+}
+
+// TODO: Write me
+static u32 tc_pwm_get_clock( unsigned id )
+{
+  Assert(0);
+  return 0; // Error
+}
+
+
+// TODO: Write me
+static u32 tc_pwm_set_clock( unsigned id, u32 clock )
+{
+  Assert(0);
+  return 0; // Error
+}
+
+// Really indexed by number of pseudo-pwms, or maybe by channel number
+static struct { u8 mode, running; } TCChan[NUM_TMR_PWM] = {{0, 0}};
+#define TC_PWM 1
+
+#define MAX_DUTY  100
+
+
+static void tc_SetCMR_ChannelA(Tc *tc, uint32_t chan, uint32_t v)
+{
+	tc->TC_CHANNEL[chan].TC_CMR = (tc->TC_CHANNEL[chan].TC_CMR & 0xFFF0FFFF) | v;
+}
+// ~ (TC_CMR_ACPA_Msk | TC_CMR_ACPC_Msk)
+
+static void tc_SetCMR_ChannelB(Tc *tc, uint32_t chan, uint32_t v)
+{
+	tc->TC_CHANNEL[chan].TC_CMR = (tc->TC_CHANNEL[chan].TC_CMR & 0xF0FFFFFF) | v;
+}
+// ~ (TC_CMR_BCPB_Msk | TC_CMR_BCPC_Msk)
+
+
+static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty )
+{
+  const u32 tcid = pwm_id_to_tc(id);  
+  Tc *chTC = tc(pwm_tc_id_to_timer(tcid));
+  const uint32_t chNo = pwm_tc_id_to_channel(tcid);
+  u32 period;
+  u32 duty_clocks;
+  const u8 interfaceID = pwm_tc_id_to_interface(tcid);
+  
+  period = (tc_pwm_get_clock( id ) + frequency/2) / frequency;
+  if (period > PLATFORM_TIMER_COUNT_MAX) period = PLATFORM_TIMER_COUNT_MAX;
+  duty_clocks = (period * duty + (MAX_DUTY/2) ) / MAX_DUTY; // duty::100 as duty_clocks::period Calculate from duty cycle
+
+	if (!TCChan[interfaceID].mode) { 
+    tc_init(chTC, chNo,
+      TC_CMR_TCCLKS_TIMER_CLOCK1 |
+      TC_CMR_WAVE |         // Waveform mode
+      TC_CMR_WAVSEL_UP_RC | // Counter running up and reset when equals to RC
+      TC_CMR_EEVT_XC0 |     // Set external events from XC0 (this setup TIOB as output)
+      TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_CLEAR | // clear TIOA on RA and RC
+      TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR); // clear TIOB on RB and RC
+    tc_write_rc(chTC, chNo, period);
+
+		TCChan[interfaceID].mode = TC_PWM;   // FIXME: Not right yet - have we programmed it, then have we started it (so need more than 2 states, or maybe 2 separate flags)  Programmed, started
+	}
+  else 
+    // Check period against frequency currently using, if set to different freq - have a problem
+    // Actually this isn't right - need to check that the other channel is in use
+    // Or maybe just let them run one PWM per TC (and pick which pin they want A or B)
+    if (period != tc_read_rc(chTC, chNo))
+      return 0;   // FIXME: Or whatever indicates failure
+
+  if (duty_clocks == 0) {
+    if (pwm_tc_id_isA(tcid))
+      tc_SetCMR_ChannelA(chTC, chNo, TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_CLEAR);  // RA -> clear TIOA, RC -> clear TIOA
+    else
+      tc_SetCMR_ChannelB(chTC, chNo, TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR);
+  } else {
+    if (pwm_tc_id_isA(tcid)) {
+      tc_write_ra(chTC, chNo, duty_clocks);
+      tc_SetCMR_ChannelA(chTC, chNo, TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_SET);  // RA -> clear TIOA, RC -> set TIOA
+    } else {
+      tc_write_rb(chTC, chNo, duty_clocks);
+      tc_SetCMR_ChannelB(chTC, chNo, TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_SET);
+    }
+  }
+//  return (pwmclk + period/2) / period;  
+  return ; // what?
+}
+
+
+static void tc_pwm_start( unsigned id )
+{
+  u32 tcid = pwm_id_to_tc(id);
+  const u8 interfaceID = pwm_tc_id_to_interface(tcid);
+  
+  if (!tc_pinEnabled[tcid]) {
+    if ( pwm_tc_pins[tcid].pin != PIO_INVALID_IDX)
+      gpio_configure_pin(pwm_tc_pins[tcid].pin, pwm_tc_pins[tcid].flags);
+    tc_pinEnabled[tcid] = 1;
+  };
+
+  if (!TCChan[interfaceID].running) {
+    tc_start(tc(pwm_tc_id_to_timer(tcid)), pwm_tc_id_to_channel(tcid));
+    TCChan[interfaceID].running = 1;
+  };
+}
+
+
+static void tc_pwm_stop( unsigned id )
+{
+  u32 tcid = pwm_id_to_tc(id);
+  const u8 interfaceID = pwm_tc_id_to_interface(tcid);
+
+  // FIXME: This doesn't quite work - since the other pin in the channel could still be in use
+  // Really what need to do is check if other pin in use, 
+  //    if so, then disable this pin (disconnect output from timer, or reprogram register, or ??)
+  //    if not, then stop the channel - and release it back to being a timer channel again
+  if (TCChan[interfaceID].running) {
+    tc_stop(tc(pwm_tc_id_to_timer(tcid)), pwm_tc_id_to_channel(tcid));
+    TCChan[interfaceID].running = 0;
+  };
+}
+
+#else
+
+static bool pwm_id_is_pwm( unsigned id )
+{
+  return true;
+}
+
+#endif // PSEUDO_PWM
+
+
 // Platform functions
 
+// Assumes that timers enabled by timer section
 static void pwms_init( void )
 {
   pmc_enable_periph_clk(ID_PWM);
@@ -1354,43 +1560,49 @@ static void pwms_init( void )
 #define PWM_CLK_PREA_GET(value) GET_FIELD(value, PWM_CLK_PREA_Msk, PWM_CLK_PREA_Pos)
 #define PWM_CLK_PREB_GET(value) GET_FIELD(value, PWM_CLK_PREB_Msk, PWM_CLK_PREB_Pos)
 
+
 // pwm.c does not provide interface to fetch clock, so use low level component_pwm macros
 u32 platform_pwm_get_clock( unsigned id )
 {
-	u32 pre = PWM->PWM_CH_NUM[id].PWM_CMR & PWM_CMR_CPRE_Msk;  // Channel clock prescaler
+	u32 pre;
   u32 div;
   u32 res = 0;
+
+  if (pwm_id_is_pwm(id)) {
+    pre = PWM->PWM_CH_NUM[id].PWM_CMR & PWM_CMR_CPRE_Msk;  // Channel clock prescaler
   
-//  printf("PWM get clock: chanel_pre = %lu", pre);
+//  printf("PWM get clock: channel_pre = %lu", pre);
   
-  switch (pre)
-  {
-    case PWM_CMR_CPRE_CLKA:
-      div = PWM_CLK_DIVA_GET(PWM->PWM_CLK);
-//      printf(" clocka div = %lu", div);
-      if (div)  // if div=0 then clock not set, so return 0
-        {
-        pre = PWM_CLK_PREA_GET(PWM->PWM_CLK);
-//        printf(" clocka pre = %lu\n", pre);
+    switch (pre)
+    {
+      case PWM_CMR_CPRE_CLKA:
+        div = PWM_CLK_DIVA_GET(PWM->PWM_CLK);
+//       printf(" clocka div = %lu", div);
+        if (div)  // if div=0 then clock not set, so return 0
+          {
+          pre = PWM_CLK_PREA_GET(PWM->PWM_CLK);
+//          printf(" clocka pre = %lu\n", pre);
+          if (pre < PWM_CLOCK_PRE_MAX)
+            res = freq_from_prescaler(pre)/ div;
+//        res = (PWM_MAX_CLOCK / pwm_prescalers( pre ))/ div;
+          Assert(freq_from_prescaler(pre) == (PWM_MAX_CLOCK / pwm_prescalers( pre )));
+          // FIXME: Just for testing to check math
+          }
+        break;
+      case PWM_CMR_CPRE_CLKB:
+        div = PWM_CLK_DIVB_GET(PWM->PWM_CLK);
+        if (div)  // if div=0 then clock not set, so return 0
+          {
+          pre = PWM_CLK_PREB_GET(PWM->PWM_CLK);
+          if (pre < PWM_CLOCK_PRE_MAX)
+            res = freq_from_prescaler(pre)/ div;
+          }
+        break;
+      default:
         if (pre < PWM_CLOCK_PRE_MAX)
-          res = freq_from_prescaler(pre)/ div;
-//      res = (PWM_MAX_CLOCK / pwm_prescalers( pre ))/ div;
-        Assert(freq_from_prescaler(pre) == (PWM_MAX_CLOCK / pwm_prescalers( pre )));
-        // FIXME: Just for testing to check math
-        }
-      break;
-    case PWM_CMR_CPRE_CLKB:
-      div = PWM_CLK_DIVB_GET(PWM->PWM_CLK);
-      if (div)  // if div=0 then clock not set, so return 0
-        {
-        pre = PWM_CLK_PREB_GET(PWM->PWM_CLK);
-        if (pre < PWM_CLOCK_PRE_MAX)
-          res = freq_from_prescaler(pre)/ div;
-        }
-      break;
-    default:
-      if (pre < PWM_CLOCK_PRE_MAX)
-        res = freq_from_prescaler(pre) ;  // divisor of MCK
+          res = freq_from_prescaler(pre) ;  // divisor of MCK
+    }
+  } else {
   }
   return res;
 
@@ -1431,38 +1643,42 @@ u32 platform_pwm_get_clock( unsigned id )
 u32 platform_pwm_set_clock( unsigned id, u32 clock )
 {
   platform_pwm_stop(id);
-  if (clock)
-  {
-    // FIXME: Should disable any active PWM channels before setting clock
-    // FIXME: Allow use clockb and fixed divisors
-    //  e.g. keep track of clock value settings (and accept 2 different values, plus using divisions of mck)
-    pwm_clock.ul_clka = clock;
-    pwm_clock.ul_clkb = 0;          // FIXME: Should already be 0, but just to be sure
-    pwm_clock.ul_mck = CPU_FREQUENCY;
-    if(pwm_init(PWM, &pwm_clock))
-      return 0;
-    // FIXME: Need to find out what clock actually set
-
-    if (pwm_chan_clock[id] == 0) pwm_clka_users++;        // Increment use count if wasn't already using
-    
-    // FIXME: Returns wrong value 
-    // *** Problem is it doesn't assign a clock to channel until init channel, 
-    // so although clocka is set, we are reading giberish.
-    // (So why is it returning system clock value?)
-    
-    pwm_chan_clock[id] = platform_pwm_get_clock(id);
-    pwm_chan_pre[id] = PWM_PRE_CLOCKA;
-  }
-  else
-    if (pwm_chan_clock[id])           // Clearing clock on channel that was in use
+  if (pwm_id_is_pwm(id)) {
+    if (clock)
     {
-    pwm_chan_clock[id] = 0;
-    pwm_clka_users--;         // FIXME: Should reduce count for a or b depending which was in use
+      // FIXME: Should disable any active PWM channels before setting clock
+      // FIXME: Allow use clockb and fixed divisors
+      //  e.g. keep track of clock value settings (and accept 2 different values, plus using divisions of mck)
+      pwm_clock.ul_clka = clock;
+      pwm_clock.ul_clkb = 0;          // FIXME: Should already be 0, but just to be sure
+      pwm_clock.ul_mck = CPU_FREQUENCY;
+      if(pwm_init(PWM, &pwm_clock))
+        return 0;
+      // FIXME: Need to find out what clock actually set
+
+      if (pwm_chan_clock[id] == 0) pwm_clka_users++;        // Increment use count if wasn't already using
+      
+      // FIXME: Returns wrong value 
+      // *** Problem is it doesn't assign a clock to channel until init channel, 
+      // so although clocka is set, we are reading giberish.
+      // (So why is it returning system clock value?)
+      
+      pwm_chan_clock[id] = platform_pwm_get_clock(id);
+      pwm_chan_pre[id] = PWM_PRE_CLOCKA;
     }
-  Assert(pwm_clka_users < NUM_PWM);
+    else
+      if (pwm_chan_clock[id])           // Clearing clock on channel that was in use
+      {
+      pwm_chan_clock[id] = 0;
+      pwm_clka_users--;         // FIXME: Should reduce count for a or b depending which was in use
+      }
+    Assert(pwm_clka_users < NUM_PWM);
+  }
   return pwm_chan_clock[id];
 //  return clock; // FIXME - what is it supposed to return?
 }
+
+
 
 static pwm_channel_t pwm_inst;
 
@@ -1484,57 +1700,60 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   
   if (id >= NUM_PWM || duty > 100 || pwm_chan_clock[id] == 0) return 0;
 
-  //Had tried enabling pin after channel init, but some examples showed it before, so trying it here
-  if (pwm_enable_pin(id))
-    return 0; // Error
+  if (pwm_id_is_pwm(id)) {
+    //Had tried enabling pin after channel init, but some examples showed it before, so trying it here
+    if (pwm_enable_pin(id))
+      return 0; // Error
 
-  pwmclk = platform_pwm_get_clock( id );
-  
-  // Compute period and duty period in clock cycles.
-  //
-  // PWM output wave frequency is requested in Hz, but programmed as a
-  // number of cycles of the master PWM clock frequency.
-  //
-  // Here, we use rounding to select the numerically closest available
-  // frequency and return the closest integer in Hz to that.
+    pwmclk = platform_pwm_get_clock( id );
+    
+    // Compute period and duty period in clock cycles.
+    //
+    // PWM output wave frequency is requested in Hz, but programmed as a
+    // number of cycles of the master PWM clock frequency.
+    //
+    // Here, we use rounding to select the numerically closest available
+    // frequency and return the closest integer in Hz to that.
 
-  // FIXME: from a different platform, check whether for center or left alligned
-  period = (pwmclk + frequency/2) / frequency;
-  if (period == 0) period = 1;  
-  if (period > PWM_MAX_PERIOD) period = PWM_MAX_PERIOD;
-  duty_clocks = (period * duty + 50) / 100;
+    // FIXME: from a different platform, check whether for center or left alligned
+    period = (pwmclk + frequency/2) / frequency;
+    if (period == 0) period = 1;  
+    if (period > PWM_MAX_PERIOD) period = PWM_MAX_PERIOD;
+    duty_clocks = (period * duty + 50) / 100;
 
-  // For debugging
-  //printf("PWM Setup: period = %u, duty clocks = %u\n", period, duty_clocks);
+    // For debugging
+    //printf("PWM Setup: period = %u, duty clocks = %u\n", period, duty_clocks);
 
-  // Put known value in all the other fields that example did not cover.
-  // Or tell it to start whole structure as 0
-  // FIXME: Find out right values for all of these
-  pwm_inst.b_deadtime_generator = 0;
-  pwm_inst.b_pwmh_output_inverted = 0;
-  pwm_inst.b_pwml_output_inverted = 0;
-  pwm_inst.us_deadtime_pwml = 0;
-  pwm_inst.us_deadtime_pwmh = 0;
-  pwm_inst.output_selection.b_override_pwmh = 0;
-  pwm_inst.output_selection.b_override_pwml = 0;
-  pwm_inst.output_selection.override_level_pwmh = 0;
-  pwm_inst.output_selection.override_level_pwml = 0;
-  pwm_inst.b_sync_ch  = 0;
-  pwm_inst.ul_fault_output_pwmh = 0;
-  pwm_inst.ul_fault_output_pwml = 0;
-  pwm_inst.fault_id = 0;
+    // Put known value in all the other fields that example did not cover.
+    // Or tell it to start whole structure as 0
+    // FIXME: Find out right values for all of these
+    pwm_inst.b_deadtime_generator = 0;
+    pwm_inst.b_pwmh_output_inverted = 0;
+    pwm_inst.b_pwml_output_inverted = 0;
+    pwm_inst.us_deadtime_pwml = 0;
+    pwm_inst.us_deadtime_pwmh = 0;
+    pwm_inst.output_selection.b_override_pwmh = 0;
+    pwm_inst.output_selection.b_override_pwml = 0;
+    pwm_inst.output_selection.override_level_pwmh = 0;
+    pwm_inst.output_selection.override_level_pwml = 0;
+    pwm_inst.b_sync_ch  = 0;
+    pwm_inst.ul_fault_output_pwmh = 0;
+    pwm_inst.ul_fault_output_pwml = 0;
+    pwm_inst.fault_id = 0;
 
-  // Fields actually covered by examples
-  pwm_channel_disable(PWM, pwm_chan[id]);  
-  pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;    // FIXME: Should be whichever clock/prescaler selected
-  pwm_inst.channel = pwm_chan[id];
-  pwm_inst.ul_period = period;
-  pwm_inst.ul_duty = duty_clocks;
-  pwm_inst.alignment = PWM_ALIGN_LEFT;
-  pwm_inst.polarity = PWM_LOW;                // Start low
-  if(pwm_channel_init(PWM, &pwm_inst))
-    return 0; // Error
-  return (pwmclk + period/2) / period;
+    // Fields actually covered by examples
+    pwm_channel_disable(PWM, pwm_chan[id]);  
+    pwm_inst.ul_prescaler = PWM_CMR_CPRE_CLKA;    // FIXME: Should be whichever clock/prescaler selected
+    pwm_inst.channel = pwm_chan[id];
+    pwm_inst.ul_period = period;
+    pwm_inst.ul_duty = duty_clocks;
+    pwm_inst.alignment = PWM_ALIGN_LEFT;
+    pwm_inst.polarity = PWM_LOW;                // Start low
+    if(pwm_channel_init(PWM, &pwm_inst))
+      return 0; // Error
+    return (pwmclk + period/2) / period;
+  }
+  return 0; // Error
 }
 //  TODO: Other bits from example code - consider
 // PWM_CMR_CPRE_CLKB
@@ -1547,14 +1766,18 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 void platform_pwm_start( unsigned id )
 {
 //  if ( pwm_chan_clock[id] )
+  if (pwm_id_is_pwm(id)) 
     pwm_channel_enable(PWM, pwm_chan[id]);
+  
 }
 
 
 void platform_pwm_stop( unsigned id )
 {
-  pwm_channel_disable(PWM, pwm_chan[id]);
+  if (pwm_id_is_pwm(id))
+    pwm_channel_disable(PWM, pwm_chan[id]);
 }
+
 #undef pwm_prescalers
 
 #endif // NUM_PWM > 0
@@ -1615,52 +1838,50 @@ const struct sam_pin_config adc_pins[] = {
 #define ADC_THERM_ID  ADC_TEMPERATURE_SENSOR
 
 
-static adc_channel_num_t adc_channel(unsigned id)
+/*
+static enum adc_channel_num_t adc_channel(unsigned id)
 {
   return id;
 }
+*/
 
 int platform_adc_check_timer_id( unsigned id, unsigned adc_timer_id )
 {
   return ( ( adc_timer_id >= ADC_TIMER_FIRST_ID ) && ( adc_timer_id < ( ADC_TIMER_FIRST_ID + ADC_NUM_TIMERS ) ) );
 }
 
-void platform_adc_stop( unsigned id )
-{
-  elua_adc_ch_state *s = adc_get_ch_state( id );
-  elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
-  s->op_pending = 0;
-  INACTIVATE_CHANNEL(d, id);
-  
-  // If there are no more active channels, stop the sequencer
-  if( d->ch_active == 0 )
-  {
-    adc_stop_sequencer(ADC);
-    d->running = 0;
-  }
 
-//	adc_disable_channel(ADC, adc_channel(id));
-//  adc_stop(ADC);
-}
-
-// Given ADC reading with channel number - get just the channel number
+// Given ADC reading taged with channel number - get just the channel number
 static inline u8 chan_num(u32 adc_val)
 {
   return ((adc_val & ADC_LCDR_CHNB_Msk) >> ADC_LCDR_CHNB_Pos);
 }
 
 
+// FIXME: Incomplete
+
 // Handle ADC interrupts
 void ADC_Handler( void )
 {
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  elua_adc_ch_state *s = d->ch_state[ d->seq_ctr ]; // FIXME: This is almost shurely wrong
+
 	uint32_t i;
 	uint32_t adctemp;
 	uint8_t ch_num;
-  
+
   if ((adc_get_status(ADC) & ADC_ISR_DRDY) == ADC_ISR_DRDY) {
 		adctemp = adc_get_latest_value(ADC);
     ch_num = chan_num(adctemp);
+  
+//  for (d->seq_ctr = 0; d->seq_ctr < d->seq_len ; d->seq_ctr++ )
+//   s = d->ch_state[ d->seq_ctr ];
+//    get fresh data for s, or if data available for s
+
+    // Need to fetch data from any channels 
+UNUSED(i);
+UNUSED(ch_num);
+  
 /*
 		for (i = 0; i < NUM_CHANNELS; i++) {
       if (g_adc_sample_data.uc_ch_num[i] == ch_num) {
@@ -1669,10 +1890,48 @@ void ADC_Handler( void )
 			}
 		}
 */
-  }
+
+    s->value_fresh = 1;
+
+    if ( s->logsmoothlen > 0 && s->smooth_ready == 0)
+      adc_smooth_data( s->id );
+#if defined( BUF_ENABLE_ADC )
+    else if ( s->reqsamples > 1 )
+    {
+      buf_write( BUF_ID_ADC, s->id, ( t_buf_data* )s->value_ptr );
+      s->value_fresh = 0;
+    }
+#endif
+
+    // If we have the number of requested samples, stop sampling
+    if ( adc_samples_available( s->id ) >= s->reqsamples && s->freerunning == 0 )
+      platform_adc_stop( s->id );
+      
+  };
+
+  // Only attempt to refresh sequence order if still running
+  // This allows us to "cache" an old sequence if all channels
+  // finish at the same time
+  if ( d->running == 1 )
+    adc_update_dev_sequence( 0 );
+
+  if ( d->clocked == 0 && d->running == 1 )
+  {
+    // Need to manually fire off sample request in single sample mode
+//    MAP_ADCProcessorTrigger( ADC_BASE, d->seq_id );
+  }    
 }
 //ADC_ISR_DRDY
 //ADC_ISR_RXBUFF
+
+//			while ((adc_get_status(ADC) & ADC_ISR_DRDY) != ADC_ISR_DRDY);
+//			ulValue = adc_get_latest_value(ADC);
+ 
+ 
+// 		adc_read_buffer(ADC, gs_s_adc_values, BUFFER_SIZE)
+//  	adc_enable_interrupt(ADC, ADC_ISR_RXBUFF);
+
+
 
 static void adcs_init( void )
 {
@@ -1696,16 +1955,56 @@ static void adcs_init( void )
   for( id = 0; id < NUM_ADC; id ++ )
     adc_init_ch_state( id );
 
+// Should set ADC int priority also
+
+  /* Enable Data ready interrupt. */
+  adc_enable_interrupt(ADC, ADC_IER_DRDY);
+
+  /* Enable ADC interrupt. */
+  NVIC_EnableIRQ(ADC_IRQn);
+
   // Perform sequencer setup
   platform_adc_set_clock( 0, 0 );
 }
 
 
 	/*
-	 * Formula: ADCClock = MCK / ( (PRESCAL+1) * 2 )
+	 * Formula: ADCClock = MCK / ( (PRESCAL+1) * 2 )  [PRESCAL 0 to 255 ]
 	 * For example, MCK = 64MHZ, PRESCAL = 4, then:
 	 *     ADCClock = 64 / ((4+1) * 2) = 6.4MHz;
-	 */
+ 	 */
+
+   /*
+    * MCK = 80MHZ, prescal = 4 -> ADC clock = 8 MHz
+    * Settling time = 3 / 8 MHz = 375 ns (Min is 200 ns) 
+    */
+   /*
+    *   [settling 0 = 3/  ADC clock (15 MHz or less), 
+    *   [settling 1 = 5/  ADC clock (25 MHz or less),
+    *   [settling 2 = 9/  ADC clock (45 MHz or less), // So this should work with any prescaler on 80Mhz part
+    *   [settling 3 = 17/ ADC clock (85 Mhz or less)
+    *   ADC clock limit = n/200 ns -> ADC clock * 200 ns = n, then look for next larger n
+    *  settling[] = {3, 5, 9, 17}
+    *  setl = ADC clock / 5000000; // (same as * 200 ns)
+    *  look up setl in settling, return the index in settling (0, 1, 2, 3)
+    */
+   // Sampling freq 0.05 to 1 MHz
+   // t Startup (Off to normal 30 us typ, 40 us max; Standby to normal 8 us typ, 12 us max)
+   //   startup value = ADCClock * 40 us (for off, or 12 us for standby)
+   // track time - min 160 ns
+   //  TRACKTIM = ( 160 ns * ADCClock ) - 1
+   // t convert typ 20 T CP_ADC
+   // t settle - min 200 ns
+// What limit on transfer time?
+
+// Minimum tracking time - 160 ns
+#define MIN_TRACK  (0.000000160)
+#define MIN_SETTLE (0.000000200)
+
+// FIXME: 40 microseconds (may actually only need 12 us)
+#define MAX_STARTUP (0.000040)
+
+
 	/* Set ADC clock. */
 	/* Formula:
 	 *     Startup  Time = startup value / ADCClock
@@ -1727,18 +2026,24 @@ static void adcs_init( void )
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
-  uint8_t startup;
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  u32 tracktime;
   
   if ( frequency > 0 )
   {
     d->clocked = 1;
-    //  adc_init(ADC, CPU_FREQUENCY, 6400000, 8 );
-    uint8_t startup = function of frequency; // FIXME: look up - some number of periods of ADC clock
+    u8 pre = (CPU_FREQUENCY/frequency / 2) - 1;
+    u32 adcClock = CPU_FREQUENCY / ((pre + 1) * 2);
+    uint8_t startup = MAX_STARTUP * adcClock;
 
+    //  adc_init(ADC, CPU_FREQUENCY, 6400000, 8 );
     adc_init(ADC, CPU_FREQUENCY, frequency, startup );
 
-    adc_configure_timing(ADC, 0, ADC_SETTLING_TIME_3, 1);
+    tracktime = ( MIN_TRACK * adcClock ) - 1;
+    
+    adc_configure_timing(ADC, tracktime, ADC_SETTLING_TIME_2, 1); // track time, settle time, transfer time
+    // Examp had settling time 3 (not sure why)
+    // Why were tracking time 0, transfer time 1 in example?
 
 //	adc_configure_trigger(ADC, ADC_TRIG_SW, 0);  // ADC_TRIG_TIO_CH_0-2
 
@@ -1762,30 +2067,35 @@ u32 platform_adc_set_clock( unsigned id, u32 frequency )
   return frequency;
 }
 
+
+enum adc_channel_num_t ch_list[NUM_ADC] = { 0 };
+
+
 int platform_adc_update_sequence( void )
 {
-//  return PLATFORM_OK;
-  return PLATFORM_ERR;
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+
+  // For each channel in sequence
+  for (d->seq_ctr = 0; d->seq_ctr < d->seq_len-1 ; d->seq_ctr++)
+  {
+    adc_enable_channel( ADC, d->ch_state[ d->seq_ctr ]->id );
+    // Pin config happens automatically
+    ch_list[d->seq_ctr] = d->ch_state[ d->seq_ctr ]->id;
+  }
+
+  /* Set user defined channel sequence. */
+  adc_configure_sequence(ADC, ch_list,  d->seq_len);
+  
+  d->seq_ctr = 0;
+  return PLATFORM_OK;
 }
 
-//			while ((adc_get_status(ADC) & ADC_ISR_DRDY) != ADC_ISR_DRDY);
-//			ulValue = adc_get_latest_value(ADC);
- 
- 
-// 		adc_read_buffer(ADC, gs_s_adc_values, BUFFER_SIZE)
-//  	adc_enable_interrupt(ADC, ADC_ISR_RXBUFF);
-
-/*enum adc_channel_num_t ch_list[2] = {
-	ADC_TEMPERATURE_SENSOR,
-	ADC_CHANNEL_POTENTIOMETER
-};
-*/
 
 int platform_adc_start_sequence( void )
 {
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
   
-  if( d->running != 1 )
+  if( d->running != 1 ) // If already running, changes will be picked up at interrupt
   {
     adc_update_dev_sequence( 0 );
 
@@ -1799,25 +2109,34 @@ int platform_adc_start_sequence( void )
     {
 //      MAP_ADCProcessorTrigger( ADC_BASE, d->seq_id );
         adc_configure_trigger(ADC, ADC_TRIG_SW, 1);  // Free running
+        adc_start(ADC); 	/* Start conversion. */
     }
 
 // FIXME: Not sure where rest of this should go
-    /* Set user defined channel sequence. */
-    adc_configure_sequence(ADC, ch_list, NUM_CHAN_IN_LIST);
-
     /* Enable sequencer. */
     adc_start_sequencer(ADC);
-
-    /* Enable Data ready interrupt. */
-    adc_enable_interrupt(ADC, ADC_IER_DRDY);
-
-    /* Enable ADC interrupt. */
-    NVIC_EnableIRQ(ADC_IRQn);
-    
-    adc_start(ADC); 	/* Start conversion. */
   }
   
   return PLATFORM_OK;
+}
+
+void platform_adc_stop( unsigned id )
+{
+  elua_adc_ch_state *s = adc_get_ch_state( id );
+  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+  
+  s->op_pending = 0;
+  INACTIVATE_CHANNEL(d, id);
+  
+  // If there are no more active channels, stop the sequencer
+  if( d->ch_active == 0 )
+  {
+    adc_stop_sequencer(ADC);
+    d->running = 0;
+  }
+
+//	adc_disable_channel(ADC, adc_channel(id));
+//  adc_stop(ADC);
 }
 
 #endif // ifdef BUILD_ADC

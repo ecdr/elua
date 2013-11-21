@@ -18,7 +18,7 @@
 
 // From platform.c
 extern Tc * tc(unsigned id);
-extern u32 tchanel(unsigned id);
+extern u32 tchannel(unsigned id);
 extern u8 platform_timer_int_periodic_flag[ NUM_TIMER ];
 
 extern Pio * const pio_base[];
@@ -181,7 +181,7 @@ void posedge_handler(uint32_t id, uint32_t mask)
 static void tmr_common_handler( elua_int_resnum id)
 {
   Tc * tmr = tc(id);
-  u32 channel = tchanel(id);
+  u32 channel = tchannel(id);
 
   if ((tc_get_status(tmr, channel) & TC_SR_CPCS) == TC_SR_CPCS) {
     if ( platform_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
@@ -353,14 +353,14 @@ static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
 
 static int int_tmr_match_get_status( elua_int_resnum resnum )
 {
-  return (tc_get_interrupt_mask(tc(resnum), tchanel(resnum)) & TC_IMR_CPCS) ? 1 : 0;
+  return (tc_get_interrupt_mask(tc(resnum), tchannel(resnum)) & TC_IMR_CPCS) ? 1 : 0;
 }
 
 static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
 {
   int prev = int_tmr_match_get_status( resnum );
   Tc * tmr = tc(resnum);
-  u32 channel = tchanel(resnum);
+  u32 channel = tchannel(resnum);
   
   if( status == PLATFORM_CPU_ENABLE )
   {
@@ -378,7 +378,7 @@ static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
 static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 {
   Tc * tmr = tc(resnum);
-  u32 channel = tchanel(resnum);
+  u32 channel = tchannel(resnum);
   
   u32 status = (tc_get_status(tmr, channel) & TC_SR_CPCS);
 

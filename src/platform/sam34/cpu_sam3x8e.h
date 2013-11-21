@@ -10,15 +10,24 @@
 
 // Number of resources (0 if not available/not implemented)
 #define NUM_PIO               4
-// FIXME: Check number PIO - libraries look like only 4 (A-D)
 #define NUM_SPI               1
 #define NUM_UART              3
 #define NUM_TIMER             9
-// FIXME: Check number timers - libraries look like only 3 (?)
-#define NUM_PWM               8
+
+// NUM_REAL_PWM is number of PWM devices
+#define NUM_REAL_PWM          8
+
+#ifndef NUM_PSEUDO_PWM
+#define NUM_PSEUDO_PWM        0
+#endif
+
+// NUM_PWM is number of PWM channels (includes those provided by timers, or even virtual PWMs)
+#define NUM_PWM               (NUM_REAL_PWM + NUM_PSEUDO_PWM)
+
 #define NUM_I2C               2
-#define NUM_ADC               16  // 15 pins, plust thermometer
 #define NUM_CAN               2
+// Only 1 ADC device, 15 ADC pins, plus thermometer
+#define NUM_ADC               16  
 // TODO: Add support for temperature from ADC
 
 #define NUM_DAC			          2
@@ -74,7 +83,7 @@ extern char end[];
   _C( INT_GPIO_NEGEDGE ),\
   _C( INT_TMR_MATCH ),
 
-// Standard pin names - seem more logical in either PIO or BD rather than CPU
+// Standard pin names - seem more logical in either PIO or BD, rather than CPU
 // PLATFORM_BOARD_CONST_PINS
 
 /*
