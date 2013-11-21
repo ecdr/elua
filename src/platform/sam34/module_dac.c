@@ -51,7 +51,7 @@ u32 platform_dac_write(u32 id, u32 value);
 
 /*
 Clock is MCLK/2
-25clocks to provide output after conversion starts
+25 clocks to provide output after conversion starts
 EOC bit in Int status reg set when conversion finishes (reading DAC_ISR clears EOC)
 
 Trigger - free run - channel enabled and data written, alternative is external trigger
@@ -146,7 +146,7 @@ u32 platform_dac_write(u32 id, u32 value)
 //	rangevalue = mapResolution(ulValue, _writeResolution, DAC_BIT_RESOLUTION);
 
 	dacc_write_conversion_data(DACC, value);
-// Wait after was from arduino - seems like might be better to run ahead and only wait if FIFO full
+// Wait after was from arduino - seems like might be better to run on and only wait if FIFO full
 //	WAIT_WHILE((dacc_get_interrupt_status(DACC) & DACC_ISR_EOC) == 0);  
   return PLATFORM_OK;
 }
