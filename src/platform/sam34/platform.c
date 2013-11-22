@@ -2388,6 +2388,21 @@ int platform_flash_erase_sector( u32 sector_id )
 #include "shell.h"
 
 
+static void restart_bootloader(void)
+{
+  flash_clear_gpnvm(1);   // Next time boot from ROM
+
+  // reset processor and periphirals (register address from cmsis)
+  asm ("dsb"); // Ensure completion of memory access
+  // reboot - set key, reset perrst (peripherals) and procrst (processor)
+  REG_RSTC_CR = RSTC_CR_KEY(0xa5) | RSTC_CR_PERRST | RSTC_CR_PROCRST;
+  asm ("dsb"); // Ensure completion of memory access
+  while (1);  // Wait for reset
+
+  //  NVIC_SystemReset();     // This way of doing reset did not work (to make it boot from ROM)
+}
+
+
 const char shell_help_reflash[] = "\n"
   "Restart to the bootloader, ready to flash new program.\n";
 const char shell_help_summary_reflash[] = "back to bootloader";
@@ -2399,20 +2414,9 @@ void platform_shell_reflash( int argc, char **argv )
     SHELL_SHOW_HELP( reflash );
     return;
   }
-  printf( "Reflash command - not written yet\n" );
-/*
-    // Misc code snippents that might be relevant from at91sam forum - but check since may not be for this CPU, etc.
-  flash_clear_gpnvm(1);   // Boot from ROM
-//    Reset_Handler();  // TODO: Find out what this is (was in one examp, but not another)
+  printf( "Reflash - restarting from ROM bootloader\n" );
 
-    // reset processor and periphirals (register address from cmsis)
-  asm  ("dsb"); // What is this?
-    // set key, perrst and  procrst
-  REG_RSTC_CR = RSTC_CR_KEY(0xa5) | RSTC_CR_PERRST | RSTC_CR_PROCRST;
-  asm ("dsb"); // What is this?
-    while (1);
-    
-  */
+  restart_bootloader();
 }
 
 
