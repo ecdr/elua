@@ -74,7 +74,7 @@
 //! USB Device string definitions (Optional)
 #define  USB_DEVICE_MANUFACTURE_NAME      "Atmel"
 #define  USB_DEVICE_PRODUCT_NAME          "Virtual COM Port"
-// #define  USB_DEVICE_SERIAL_NAME           "12...EF"
+#define  USB_DEVICE_SERIAL_NAME           "0.0.0.1"
 
 
 /**
