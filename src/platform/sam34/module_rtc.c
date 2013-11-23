@@ -16,6 +16,11 @@
 // TODO: Add day-of-week field (some devices use values 1-7 others 0-6);
 // we may one day either use this or just calculate the DOW.
 
+// TODO: Integrate with mmcfs - 
+// provide get time function get_fattime (void)
+// see elua_mmc.c
+
+
 /* 
 // SAM Also has time, date alarms
 

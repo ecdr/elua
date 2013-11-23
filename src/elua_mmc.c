@@ -610,6 +610,8 @@ DRESULT disk_ioctl (
 /* FatFs module. Any valid time must be returned even if   */
 /* the system does not support a real time clock.          */
 
+// TODO: On use platform rtc calls, when available
+
 DWORD get_fattime (void)
 {
 
