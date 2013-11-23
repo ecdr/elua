@@ -9,6 +9,7 @@ return {
     sercon = { uart = 0, speed = 115200 },
     wofs = false,		-- See cpu file
     romfs = true,
+--    mmcfs = { spi = 0, cs_port = 1, cs_pin = 21 },  -- should make option to use built in chip select
     shell = true,
     term = { lines = 25, cols = 80 },
     linenoise = { shell_lines = 10, lua_lines = 50 },

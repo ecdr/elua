@@ -11,6 +11,10 @@
 #include "diskio.h"
 #include "mmcfs.h"
 
+#ifdef BUILD_RTC
+#include "module_rtc.h"
+#endif
+
 #ifndef MMCFS_NUM_CARDS
 #define NUM_CARDS             1
 #else
@@ -610,11 +614,26 @@ DRESULT disk_ioctl (
 /* FatFs module. Any valid time must be returned even if   */
 /* the system does not support a real time clock.          */
 
-// TODO: On use platform rtc calls, when available
+// TODO: Test platform rtc calls
+
+#define ENC_DATE(year, mo, day, hour, min, sec) ((year << 25) | (mo << 21) | (day << 16) | \
+  ( hour << 11 ) | ( min << 5) | (sec >> 1))
 
 DWORD get_fattime (void)
 {
+#ifdef BUILD_RTC
+  uint32_t hour, minute, second;
+  uint32_t year, month, day, week;
 
+  // FIXME: This probably wants 24 hour time, but the platform rtc puts out 12 or 24 hour depending
+  platform_read_rtc( &hour, &minute, &second, &year, &month, &day, &week );
+
+  if (year < 80)
+    return ENC_DATE((2007UL-1980), 6UL, 5UL, 11U, 38U, 0U);
+  else
+    return ENC_DATE((year-80), month, day, hour, minute, second);
+
+#else
     return    ((2007UL-1980) << 25)    // Year = 2007
             | (6UL << 21)            // Month = June
             | (5UL << 16)            // Day = 5
@@ -622,7 +641,7 @@ DWORD get_fattime (void)
             | (38U << 5)            // Min = 38
             | (0U >> 1)                // Sec = 0
             ;
-
+#endif
 }
 #endif // #if defined( BUILD_MMCFS ) && !defined( ELUA_SIMULATOR )
 
