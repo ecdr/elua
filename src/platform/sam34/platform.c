@@ -119,8 +119,10 @@ int platform_init()
   // Bootloader leaves LED on, so turn it off signal eLua running
 
   // Setup SPIs
+#if NUM_SPI > 0
 #warning SPI not done
   spis_init();
+#endif
 
   // Setup UARTs
   uarts_init();
@@ -397,8 +399,43 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 // TODO: USART can also do SPI
 
-const u32 spi_id[]     = { ID_SPI0 };
-Spi * const spi_base[] = { SPI0 };
+// One SPI device can handle 4 peripherals (well actually 16, but not messing with the chip select decode)
+// However ship select 3 is not brought out to header on Due
+const u32 spi_id[]     = { ID_SPI0, ID_SPI1 };
+Spi * const spi_base[] = { SPI0, SPI1 };
+
+// Pins
+#define SPI_NPCS1 'A'
+#define SPI_NPCS2 'A'
+#define SPI_NPCS3 'A'
+
+// FIXME: Needs uniform way to handle pin mapping (or at least add a regular control variable)
+const struct { sam_pin_config miso, mosi, spck, npcs0, npcs1, npcs2, npcs3; } spi_pins[NUM_SPI] = {
+  {{SPI0_MISO_GPIO, SPI0_MISO_FLAGS}, {SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS}, {SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS}, 
+  {SPI0_NPCS0_GPIO, SPI0_NPCS0_FLAGS},
+// Alternate pins for NPCS on SPI0 (pick 1)
+#if SPI0_NPCS1 = 'A'
+  {SPI0_NPCS1_PA29_GPIO, SPI0_NPCS1_PA29_FLAGS},  // Cross-connect to C.26
+#else
+  {SPI0_NPCS1_PB20_GPIO, SPI0_NPCS1_PB20_FLAGS},  // pin A11
+#endif
+#if SPI0_NPCS2 = 'A'
+  {SPI0_NPCS2_PA30_GPIO, SPI0_NPCS2_PA30_FLAGS},  // ?? no pin
+#else
+  {SPI0_NPCS2_PB21_GPIO, SPI0_NPCS2_PB21_FLAGS},  // pin 52
+#endif
+#if SPI0_NPCS3 = 'A'
+  {SPI0_NPCS3_PA31_GPIO, SPI0_NPCS3_PA31_FLAGS}   // ?? no pin
+#else
+  {SPI0_NPCS3_PB23_GPIO, SPI0_NPCS3_PB23_FLAGS}   // ?? no pin
+#endif
+  },  // SPI0
+  {
+    {SPI1_MISO_GPIO, SPI1_MISO_FLAGS},   {SPI1_MOSI_GPIO, SPI1_MOSI_FLAGS},   {SPI1_SPCK_GPIO, SPI1_SPCK_FLAGS}, 
+    {SPI1_NPCS0_GPIO, SPI1_NPCS0_FLAGS}, {SPI1_NPCS1_GPIO, SPI1_NPCS1_FLAGS}, {SPI1_NPCS2_GPIO, SPI1_NPCS2_FLAGS}, 
+    {SPI1_NPCS3_GPIO, SPI1_NPCS3_FLAGS}
+  }   // SPI1 Port E (so not on Due)
+};
 
 
 static void spis_init( void )
@@ -414,18 +451,20 @@ static void spis_init( void )
   spi_set_master_mode(spi_base[i]);
   spi_disable_mode_fault_detect(spi_base[i]);
   spi_disable_loopback(spi_base[i]);
-//  spi_set_peripheral_chip_select_value(spi_base[i], DEFAULT_CHIP_ID);
-  spi_set_fixed_peripheral_select(spi_base[i]);         // ??
-  spi_disable_peripheral_select_decode(spi_base[i]);    // ??
+  spi_set_peripheral_chip_select_value(spi_base[i], DEFAULT_CHIP_ID);
+  spi_set_fixed_peripheral_select(spi_base[i]);         // select device to talk to with separate call (rather than in data)
+  spi_disable_peripheral_select_decode(spi_base[i]);    // use perpheral select lines individually
   spi_set_delay_between_chip_select(spi_base[i], CONFIG_SPI_MASTER_DELAY_BCS);
   }
 }
+
 
 // cpol - clock polarity (0 or 1), cpha - clock phase (0 or 1)
 // mode - PLATFORM_SPI_MASTER/SLAVE
 
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
+#if NUM_SPI > 0
   if (mode == PLATFORM_SPI_MASTER) 
   {
     struct spi_device *device;
@@ -441,23 +480,20 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
     spi_set_clock_polarity(spi_base[id], device->id, cpol);
     spi_set_clock_phase(spi_base[id], device->id, cpha);
 
-// FIXME: So far just enables configures SPI pins 
-    gpio_configure_pin(SPI0_MISO_GPIO, SPI0_MISO_FLAGS);
-    gpio_configure_pin(SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS);
-    gpio_configure_pin(SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS);
-// Alternate pins for NPCS on SPI0 (pick 1)
-// FIXME: Needs uniform way to handle pin mapping (or at least add a regular control variable)
-#ifndef SPI0_NPCS_PIN1
-    gpio_configure_pin(SPI0_NPCS0_GPIO, SPI0_NPCS0_FLAGS);
-#else
-    gpio_configure_pin(SPI0_NPCS1_PA29_GPIO, SPI0_NPCS1_PA29_FLAGS);
-#endif
+// FIXME: So far just configures SPI pins
+    gpio_configure_pin(spi_pins[id].miso.pin, spi_pins[id].miso.flags);
+    gpio_configure_pin(spi_pins[id].mosi.pin, spi_pins[id].mosi.flags);
+    gpio_configure_pin(spi_pins[id].spck.pin, spi_pins[id].spck.flags);
+    gpio_configure_pin(spi_pins[id].npcs0.pin, spi_pins[id].npcs0.flags);
     return 0; // clock; // FIXME: Return clock set
   }
   else
   { // FIXME: Need to implement slave
     return 0;
   }
+#else
+  return 0;
+#endif
 }
 //  spi_enable(spi_base[id])
 
@@ -472,11 +508,12 @@ spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
   return data;
 }
 
-// FIXME: This is just a guess at what this might mean
 // is_select - flag (PLATFORM_SPI_SELECT_ON or OFF)
 void platform_spi_select( unsigned id, int is_select )
 {
-  spi_set_peripheral_chip_select_value(spi_base[id], is_select);
+  spi_set_peripheral_chip_select_value(spi_base[id],
+    ((PLATFORM_SPI_SELECT_ON == is_select) ? ~((0x1) << (id & 3) ) : 0));
+  // chip select is a 4 bit wide bit map, select the lowest line with a 0 in it
 }
 
 
