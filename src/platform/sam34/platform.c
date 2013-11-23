@@ -120,7 +120,7 @@ int platform_init()
 
   // Setup SPIs
 #if NUM_SPI > 0
-#warning SPI not done
+#warning SPI not tested
   spis_init();
 #endif
 
@@ -401,8 +401,17 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 // One SPI device can handle 4 peripherals (well actually 16, but not messing with the chip select decode)
 // However ship select 3 is not brought out to header on Due
-const u32 spi_id[]     = { ID_SPI0, ID_SPI1 };
-Spi * const spi_base[] = { SPI0, SPI1 };
+const u32 spi_id[]     = { ID_SPI0
+#ifdef ID_SPI1
+, ID_SPI1 
+#endif
+};
+Spi * const spi_base[] = { SPI0
+#ifdef ID_SPI1
+, SPI1 
+#endif
+};
+
 
 // Pins
 #define SPI_NPCS1 'A'
@@ -414,27 +423,30 @@ const struct { sam_pin_config miso, mosi, spck, npcs0, npcs1, npcs2, npcs3; } sp
   {{SPI0_MISO_GPIO, SPI0_MISO_FLAGS}, {SPI0_MOSI_GPIO, SPI0_MOSI_FLAGS}, {SPI0_SPCK_GPIO, SPI0_SPCK_FLAGS}, 
   {SPI0_NPCS0_GPIO, SPI0_NPCS0_FLAGS},
 // Alternate pins for NPCS on SPI0 (pick 1)
-#if SPI0_NPCS1 = 'A'
+#if SPI0_NPCS1 == 'A'
   {SPI0_NPCS1_PA29_GPIO, SPI0_NPCS1_PA29_FLAGS},  // Cross-connect to C.26
 #else
   {SPI0_NPCS1_PB20_GPIO, SPI0_NPCS1_PB20_FLAGS},  // pin A11
 #endif
-#if SPI0_NPCS2 = 'A'
+#if SPI0_NPCS2 == 'A'
   {SPI0_NPCS2_PA30_GPIO, SPI0_NPCS2_PA30_FLAGS},  // ?? no pin
 #else
   {SPI0_NPCS2_PB21_GPIO, SPI0_NPCS2_PB21_FLAGS},  // pin 52
 #endif
-#if SPI0_NPCS3 = 'A'
+#if SPI0_NPCS3 == 'A'
   {SPI0_NPCS3_PA31_GPIO, SPI0_NPCS3_PA31_FLAGS}   // ?? no pin
 #else
   {SPI0_NPCS3_PB23_GPIO, SPI0_NPCS3_PB23_FLAGS}   // ?? no pin
 #endif
-  },  // SPI0
+  }
+#ifdef ID_SPI1
+  ,  // SPI0
   {
     {SPI1_MISO_GPIO, SPI1_MISO_FLAGS},   {SPI1_MOSI_GPIO, SPI1_MOSI_FLAGS},   {SPI1_SPCK_GPIO, SPI1_SPCK_FLAGS}, 
     {SPI1_NPCS0_GPIO, SPI1_NPCS0_FLAGS}, {SPI1_NPCS1_GPIO, SPI1_NPCS1_FLAGS}, {SPI1_NPCS2_GPIO, SPI1_NPCS2_FLAGS}, 
     {SPI1_NPCS3_GPIO, SPI1_NPCS3_FLAGS}
   }   // SPI1 Port E (so not on Due)
+#endif
 };
 
 
@@ -442,50 +454,71 @@ static void spis_init( void )
 {
   unsigned i;
   
-  for (i = 0; i < NUM_SPI; i++)
+  for (i = 0; i < NUM_SPI_DEV; i++)
   {
   pmc_enable_periph_clk(spi_id[i]); // FIXME: Is this needed? Not listed in example
   
-  spi_enable_clock(spi_base[i]);
-  spi_reset(spi_base[i]);
-  spi_set_master_mode(spi_base[i]);
-  spi_disable_mode_fault_detect(spi_base[i]);
-  spi_disable_loopback(spi_base[i]);
-  spi_set_peripheral_chip_select_value(spi_base[i], DEFAULT_CHIP_ID);
-  spi_set_fixed_peripheral_select(spi_base[i]);         // select device to talk to with separate call (rather than in data)
-  spi_disable_peripheral_select_decode(spi_base[i]);    // use perpheral select lines individually
-  spi_set_delay_between_chip_select(spi_base[i], CONFIG_SPI_MASTER_DELAY_BCS);
+  spi_master_init(spi_base[i]);
   }
+}
+
+
+// Convert number of bits to field value (range 8 to 16; 8 -> 0, 9->1, etc.;
+// value is shifted left to bit field position)  See component_spi.h, e.g. SPI_CSR_BITS_8_BIT
+static u32 spi_trans_bits_encode(unsigned databits)
+{
+  if (databits < 8)
+    databits = 8;
+  if (databits > 16)
+    databits = 16;
+  return (databits - 8) << SPI_CSR_BITS_Pos;
 }
 
 
 // cpol - clock polarity (0 or 1), cpha - clock phase (0 or 1)
 // mode - PLATFORM_SPI_MASTER/SLAVE
-
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
+  unsigned spi_id = id/4;
+  Spi * spi_dev = spi_base[spi_id];
+  unsigned spi_chan = id & 0x3;   // 3 channels per SPI device
+  
 #if NUM_SPI > 0
   if (mode == PLATFORM_SPI_MASTER) 
   {
-    struct spi_device *device;
-    
-// FIXME: Copied from quickstart code - ??? not sure what the device or ID is.
-//void spi_master_setup_device(struct spi_device *device) - this was calling signature
-    spi_set_transfer_delay(spi_base[id], device->id, CONFIG_SPI_MASTER_DELAY_BS,  CONFIG_SPI_MASTER_DELAY_BCT);
+    int16_t baud_div = spi_calc_baudrate_div(clock, platform_cpu_get_frequency());
 
-    spi_set_bits_per_transfer(spi_base[id], device->id, databits);
-    spi_set_baudrate_div(spi_base[id], device->id, spi_calc_baudrate_div(clock, platform_cpu_get_frequency()));
+    if (-1 == baud_div) {
+      return 0;// Assert(0 == "Failed to find baudrate divider");
+    }
+    spi_set_transfer_delay(spi_dev, spi_chan, CONFIG_SPI_MASTER_DELAY_BS,  CONFIG_SPI_MASTER_DELAY_BCT);
 
-    spi_configure_cs_behavior(spi_base[id], device->id, SPI_CS_KEEP_LOW);
-    spi_set_clock_polarity(spi_base[id], device->id, cpol);
-    spi_set_clock_phase(spi_base[id], device->id, cpha);
+    spi_set_bits_per_transfer(spi_dev, spi_chan, spi_trans_bits_encode(databits));
+    spi_set_baudrate_div(spi_dev, spi_chan, baud_div);
 
-// FIXME: So far just configures SPI pins
-    gpio_configure_pin(spi_pins[id].miso.pin, spi_pins[id].miso.flags);
-    gpio_configure_pin(spi_pins[id].mosi.pin, spi_pins[id].mosi.flags);
-    gpio_configure_pin(spi_pins[id].spck.pin, spi_pins[id].spck.flags);
-    gpio_configure_pin(spi_pins[id].npcs0.pin, spi_pins[id].npcs0.flags);
-    return 0; // clock; // FIXME: Return clock set
+    spi_configure_cs_behavior(spi_dev, spi_chan, SPI_CS_KEEP_LOW);
+    spi_set_clock_polarity(spi_dev, spi_chan, cpol);   // TODO: Check polarity/phase whether values need massage
+    spi_set_clock_phase(spi_dev, spi_chan, cpha);
+
+    gpio_configure_pin(spi_pins[spi_id].miso.pin, spi_pins[spi_id].miso.flags);
+    gpio_configure_pin(spi_pins[spi_id].mosi.pin, spi_pins[spi_id].mosi.flags);
+    gpio_configure_pin(spi_pins[spi_id].spck.pin, spi_pins[spi_id].spck.flags);
+    switch(spi_chan)  // Set up chip select pin for this channel
+    {
+      case 0:
+        gpio_configure_pin(spi_pins[spi_id].npcs0.pin, spi_pins[spi_id].npcs0.flags);
+        break;
+      case 1:
+        gpio_configure_pin(spi_pins[spi_id].npcs1.pin, spi_pins[spi_id].npcs1.flags);
+        break;
+      case 2:
+        gpio_configure_pin(spi_pins[spi_id].npcs2.pin, spi_pins[spi_id].npcs2.flags);
+        break;
+      case 3:
+        gpio_configure_pin(spi_pins[spi_id].npcs3.pin, spi_pins[spi_id].npcs3.flags);
+        break;
+    }
+    return platform_cpu_get_frequency()/baud_div; // Return clock set
   }
   else
   { // FIXME: Need to implement slave
@@ -495,26 +528,41 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
   return 0;
 #endif
 }
-//  spi_enable(spi_base[id])
+
+#define NONE_CHIP_SELECT_ID 0x0f
 
 spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
 {
-
-//spi_status_t 	spi_read (spi_base[id], uint16_t *us_data, uint8_t *p_pcs)
-//spi_status_t 	spi_write (spi_base[id], uint16_t data, uint8_t uc_pcs, uint8_t uc_last)
+  unsigned spi_id = id/4;
+  uint16_t read_data;
+  uint8_t dummy = NONE_CHIP_SELECT_ID;  // Dummy argument, not used in fixed peripheral select mode
+  
 // result - SPI_OK or SPI_ERROR_TIMEOUT
+//  if (spi_write(spi_base[id], data, dummy, false) == SPI_ERROR_TIMEOUT)
+//    return ; // rest of code does not have facility to handle error returns
 
-// FIXME: Fill in body
-  return data;
+//  if (spi_read(spi_base[id], &read_data, &dummy) == SPI_ERROR_TIMEOUT)
+//    return ;  // what?
+  spi_write(spi_base[spi_id], data, dummy, false);
+  spi_read(spi_base[spi_id], &read_data, &dummy);
+  
+  return read_data;
 }
+
 
 // is_select - flag (PLATFORM_SPI_SELECT_ON or OFF)
 void platform_spi_select( unsigned id, int is_select )
 {
-  spi_set_peripheral_chip_select_value(spi_base[id],
-    ((PLATFORM_SPI_SELECT_ON == is_select) ? ~((0x1) << (id & 3) ) : 0));
+  unsigned spi_id = id/4;
+  unsigned spi_chan = id & 0x3;
+  
+  spi_set_peripheral_chip_select_value(spi_base[spi_id],
+    ((PLATFORM_SPI_SELECT_ON == is_select) ? ~((0x1) << (spi_chan) ) : NONE_CHIP_SELECT_ID));
   // chip select is a 4 bit wide bit map, select the lowest line with a 0 in it
 }
+
+// TODO: If this is supposed to deslect when SPI_SELECT_OFF, then see 
+// spi_deselect_device - basically adds wait until TX done before select and spi_set_lastxfer(p_spi) after;
 
 
 // ****************************************************************************

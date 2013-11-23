@@ -10,8 +10,12 @@
 
 // Number of resources (0 if not available/not implemented)
 #define NUM_PIO               4
-// FIXME: Check number of SPI - docs and header seem to indicate 2, but only one has ports on 3X8E
-#define NUM_SPI               1
+
+// 1 SPI device (well maybe 2, but port/pins for second are not available)
+// Each device has 4 chip selects (only 3 brought out to header, but could bit bang CS on fourth)
+#define NUM_SPI_DEV           1
+#define NUM_SPI               3
+
 #define NUM_UART              3
 #define NUM_TIMER             9
 
