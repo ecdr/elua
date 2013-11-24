@@ -22,12 +22,12 @@
 // NUM_REAL_PWM is number of PWM devices
 #define NUM_REAL_PWM          8
 
-#ifndef NUM_PSEUDO_PWM
-#define NUM_PSEUDO_PWM        0
+#ifndef NUM_TIMER_PWM
+#define NUM_TIMER_PWM        0
 #endif
 
 // NUM_PWM is number of PWM channels (includes those provided by timers, or even virtual PWMs)
-#define NUM_PWM               (NUM_REAL_PWM + NUM_PSEUDO_PWM)
+#define NUM_PWM               (NUM_REAL_PWM + NUM_TIMER_PWM)
 
 #define NUM_I2C               2
 #define NUM_CAN               2

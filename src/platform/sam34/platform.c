@@ -880,9 +880,9 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 // Timers
 
 const u32 timer_id[] = {ID_TC0, ID_TC1, ID_TC2};
-Tc * const timer_base[] = {TC0, TC1, TC2};
+Tc * const timer_tc[] = {TC0, TC1, TC2};
 
-u32 timer(unsigned id);
+static u32 tc_num(unsigned id);
 Tc * tc(unsigned id);
 u32 tchannel(unsigned id);
 
@@ -899,31 +899,39 @@ const unsigned num_tc = (sizeof(timer_id)/sizeof(u32));
 // Each TC has 3 timer channels
 unsigned const channels_per_tc = 3;
 
+// Indicate which module is using each timer
+// TODO: Look at other modules that use timers, as timers - ADC, UART (should they also have indicator)?
+typedef enum {
+  TMODE_UNINIT = 0,
+  TMODE_TIMER,
+  TMODE_COUNTER,
+  TMODE_PWM } timer_mode_t;
+
+timer_mode_t tmode[ NUM_TIMER ] = { TMODE_UNINIT };  // TODO: Or should this be handled up in timer module?
 
 u8 platform_timer_int_periodic_flag[ NUM_TIMER ] = {0};
 
-static uint32_t tmr_div[NUM_TIMER] = {0};
+static uint32_t tmr_div[NUM_TIMER] = { 0 };
 
 
 // Helper functions
 
-// Return timer number for given eLua timer ID
-u32 timer(unsigned id)
+// Return timer device number for given eLua timer ID
+static inline u32 tc_num(unsigned id)
 {
   return id/channels_per_tc;
 }
 
-// Return pointer to Tc for given eLua timer ID
+// Return pointer to Tc for given eLua timer id
 Tc * tc(unsigned id)
 {
-  return timer_base[timer(id)];
+  return timer_tc[tc_num(id)];
 }
 
-// FIXME: check spelling
-// channel number from timer id 
+// channel number from eLua timer id
 u32 tchannel(unsigned id) 
 {
-  return (u32) id - (timer(id) * channels_per_tc);
+  return (u32) id - (tc_num(id) * channels_per_tc);
 }
 
 
@@ -936,9 +944,7 @@ static void timers_init()
 }
 
 
-// Platform functions
-
-static u32 platform_timer_get_clock( unsigned id )
+static u32 plat_timer_get_clock( unsigned id )
 {
   if (tmr_div[id])
     return CPU_FREQUENCY/tmr_div[id];
@@ -947,17 +953,37 @@ static u32 platform_timer_get_clock( unsigned id )
 }
 
 
+static u32 plat_timer_set_clock(unsigned id, timer_data_type clock, u32 mode)
+{
+	static uint32_t ul_sysclk;    // FIXME: What static for?
+	uint32_t tmr_tcclks;
+  ul_sysclk = CPU_FREQUENCY;  /* Get system clock. */
+  
+  if ( tc_find_mck_divisor(clock, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
+  {
+    tc_init(tc(id), tchannel(id), tmr_tcclks | mode);
+    return plat_timer_get_clock( id );
+  }
+  else  // Could not find suitable divisor
+  {
+    tmr_div[id] = 0;
+    return 0;
+  }
+}
+
+// Platform functions
+
 void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 {
   timer_data_type final;  // u64?
 
-  final = ( ( u64 )delay_us * platform_timer_get_clock( id ) ) / 1000000;
+  final = ( ( u64 )delay_us * plat_timer_get_clock( id ) ) / 1000000;
 
   if( final == 0) return;
   if( final > PLATFORM_TIMER_COUNT_MAX )
     final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead (on the other hand, unless use u64 for final, this test makes no sense
 // TODO: stop timer, set count to 0, start timer
-  tc_init(tc(id), tchannel(id), TC_CMR_WAVE);
+  tc_init( tc(id), tchannel(id), TC_CMR_WAVE);
   tc_start( tc(id), tchannel(id) );
   WAIT_WHILE( ( tc_read_cv(tc(id), tchannel(id)) < final ) );
 // TODO: should probably stop the timer (?)
@@ -977,46 +1003,35 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 //	tc_write_rc(TC0, 0, (ul_sysclk / ul_div) / TC_FREQ);
 
 // FIXME: Need to figure out what timer mode to use
-#define TC_MODE_COUNTER 0
-
+//#define TC_MODE_TIMER   
+//#define TC_MODE_COUNTER 
+//#define TC_MODE_PWM     
   
 timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
   u32 res = 0;
-	static uint32_t ul_sysclk;    // FIXME: What static for?
-	uint32_t tmr_tcclks;
 
-  data = data;
+  data = data;  // TODO: What is this for?
   switch( op )
   {
     case PLATFORM_TIMER_OP_START:
-      tc_start(tc(id), tchannel(id));
+      tc_start( tc(id), tchannel(id) );
       break;
 
     case PLATFORM_TIMER_OP_READ:
-      res = tc_read_cv(tc(id), tchannel(id));
+      res = tc_read_cv( tc(id), tchannel(id) );
       break;
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
-      ul_sysclk = CPU_FREQUENCY;  /* Get system clock. */
-      
-      if ( tc_find_mck_divisor(data, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
-      {
-        tc_init(tc(id), tchannel(id), tmr_tcclks | TC_CMR_WAVE | TC_CMR_CPCTRG | TC_CMR_WAVSEL_UP_RC);
-          // Wave, Clear when count reaches register C, Count up to register C, then reset
-//          | TC_IER_CPCS // Interrupt when count reaches register C
-          // FIXME - figure out mode
-        res = platform_timer_get_clock( id );
-      }
-      else  // Could not find suitable divisor
-      {
-        res = 0;
-        tmr_div[id] = 0;
-      }
+      // Timer mode: Wave, Clear when count reaches register C, Count up to register C, then reset
+      //          | TC_IER_CPCS // Interrupt when count reaches register C
+      res = plat_timer_set_clock(id, data, TC_CMR_WAVE | TC_CMR_CPCTRG | TC_CMR_WAVSEL_UP_RC );
+      if (res)
+        tmode[id] = TMODE_TIMER;
       break;
       
     case PLATFORM_TIMER_OP_GET_CLOCK:
-      res = platform_timer_get_clock( id );
+      res = plat_timer_get_clock( id );
       break;
 
     case PLATFORM_TIMER_OP_GET_MAX_CNT:
@@ -1043,22 +1058,22 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
     platform_timer_int_periodic_flag[ id ] = type;              // This was ignored in one example - ??
     tc_write_rc(tc(id), tchannel(id), PLATFORM_TIMER_COUNT_MAX); // Or could just drop the register C mode and go to full wave (changing interrupt type).
     // Should set CMR to CPCstop 
-    tc_start(tc(id), tchannel(id));
+    tc_start( tc(id), tchannel(id) );
     return PLATFORM_TIMER_INT_OK;
   } 
   
-  final = ( ( u64 )period_us * platform_timer_get_clock( id ) ) / 1000000;
+  final = ( ( u64 )period_us * plat_timer_get_clock( id ) ) / 1000000;
   if ( final == 0 )
     return PLATFORM_TIMER_INT_TOO_SHORT;  
   if ( final > PLATFORM_TIMER_COUNT_MAX )
     return PLATFORM_TIMER_INT_TOO_LONG;
-  tc_stop(tc(id), tchannel(id));
-  tc_get_status(tc(id), tchannel(id));    // Guessing that this clears pending interrupt stats (?) - may not need
+  tc_stop( tc(id), tchannel(id) );
+  tc_get_status( tc(id), tchannel(id) );    // Guessing that this clears pending interrupt stats (?) - may not need
   platform_timer_int_periodic_flag[ id ] = type;
   // FIXME: Need to handle one-shot vs. continuous (stop when reaches register C, vs reset)
   // FIXME: Should be more elegant way to handle oneshot - set CMR to reset and keep going when reach CPC
-  tc_write_rc(tc(id), tchannel(id), ( u32 )final );  // TODO: Check if that should be final or final - 1
-  tc_start(tc(id), tchannel(id));
+  tc_write_rc( tc(id), tchannel(id), ( u32 )final );  // TODO: Check if that should be final or final - 1
+  tc_start( tc(id), tchannel(id) );
   return PLATFORM_TIMER_INT_OK;
 }
 
@@ -1431,33 +1446,39 @@ static int pwm_enable_pin(unsigned id)
 }
 
 
-//#define PSEUDO_PWM
+// ********************
+// PWMs provided by timers
+// NUM_TIMER_PWM - number of PWMs done by timers
 
-#ifdef PSEUDO_PWM
+//#define TIMER_PWM
 
-// Add PWMs handled by timers
-#define NUM_TMR_PWM NUM_PWM - NUM_REAL_PWM
+#ifdef TIMER_PWM
+
+#define MAX_DUTY  100
+
 
 // TIO pins
+// FIXME: Fill in pin id and flags for TIO
 static const sam_pin_config pwm_tc_pins[]  = {
   };
 
-// Flags -> bitarray?
-static u8 tc_pinEnabled[NUM_TMR_PWM] = { 0 };
+// TODO: Flags -> bitarray?
+static u8 tc_pinEnabled[NUM_TIMER_PWM] = { 0 };
+
+// Really indexed by number of pseudo-pwms, or maybe by channel number
+static struct { u8 mode, running; } TCChan[NUM_TIMER_PWM] = {{0, 0}};
+#define TC_PWM 1
 
 
-static bool pwm_id_is_pwm( unsigned id );
-static unsigned pwm_id_to_tc( unsigned id );
-static unsigned pwm_tc_id_to_interface( unsigned id );
-
+/*
 static u32 tc_pwm_get_clock( unsigned id );
 static u32 tc_pwm_set_clock( unsigned id, u32 clock );
 static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty );
 static void tc_pwm_start( unsigned id );
 static void tc_pwm_stop( unsigned id );
+*/
 
-
-// Using timers as pwms
+// Timer PWM Helper functions
 
 // Differentiate PWMs handled by pwm vs. by timer (or other mechanism)
 static bool pwm_id_is_pwm( unsigned id )
@@ -1467,58 +1488,75 @@ static bool pwm_id_is_pwm( unsigned id )
 
 #define INVALID_PWM NUM_PWM
 
-static unsigned pwm_id_to_tc( unsigned id )
+// Map PWM id to id of timer that controls that PWM
+// pwm_id -> tc (0-3), tc channel (0-3), A or B
+//0: TC0, Ch0, A; 1: TC0, Ch0, B; 2: TC0, Ch1, A; TC0, Ch1, B
+
+// FIXME: Need to clarify terms - make standard term for each of these and fix code appropriately
+//  timer device number (TC0, TC1, TC2) 
+//  channel number (0-3 - channel handeled by the timer device)
+//  pwm_id
+//  subchanel (A or B) since each timer can handle 2 PWM pins
+
+static unsigned pwm_id_to_pwm_tc( unsigned id )
 {
   if (pwm_id_is_pwm(id))
     return INVALID_PWM;
   return id - NUM_REAL_PWM;
 }
 
-// Map PWM id to id of timer that controls that PWM
-// pwm_id -> tc (0-3), tc channel (0-3), A or B
-//0: TC0, Ch0, A; 1: TC0, Ch0, B; 2: TC0, Ch1, A; TC0, Ch1, B
+static inline unsigned pwm_tc_id_to_timer_id( unsigned id )
+{
+  return (id >> 1);
+}
+
+//  timer_id - id number for the timer (same as in timer module) (e.g. [0-9]
+static unsigned pwm_id_to_timer_id( unsigned id )
+{
+  return pwm_tc_id_to_timer_id(pwm_id_to_pwm_tc(id));
+}
+
+// TODO: Could do this with table lookups, which faster/better space?
+static unsigned pwm_tc_id_to_timer( unsigned id )
+{
+  return pwm_tc_id_to_timer_id(id) / channels_per_tc;
+}
+
+static unsigned pwm_tc_id_to_channel( unsigned id )
+{
+  return pwm_tc_id_to_timer_id(id) - (pwm_tc_id_to_timer( id ) * channels_per_tc);
+}
 
 static bool pwm_tc_id_isA( unsigned id)
 {
   return !(id & 1);
 }
 
-// TODO: Could do this with table lookups, which faster/better space?
-static unsigned pwm_tc_id_to_timer( unsigned id )
-{
-  return pwm_tc_id_to_interface(id) / channels_per_tc;
-}
 
-static unsigned pwm_tc_id_to_channel( unsigned id )
-{
-  return pwm_tc_id_to_interface(id) - (pwm_tc_id_to_timer( id ) * channels_per_tc);
-}
 
-static unsigned pwm_tc_id_to_interface( unsigned id )
-{
-  return (id >> 1);
-}
-
-// TODO: Write me
+// TODO: See how many places used, may be easy to get rid of this
 static u32 tc_pwm_get_clock( unsigned id )
 {
-  Assert(0);
-  return 0; // Error
+  return plat_timer_get_clock( pwm_id_to_timer_id( id ) );
 }
 
 
-// TODO: Write me
+// TODO: Add error checking on setup (so don't change timer in use for one thing to something else)
 static u32 tc_pwm_set_clock( unsigned id, u32 clock )
 {
-  Assert(0);
-  return 0; // Error
+  unsigned timer_id = pwm_id_to_timer_id( id );
+  const u32 res = plat_timer_set_clock(timer_id, clock, 
+      TC_CMR_TCCLKS_TIMER_CLOCK1 |  // FIXME: Not sure what this does
+      TC_CMR_WAVE |         // Waveform mode
+      TC_CMR_WAVSEL_UP_RC | // Counter running up and reset when equals to RC
+      TC_CMR_EEVT_XC0 |     // Set external events from XC0 (this setup TIOB as output)
+      TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_CLEAR | // clear TIOA on RA and RC
+      TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR); // clear TIOB on RB and RC;
+  
+  if (res)
+    tmode[timer_id] = TMODE_PWM;
+  return res;
 }
-
-// Really indexed by number of pseudo-pwms, or maybe by channel number
-static struct { u8 mode, running; } TCChan[NUM_TMR_PWM] = {{0, 0}};
-#define TC_PWM 1
-
-#define MAX_DUTY  100
 
 
 static void tc_SetCMR_ChannelA(Tc *tc, uint32_t chan, uint32_t v)
@@ -1536,28 +1574,33 @@ static void tc_SetCMR_ChannelB(Tc *tc, uint32_t chan, uint32_t v)
 
 static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 {
-  const u32 tcid = pwm_id_to_tc(id);  
+  const u32 tcid = pwm_id_to_pwm_tc(id);  
   Tc *chTC = tc(pwm_tc_id_to_timer(tcid));
   const uint32_t chNo = pwm_tc_id_to_channel(tcid);
   u32 period;
   u32 duty_clocks;
-  const u8 interfaceID = pwm_tc_id_to_interface(tcid);
+  const unsigned timer_id = pwm_id_to_timer_id(id);
   
-  period = (tc_pwm_get_clock( id ) + frequency/2) / frequency;
+  // Check that timer set up for PWM
+  if (tmode[timer_id] != TMODE_PWM)
+    return 0;   // FIXME: Or whatever indicates failure
+
+    period = (tc_pwm_get_clock( id ) + frequency/2) / frequency;
   if (period > PLATFORM_TIMER_COUNT_MAX) period = PLATFORM_TIMER_COUNT_MAX;
   duty_clocks = (period * duty + (MAX_DUTY/2) ) / MAX_DUTY; // duty::100 as duty_clocks::period Calculate from duty cycle
-
-	if (!TCChan[interfaceID].mode) { 
-    tc_init(chTC, chNo,
+  
+	if (!TCChan[timer_id].mode) { 
+    // Init handled by pwm_set_clock
+/*    tc_init(chTC, chNo,
       TC_CMR_TCCLKS_TIMER_CLOCK1 |
       TC_CMR_WAVE |         // Waveform mode
       TC_CMR_WAVSEL_UP_RC | // Counter running up and reset when equals to RC
       TC_CMR_EEVT_XC0 |     // Set external events from XC0 (this setup TIOB as output)
       TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_CLEAR | // clear TIOA on RA and RC
-      TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR); // clear TIOB on RB and RC
+      TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR); // clear TIOB on RB and RC */
     tc_write_rc(chTC, chNo, period);
 
-		TCChan[interfaceID].mode = TC_PWM;   // FIXME: Not right yet - have we programmed it, then have we started it (so need more than 2 states, or maybe 2 separate flags)  Programmed, started
+		TCChan[timer_id].mode = TC_PWM;   // FIXME: Not right yet - have we programmed it, then have we started it (so need more than 2 states, or maybe 2 separate flags)  Programmed, started
 	}
   else 
     // Check period against frequency currently using, if set to different freq - have a problem
@@ -1587,8 +1630,8 @@ static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 
 static void tc_pwm_start( unsigned id )
 {
-  u32 tcid = pwm_id_to_tc(id);
-  const u8 interfaceID = pwm_tc_id_to_interface(tcid);
+  u32 tcid = pwm_id_to_pwm_tc(id);
+  const unsigned timer_id = pwm_id_to_timer_id(id);
   
   if (!tc_pinEnabled[tcid]) {
     if ( pwm_tc_pins[tcid].pin != PIO_INVALID_IDX)
@@ -1596,25 +1639,25 @@ static void tc_pwm_start( unsigned id )
     tc_pinEnabled[tcid] = 1;
   };
 
-  if (!TCChan[interfaceID].running) {
-    tc_start(tc(pwm_tc_id_to_timer(tcid)), pwm_tc_id_to_channel(tcid));
-    TCChan[interfaceID].running = 1;
+  if (!TCChan[timer_id].running) {
+    tc_start(tc(timer_id), pwm_tc_id_to_channel(tcid));
+    TCChan[timer_id].running = 1;
   };
 }
 
 
 static void tc_pwm_stop( unsigned id )
 {
-  u32 tcid = pwm_id_to_tc(id);
-  const u8 interfaceID = pwm_tc_id_to_interface(tcid);
+  u32 tcid = pwm_id_to_pwm_tc(id);
+  const unsigned timer_id = pwm_id_to_timer_id(id);
 
   // FIXME: This doesn't quite work - since the other pin in the channel could still be in use
   // Really what need to do is check if other pin in use, 
   //    if so, then disable this pin (disconnect output from timer, or reprogram register, or ??)
   //    if not, then stop the channel - and release it back to being a timer channel again
-  if (TCChan[interfaceID].running) {
-    tc_stop(tc(pwm_tc_id_to_timer(tcid)), pwm_tc_id_to_channel(tcid));
-    TCChan[interfaceID].running = 0;
+  if (TCChan[timer_id].running) {
+    tc_stop(tc(timer_id), pwm_tc_id_to_channel(tcid));
+    TCChan[timer_id].running = 0;
   };
 }
 
@@ -1625,7 +1668,7 @@ static bool pwm_id_is_pwm( unsigned id )
   return true;
 }
 
-#endif // PSEUDO_PWM
+#endif // TIMER_PWM
 
 
 // Platform functions
@@ -1688,6 +1731,9 @@ u32 platform_pwm_get_clock( unsigned id )
           res = freq_from_prescaler(pre) ;  // divisor of MCK
     }
   } else {
+#ifdef TIMER_PWM
+    return tc_pwm_get_clock(id);
+#endif  
   }
   return res;
 
@@ -1759,6 +1805,10 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
       }
     Assert(pwm_clka_users < NUM_PWM);
   }
+#ifdef TIMER_PWM
+  else
+    return tc_pwm_set_clock(id, clock);
+#endif
   return pwm_chan_clock[id];
 //  return clock; // FIXME - what is it supposed to return?
 }
@@ -1838,6 +1888,10 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
       return 0; // Error
     return (pwmclk + period/2) / period;
   }
+#ifdef TIMER_PWM
+  else
+    return tc_pwm_setup(id, frequency, duty);
+#endif
   return 0; // Error
 }
 //  TODO: Other bits from example code - consider
@@ -1853,7 +1907,10 @@ void platform_pwm_start( unsigned id )
 //  if ( pwm_chan_clock[id] )
   if (pwm_id_is_pwm(id)) 
     pwm_channel_enable(PWM, pwm_chan[id]);
-  
+#ifdef TIMER_PWM
+  else
+    tc_pwm_start(id);
+#endif
 }
 
 
@@ -1861,6 +1918,10 @@ void platform_pwm_stop( unsigned id )
 {
   if (pwm_id_is_pwm(id))
     pwm_channel_disable(PWM, pwm_chan[id]);
+#ifdef TIMER_PWM
+  else
+    tc_pwm_stop( id );
+#endif
 }
 
 #undef pwm_prescalers
