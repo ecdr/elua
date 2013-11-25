@@ -907,12 +907,16 @@ typedef enum {
   TMODE_COUNTER,
   TMODE_PWM } timer_mode_t;
 
+
 timer_mode_t tmode[ NUM_TIMER ] = { TMODE_UNINIT };  // TODO: Or should this be handled up in timer module?
 
 u8 platform_timer_int_periodic_flag[ NUM_TIMER ] = {0};
 
-static uint32_t tmr_div[NUM_TIMER] = { 0 };
+// timer clock
+// TODO: Is there an interface to read the clock so don't have to cache/compute it?
+static uint32_t tmr_div[ NUM_TIMER ] = { 0 };
 
+// TODO: Way to check if a timer is running
 
 // Helper functions
 
@@ -1456,18 +1460,31 @@ static int pwm_enable_pin(unsigned id)
 
 #define MAX_DUTY  100
 
+#define INVALID_PWM NUM_PWM
+
 
 // TIO pins
-// FIXME: Fill in pin id and flags for TIO
+// FIXME: Fill in pin id and flags for TIO (NOPIN are just garbage place fillers)
+// Should be in order TIO0A, TIO0B, TIO1A, TIO1B, ...
 static const sam_pin_config pwm_tc_pins[]  = {
+  PIN_CFG_NOPIN,
+  PIN_CFG_NOPIN,
+  PIN_CFG_NOPIN,
+  PIN_CFG_NOPIN 
   };
 
+// FIXME: Need pin mapping code also
+  
 // TODO: Flags -> bitarray?
-static u8 tc_pinEnabled[NUM_TIMER_PWM] = { 0 };
+static u8 tc_pinEnabled[ NUM_TIMER_PWM ] = { 0 };
 
-// Really indexed by number of pseudo-pwms, or maybe by channel number
-static struct { u8 mode, running; } TCChan[NUM_TIMER_PWM] = {{0, 0}};
-#define TC_PWM 1
+
+// TODO: merge with tmode?
+// Has period been set for this timer device?
+static u8 tmr_per[ NUM_TIMER ] = {0};
+
+// Is this subchannel running? FIXME: needs work on logic
+static u8 tmr_running[ NUM_TIMER_PWM ] = { 0 };
 
 
 /*
@@ -1485,8 +1502,6 @@ static bool pwm_id_is_pwm( unsigned id )
 {
   return id < NUM_REAL_PWM;
 }
-
-#define INVALID_PWM NUM_PWM
 
 // Map PWM id to id of timer that controls that PWM
 // pwm_id -> tc (0-3), tc channel (0-3), A or B
@@ -1580,16 +1595,17 @@ static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   u32 period;
   u32 duty_clocks;
   const unsigned timer_id = pwm_id_to_timer_id(id);
+  u32 pwmclk = tc_pwm_get_clock( id );
   
   // Check that timer set up for PWM
   if (tmode[timer_id] != TMODE_PWM)
     return 0;   // FIXME: Or whatever indicates failure
 
-    period = (tc_pwm_get_clock( id ) + frequency/2) / frequency;
+  period = (pwmclk + frequency/2) / frequency;
   if (period > PLATFORM_TIMER_COUNT_MAX) period = PLATFORM_TIMER_COUNT_MAX;
   duty_clocks = (period * duty + (MAX_DUTY/2) ) / MAX_DUTY; // duty::100 as duty_clocks::period Calculate from duty cycle
   
-	if (!TCChan[timer_id].mode) { 
+	if (!tmr_per[timer_id]) { 
     // Init handled by pwm_set_clock
 /*    tc_init(chTC, chNo,
       TC_CMR_TCCLKS_TIMER_CLOCK1 |
@@ -1600,7 +1616,8 @@ static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty )
       TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR); // clear TIOB on RB and RC */
     tc_write_rc(chTC, chNo, period);
 
-		TCChan[timer_id].mode = TC_PWM;   // FIXME: Not right yet - have we programmed it, then have we started it (so need more than 2 states, or maybe 2 separate flags)  Programmed, started
+		tmr_per[timer_id] = true;   // FIXME: Not right yet - have we programmed it, then have we started it (so need more than 2 states, or maybe 2 separate flags)  Programmed, started
+    // FIXME: also need way to clear this (e.g. clear it when change to using as timer)
 	}
   else 
     // Check period against frequency currently using, if set to different freq - have a problem
@@ -1623,8 +1640,7 @@ static u32 tc_pwm_setup( unsigned id, u32 frequency, unsigned duty )
       tc_SetCMR_ChannelB(chTC, chNo, TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_SET);
     }
   }
-//  return (pwmclk + period/2) / period;  
-  return ; // what?
+  return ( pwmclk + period/2) / period;
 }
 
 
@@ -1639,9 +1655,9 @@ static void tc_pwm_start( unsigned id )
     tc_pinEnabled[tcid] = 1;
   };
 
-  if (!TCChan[timer_id].running) {
+  if (!tmr_running[timer_id]) {
     tc_start(tc(timer_id), pwm_tc_id_to_channel(tcid));
-    TCChan[timer_id].running = 1;
+    tmr_running[timer_id] = 1;  // FIXME: Running logic not right - need timer running, and maybe channel running
   };
 }
 
@@ -1655,9 +1671,9 @@ static void tc_pwm_stop( unsigned id )
   // Really what need to do is check if other pin in use, 
   //    if so, then disable this pin (disconnect output from timer, or reprogram register, or ??)
   //    if not, then stop the channel - and release it back to being a timer channel again
-  if (TCChan[timer_id].running) {
+  if (tmr_running[timer_id]) {
     tc_stop(tc(timer_id), pwm_tc_id_to_channel(tcid));
-    TCChan[timer_id].running = 0;
+    tmr_running[timer_id] = 0;
   };
 }
 
@@ -1736,8 +1752,6 @@ u32 platform_pwm_get_clock( unsigned id )
 #endif  
   }
   return res;
-
-//  return pwm_chan_clock[id];
 }
 
 
