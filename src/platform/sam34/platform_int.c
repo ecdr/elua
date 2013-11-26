@@ -6,6 +6,8 @@
 
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
+// Suppress parts that aren't finished
+//#define DOGPIO
 
 // Generic headers
 #include "platform.h"
@@ -17,9 +19,11 @@
 // header
 
 // From platform.c
+extern u8 platform_timer_int_periodic_flag[ NUM_TIMER ];
+
 extern Tc * tc(unsigned id);
 extern u32 tchannel(unsigned id);
-extern u8 platform_timer_int_periodic_flag[ NUM_TIMER ];
+extern unsigned tmr_is_enabled( unsigned id );
 
 extern Pio * const pio_base[];
 extern const u32 pio_id[];
@@ -98,6 +102,8 @@ void USART2_Handler(void)
 
 // TODO: Instead consider just using ASF pio int handlers (and access functions)
 
+#ifdef DOGPIO
+
 /*
 static void gpio_common_handler( u8 port )
 {
@@ -174,6 +180,7 @@ void posedge_handler(uint32_t id, uint32_t mask)
   cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
 }
 
+#endif
 
 // ----------------------------------------------------------------------------
 // Timer interrupts
@@ -283,17 +290,24 @@ static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
 // ****************************************************************************
 // Interrupt: INT_GPIO_POSEDGE
 
+
 #warning GPIO Posedge not written
 static int int_gpio_posedge_get_status( elua_int_resnum resnum )
 {
+  return 0;
 }
 
 static int int_gpio_posedge_set_status( elua_int_resnum resnum, int status )
 {
+  int prev = int_gpio_posedge_get_status( resnum );
+// FIXME: Fill in body
+  
+  return prev;
 }
 
 static int int_gpio_posedge_get_flag( elua_int_resnum resnum, int clear )
 {
+  return 0;
 }
 
 // ****************************************************************************
@@ -311,6 +325,7 @@ static int int_gpio_negedge_get_status( elua_int_resnum resnum )
 // 
 static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
 {
+  int prev = int_gpio_negedge_get_status( resnum );
   u8 port_num = PLATFORM_IO_GET_PORT( resnum );
   Pio * port = pio_base[ port_num ];
   u32 port_id = pio_id[ port_num ];
@@ -318,16 +333,18 @@ static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
   
   if (status)
   {
+#ifdef DOGPIO
     pio_handler_set(port, port_id, pinmask, PIO_IT_FALL_EDGE, negedge_handler);
     NVIC_EnableIRQ(pio_irq[port_num]);
     pio_enable_interrupt(port, pinmask);
     // Record that int handler set
+#endif    
   }
   else
   {
     pio_disable_interrupt(port, pinmask);
   }
-  return ;  //FIXME: What
+  return prev;
 }
 
 // Is there an interrupt from this port/pin?
@@ -348,6 +365,8 @@ static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
   return 0;
 }
 
+
+ 
 // ****************************************************************************
 // Interrupt: INT_TMR_MATCH
 
@@ -385,10 +404,9 @@ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 // FIXME: handle clear (i.e. can I read status without clearing it)?
 //  if( clear )
 //    MAP_TimerIntClear( base, TIMER_TIMA_TIMEOUT );
-  return status && tmr_is_enabled( resnum ) ? 1 : 0;
+  return (status && tmr_is_enabled( resnum )) ? 1 : 0;
 }
 
-// FIXME: tmr_is_enabled - not written
 
 // ****************************************************************************
 // Interrupt initialization

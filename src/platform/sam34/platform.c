@@ -128,7 +128,6 @@ int platform_init()
   uarts_init();
 
   // Setup timers
-#warning TMR not done  
   timers_init();
 
 #ifdef BUILD_I2C
@@ -885,6 +884,7 @@ Tc * const timer_tc[] = {TC0, TC1, TC2};
 static u32 tc_num(unsigned id);
 Tc * tc(unsigned id);
 u32 tchannel(unsigned id);
+unsigned tmr_is_enabled( unsigned id );
 
 // TODO: See if library files provide a name for this
 #define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
@@ -906,7 +906,6 @@ typedef enum {
   TMODE_TIMER,
   TMODE_COUNTER,
   TMODE_PWM } timer_mode_t;
-
 
 timer_mode_t tmode[ NUM_TIMER ] = { TMODE_UNINIT };  // TODO: Or should this be handled up in timer module?
 
@@ -950,6 +949,11 @@ static void timers_init()
 
 static u32 plat_timer_get_clock( unsigned id )
 {
+/* Code for testing
+	TcChannel *tc_channel;
+	tc_channel = tc(id)->TC_CHANNEL + tchannel(id);
+printf("getclock tmr %u, div %lu, tcclks %lu", id, tmr_div[id], (tc_channel->TC_CMR & TC_CMR_TCCLKS_Msk));
+*/
   if (tmr_div[id])
     return CPU_FREQUENCY/tmr_div[id];
   else
@@ -957,14 +961,25 @@ static u32 plat_timer_get_clock( unsigned id )
 }
 
 
+// FIXME: Figure out what timer mode to use for each timer use (timer, counter, PWM)
+//#define TC_MODE_TIMER   
+//#define TC_MODE_COUNTER 
+//#define TC_MODE_PWM     
+
 static u32 plat_timer_set_clock(unsigned id, timer_data_type clock, u32 mode)
 {
 	static uint32_t ul_sysclk;    // FIXME: What static for?
 	uint32_t tmr_tcclks;
   ul_sysclk = CPU_FREQUENCY;  /* Get system clock. */
   
-  if ( tc_find_mck_divisor(clock, ul_sysclk, &tmr_div[id], &tmr_tcclks, ul_sysclk) )
+  // This finds the smallest divisor such that (MCK / (DIV * 65536)) <= freq <= (MCK / DIV)
+  // So it does not set a clock frequency close to what was requested
+  // For instance, if you request a clock of 1,000 Hz (or anything over 640Hz), you get 42 MHz
+  // This seems rather odd, given that other clock frequency options are 10.5 MHz, 656,250 Hz, or 2,625 KHz
+  // TODO: Might offer option to get closest clock (e.g. define a different divisor multiplier)
+  if ( tc_find_mck_divisor(clock, ul_sysclk, &(tmr_div[id]), &tmr_tcclks, ul_sysclk) )
   {
+//printf("setclock %u, clock %lu, div %lu, tmr_tcclks %lu\n", id, (u32) clock, tmr_div[id], tmr_tcclks);
     tc_init(tc(id), tchannel(id), tmr_tcclks | mode);
     return plat_timer_get_clock( id );
   }
@@ -974,6 +989,14 @@ static u32 plat_timer_set_clock(unsigned id, timer_data_type clock, u32 mode)
     return 0;
   }
 }
+
+
+// FIXME: This probably isn't right, just a stop-gap
+unsigned tmr_is_enabled( unsigned id )
+{
+  return tmode[id] != TMODE_UNINIT;
+}
+
 
 // Platform functions
 
@@ -993,24 +1016,7 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 // TODO: should probably stop the timer (?)
 }
 
-// Example code using timer
-//	uint32_t ul_div;
-//	uint32_t ul_tcclks;
-//	static uint32_t ul_sysclk;
 
-	/* Get system clock. */
-//	ul_sysclk = CPU_FREQUENCY;
-
-	/* Configure TC for a 50Hz frequency and trigger on RC compare. */
-//	tc_find_mck_divisor(TC_FREQ, ul_sysclk, &ul_div, &ul_tcclks, ul_sysclk);
-//	tc_init(TC0, 0, ul_tcclks | TC_CMR_CPCTRG);
-//	tc_write_rc(TC0, 0, (ul_sysclk / ul_div) / TC_FREQ);
-
-// FIXME: Need to figure out what timer mode to use
-//#define TC_MODE_TIMER   
-//#define TC_MODE_COUNTER 
-//#define TC_MODE_PWM     
-  
 timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 {
   u32 res = 0;
@@ -1045,8 +1051,6 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
   return res;
 }
 
-
-// TODO: Needs testing
 
 // period_us - period in microseconds, if period = 0, then use maximum possible period (I think that what means)??
 // type: PLATFORM_TIMER_INT_CYCLIC or PLATFORM_TIMER_INT_ONESHOT
