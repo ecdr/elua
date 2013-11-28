@@ -2,12 +2,10 @@
 // AT91SAM3/4
 
 #include "platform_conf.h"
-// #include "platform_int.h"
+
 
 #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
-// Suppress parts that aren't finished
-//#define DOGPIO
 
 // Generic headers
 #include "platform.h"
@@ -16,6 +14,8 @@
 
 #include <asf.h>
 
+
+// #include "platform_int.h"
 // header
 
 // From platform.c
@@ -39,11 +39,10 @@ extern Usart* const uart_base[];
 void negedge_handler(uint32_t id, uint32_t mask);
 void posedge_handler(uint32_t id, uint32_t mask);
 
-
-// FIXME: - need to find actual functions or macros for these
-extern u8 getport(u32 id);
-extern u8 MASK_TO_PIN(u32 mask);
-
+// Set priority levels for various interrupts
+//#define USART_INT_PRI 
+//#define TIMER_INT_PRI 
+//#define PIO_INT_PRI   
 
 
 // End of header
@@ -102,7 +101,6 @@ void USART2_Handler(void)
 
 // TODO: Instead consider just using ASF pio int handlers (and access functions)
 
-#ifdef DOGPIO
 
 /*
 static void gpio_common_handler( u8 port )
@@ -163,24 +161,47 @@ void PIOD_Handler(void)
 }
 */
 
-void negedge_handler(uint32_t id, uint32_t mask)
-{
-  u8 port = getport(id);          // FIXME
-  u8 pin = MASK_TO_PIN(mask);     // FIXME
+#define MASK_SIZE 32
 
-
-  cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
-}
-  
-void posedge_handler(uint32_t id, uint32_t mask)
+// Return number of the first bit set
+// FIXME: There is probably already a function to do this (convert a bit mask to a pin number), just haven't found it yet.
+static unsigned mask_to_bit(u32 mask)
 {
-  u8 port = getport(id);          // FIXME
-  u8 pin = MASK_TO_PIN(mask);     // FIXME
-  
-  cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
+  unsigned i;
+  for (i = 0; i < MASK_SIZE; i++)
+    if (mask & 1)
+      return i;
+    else
+      mask = mask >> 1;
+  return MASK_SIZE;    // No bits set - return invalid bit position
 }
 
-#endif
+// Convert port_id (ID_PIOA, ...) to port number (0, ...)
+// Caveat programmer: Assumes that the ID numbers are contiguous (as they are for the at91sam3x8e)
+// TODO: See if there is already a macro or function for this
+static inline unsigned id_to_port_number(uint32_t port_id)
+{
+  return port_id - ID_PIOA;
+}
+
+void negedge_handler(uint32_t port_id, uint32_t pinmask)
+{
+  unsigned port_num = id_to_port_number(port_id);
+  u32 pin = mask_to_bit(pinmask);
+
+printf("Debug: Negedge handler port_num %u, pinmask %lx, pin %lu\n", port_num, pinmask, pin);
+  cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port_num, pin, 0 ) );
+}
+  
+void posedge_handler(uint32_t port_id, uint32_t pinmask)
+{
+  unsigned port_num = id_to_port_number(port_id);
+  u32 pin = mask_to_bit(pinmask);
+  
+  cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port_num, pin, 0 ) );
+}
+
+
 
 // ----------------------------------------------------------------------------
 // Timer interrupts
@@ -259,10 +280,12 @@ static int inth_gpio_get_int_status( elua_int_resnum resnum )
 // ****************************************************************************
 // Interrupt: INT_UART_RX
 
+
 static int int_uart_rx_get_status( elua_int_resnum resnum )
 {
   return (usart_get_interrupt_mask(uart_base[ resnum ]) & US_IMR_RXRDY) ? 1 : 0;
 }
+
 
 static int int_uart_rx_set_status( elua_int_resnum resnum, int status )
 {
@@ -276,7 +299,7 @@ static int int_uart_rx_set_status( elua_int_resnum resnum, int status )
 }
 
 
-// FIXME: Is there any way to read status without clearing it?  Maybe need to make own status cache?
+// TODO: Is there any way to read status without clearing it?  Maybe need to make own status cache?
 static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
 {
   int flag = ( usart_get_status( uart_base[ resnum ] ) & US_CSR_RXRDY ) ? 1 : 0;
@@ -287,58 +310,39 @@ static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
   return flag;
 }
 
+
 // ****************************************************************************
 // Interrupt: INT_GPIO_POSEDGE
 
 
-#warning GPIO Posedge not written
+#warning GPIO Posedge not tested
+
+#warning posedge get status - need to check for posedge vs negedge int set
 static int int_gpio_posedge_get_status( elua_int_resnum resnum )
-{
-  return 0;
-}
-
-static int int_gpio_posedge_set_status( elua_int_resnum resnum, int status )
-{
-  int prev = int_gpio_posedge_get_status( resnum );
-// FIXME: Fill in body
-  
-  return prev;
-}
-
-static int int_gpio_posedge_get_flag( elua_int_resnum resnum, int clear )
-{
-  return 0;
-}
-
-// ****************************************************************************
-// Interrupt: INT_GPIO_NEGEDGE
-
-// Is the interrupt configured for this port/pin?
-static int int_gpio_negedge_get_status( elua_int_resnum resnum )
 {
   Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
-  return (pio_get_interrupt_mask(port) & pinmask);  // Not right - have to find if NEGEDGE int set
+  return (pio_get_interrupt_mask(port) & pinmask);  // FIXME: Not right - have to find if POSEDGE int set
 }
 
-// 
-static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
+
+static int int_gpio_posedge_set_status( elua_int_resnum resnum, int status )
 {
-  int prev = int_gpio_negedge_get_status( resnum );
+  int prev = int_gpio_posedge_get_status( resnum );
   u8 port_num = PLATFORM_IO_GET_PORT( resnum );
   Pio * port = pio_base[ port_num ];
   u32 port_id = pio_id[ port_num ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
-  
+
+printf("Debug:Posedge int set, port %lu, mask %lx, pin %d\n", port_id, pinmask, PLATFORM_IO_GET_PIN( resnum ));
+
   if (status)
   {
-#ifdef DOGPIO
-    pio_handler_set(port, port_id, pinmask, PIO_IT_FALL_EDGE, negedge_handler);
+    pio_handler_set(port, port_id, pinmask, PIO_IT_FALL_EDGE, posedge_handler);
     NVIC_EnableIRQ(pio_irq[port_num]);
     pio_enable_interrupt(port, pinmask);
     // Record that int handler set
-#endif    
   }
   else
   {
@@ -347,14 +351,14 @@ static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
   return prev;
 }
 
-// Is there an interrupt from this port/pin?
-static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
+
+static int int_gpio_posedge_get_flag( elua_int_resnum resnum, int clear )
 {
   Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
   if( pio_get(port, PIO_TYPE_PIO_INPUT, pinmask) != 0 )
-    return 0;   // Might there be cases where want interrupt on pin with alternate function?
+    return 0;   // TODO: Might there be cases where want interrupt on pin with alternate function?
   if( pio_get_interrupt_status(port) & pinmask )
   {
     if( clear )
@@ -366,14 +370,75 @@ static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
 }
 
 
+// ****************************************************************************
+// Interrupt: INT_GPIO_NEGEDGE
+
+#warning negedge get status - need to check for posedge vs negedge int set
+
+// Is the interrupt configured for this port/pin?
+static int int_gpio_negedge_get_status( elua_int_resnum resnum )
+{
+  Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
+  u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
+
+  return (pio_get_interrupt_mask(port) & pinmask);  // FIXME: Not right - have to find if NEGEDGE int set
+}
+
+
+// 
+static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
+{
+  int prev = int_gpio_negedge_get_status( resnum );
+  u8 port_num = PLATFORM_IO_GET_PORT( resnum );
+  Pio * port = pio_base[ port_num ];
+  u32 port_id = pio_id[ port_num ];
+  u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
+
+printf("Debug:Negedge set port %lu, mask %lx, pin %d\n", port_id, pinmask, PLATFORM_IO_GET_PIN( resnum ));
+
+  if (status)
+  {
+    pio_handler_set(port, port_id, pinmask, PIO_IT_FALL_EDGE, negedge_handler);
+    NVIC_EnableIRQ(pio_irq[port_num]);
+    pio_enable_interrupt(port, pinmask);
+    // Record that int handler set
+  }
+  else
+  {
+    pio_disable_interrupt(port, pinmask);
+  }
+  return prev;
+}
+
+
+// Is there an interrupt from this port/pin?
+static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
+{
+  Pio * port = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
+  u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
+
+  if( pio_get(port, PIO_TYPE_PIO_INPUT, pinmask) != 0 )
+    return 0;   // TODO: Might there be cases where want interrupt on pin with alternate function?
+  if( pio_get_interrupt_status(port) & pinmask )
+  {
+    if( clear )
+//      MAP_GPIOPinIntClear( portbase, pinmask );   // Not sure how to clear an interrupt
+      return 0;
+    return 1;
+  }
+  return 0;
+}
+
  
 // ****************************************************************************
 // Interrupt: INT_TMR_MATCH
+
 
 static int int_tmr_match_get_status( elua_int_resnum resnum )
 {
   return (tc_get_interrupt_mask(tc(resnum), tchannel(resnum)) & TC_IMR_CPCS) ? 1 : 0;
 }
+
 
 static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
 {
@@ -394,6 +459,7 @@ static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
   return prev;
 }
 
+
 static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 {
   Tc * tmr = tc(resnum);
@@ -412,12 +478,6 @@ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
 // Interrupt initialization
 
 
-#warning Interrupt init not tested
-
-// Set priority levels for various interrupts
-//#define USART_INT_PRI 
-//#define TIMER_INT_PRI 
-//#define PIO_INT_PRI   
 
 void platform_int_init(void)
 {
@@ -453,6 +513,7 @@ void platform_int_init(void)
 // Interrupt table
 // Must have a 1-to-1 correspondence with the interrupt enum in platform_ints.h!
 
+
 const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
 {
   { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag },
@@ -460,6 +521,7 @@ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] =
   { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag },
   { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag }
 };
+
 
 #else // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
 
