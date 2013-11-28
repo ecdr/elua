@@ -890,6 +890,22 @@ unsigned tmr_is_enabled( unsigned id );
 #define PLATFORM_TIMER_COUNT_MAX ( 0xFFFFFFFFUL )
 
 
+const struct { sam_pin_config a, b; } timer_pins[] = {
+// TC0 (timers 0-2)
+        {{PIO_PB25B_TIOA0, (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PB27B_TIOB0, (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PA2A_TIOA1, (PIO_PERIPH_A | PIO_DEFAULT)},  {PIO_PA3A_TIOB1, (PIO_PERIPH_A | PIO_DEFAULT)}},
+        {{PIO_PA5A_TIOA2, (PIO_PERIPH_A | PIO_DEFAULT)},  {PIO_PA6A_TIOB2, (PIO_PERIPH_A | PIO_DEFAULT)}},
+// TC1 (timers 3-5)
+        {{PIO_PB0B_TIOA3, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PB1B_TIOB3, (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PB2B_TIOA4, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PB3B_TIOB4, (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PB4B_TIOA5, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PB5B_TIOB5, (PIO_PERIPH_B | PIO_DEFAULT)}},
+// TC2 (timers 6-8)
+        {{PIO_PC25B_TIOA6, (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PC26B_TIOB6, (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PC28B_TIOA7, (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PC29B_TIOB7, (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PD7B_TIOA8, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PD8B_TIOB8, (PIO_PERIPH_B | PIO_DEFAULT)}}
+        };
+
+
 // 3 timer devices, each with 3 channels
 
 // FIXME: NUM_TC or num_tc - Pick one (if it will work, the const might be more type safe)
@@ -1008,7 +1024,7 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
 
   if( final == 0) return;
   if( final > PLATFORM_TIMER_COUNT_MAX )
-    final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead (on the other hand, unless use u64 for final, this test makes no sense
+    final = PLATFORM_TIMER_COUNT_MAX;     // FIXME: this isn't right (copied from another platform) - should do rollover instead (on the other hand, unless use u64 for final, this test makes no sense on this platform
 // TODO: stop timer, set count to 0, start timer
   tc_init( tc(id), tchannel(id), TC_CMR_WAVE);
   tc_start( tc(id), tchannel(id) );
@@ -1126,6 +1142,7 @@ timer_data_type platform_timer_read_sys(void)
 
 
 // ****************************************************************************
+
 // PWMs
 
 #if NUM_PWM > 0

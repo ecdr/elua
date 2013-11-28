@@ -19,6 +19,8 @@
 //Regular interrupts to transfer to FIFO
 //Handle both channels
 
+// Scaling (general data conversion op)
+
 // PIO_PB15X1_DAC0
 // PIO_PB15X1_WKUP12
 // PIO_PB16X1_DAC1
