@@ -1475,7 +1475,7 @@ static int pwm_enable_pin(unsigned id)
 // PWMs provided by timers
 // NUM_TIMER_PWM - number of PWMs done by timers
 
-//#define TIMER_PWM
+#define TIMER_PWM
 
 #ifdef TIMER_PWM
 
@@ -1484,30 +1484,18 @@ static int pwm_enable_pin(unsigned id)
 #define INVALID_PWM NUM_PWM
 
 
-// TIO pins
-// FIXME: Fill in pin id and flags for TIO (NOPIN are just garbage place fillers)
-// Should be in order TIO0A, TIO0B, TIO1A, TIO1B, ...
-/* static const sam_pin_config pwm_tc_pins[]  = {
-  PIN_CFG_NOPIN,
-  PIN_CFG_NOPIN,
-  PIN_CFG_NOPIN,
-  PIN_CFG_NOPIN 
-  };
-*/
-
-// FIXME: Need pin mapping code also
-  
 // TODO: Flags -> bitarray?
 static u8 tc_pinEnabled[ NUM_TIMER_PWM ] = { 0 };
-
 
 // TODO: merge with tmode?
 // Has period been set for this timer device?
 static u8 tmr_per[ NUM_TIMER ] = {0};
 
-// Is this subchannel running? FIXME: needs work on logic
-static u8 tmr_running[ NUM_TIMER_PWM ] = { 0 };
+// Is this timer running?
+static u8 tmr_running[ NUM_TIMER ] = { 0 };
 
+// Is this channel running (a or b)
+static u8 channel_running[NUM_TIMER_PWM] = { 0 };
 
 /*
 static u32 tc_pwm_get_clock( unsigned id );
@@ -1572,7 +1560,7 @@ static bool pwm_tc_id_isA( unsigned id)
 // If given timer counter pwm channel is A (even), return the B (channel+1), and vice-versa
 static unsigned partner_channel(u32 tcid)
 {
-  return tcid xor 1;
+  return tcid ^ 1; // xor
 }
 
 
@@ -1680,11 +1668,11 @@ static void tc_pwm_start( unsigned id )
   if (!tc_pinEnabled[tcid]) {
     if (pwm_tc_id_isA(tcid)) {
       if ( timer_pins[timer_id].a.pin != PIO_INVALID_IDX)
-        gpio_configure_pin(timer_pins[timer_id].a.pin, pwm_tc_pins[timer_id].a.flags);
+        gpio_configure_pin(timer_pins[timer_id].a.pin, timer_pins[timer_id].a.flags);
     }
     else {
       if ( timer_pins[timer_id].b.pin != PIO_INVALID_IDX)    
-        gpio_configure_pin(timer_pins[timer_id].b.pin, pwm_tc_pins[timer_id].b.flags);      
+        gpio_configure_pin(timer_pins[timer_id].b.pin, timer_pins[timer_id].b.flags);      
     }
     tc_pinEnabled[tcid] = 1;
   };
@@ -1700,6 +1688,8 @@ static void tc_pwm_start( unsigned id )
 static void tc_pwm_stop( unsigned id )
 {
   u32 tcid = pwm_id_to_pwm_tc(id);
+  Tc *chTC = tc(pwm_tc_id_to_timer(tcid));
+  const uint32_t chNo = pwm_tc_id_to_channel(tcid);
   const unsigned timer_id = pwm_id_to_timer_id(id);
 
   if (channel_running[tcid]){
