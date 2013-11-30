@@ -210,8 +210,11 @@ static void tmr_common_handler( elua_int_resnum id)
 {
   Tc * tmr = tc(id);
   u32 channel = tchannel(id);
+  u32 status = tc_get_status(tmr, channel);
+  
+printf("Debug: Timer int channel %lu, status %lx\n", channel, status);
 
-  if ((tc_get_status(tmr, channel) & TC_SR_CPCS) == TC_SR_CPCS) {
+  if ((status & TC_SR_CPCS) == TC_SR_CPCS) {
     if ( platform_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
     {
       tc_disable_interrupt(tmr, channel, TC_IDR_CPCS);
