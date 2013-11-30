@@ -893,16 +893,16 @@ unsigned tmr_is_enabled( unsigned id );
 const struct { sam_pin_config a, b; } timer_pins[] = {
 // TC0 (timers 0-2)
         {{PIO_PB25B_TIOA0, (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PB27B_TIOB0, (PIO_PERIPH_B | PIO_DEFAULT)}},
-        {{PIO_PA2A_TIOA1, (PIO_PERIPH_A | PIO_DEFAULT)},  {PIO_PA3A_TIOB1, (PIO_PERIPH_A | PIO_DEFAULT)}},
-        {{PIO_PA5A_TIOA2, (PIO_PERIPH_A | PIO_DEFAULT)},  {PIO_PA6A_TIOB2, (PIO_PERIPH_A | PIO_DEFAULT)}},
+        {{PIO_PA2A_TIOA1,  (PIO_PERIPH_A | PIO_DEFAULT)}, {PIO_PA3A_TIOB1,  (PIO_PERIPH_A | PIO_DEFAULT)}},
+        {{PIO_PA5A_TIOA2,  (PIO_PERIPH_A | PIO_DEFAULT)}, {PIO_PA6A_TIOB2,  (PIO_PERIPH_A | PIO_DEFAULT)}},
 // TC1 (timers 3-5)
-        {{PIO_PB0B_TIOA3, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PB1B_TIOB3, (PIO_PERIPH_B | PIO_DEFAULT)}},
-        {{PIO_PB2B_TIOA4, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PB3B_TIOB4, (PIO_PERIPH_B | PIO_DEFAULT)}},
-        {{PIO_PB4B_TIOA5, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PB5B_TIOB5, (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PB0B_TIOA3,  (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PB1B_TIOB3,  (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PB2B_TIOA4,  (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PB3B_TIOB4,  (PIO_PERIPH_B | PIO_DEFAULT)}},
+        {{PIO_PB4B_TIOA5,  (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PB5B_TIOB5,  (PIO_PERIPH_B | PIO_DEFAULT)}},
 // TC2 (timers 6-8)
         {{PIO_PC25B_TIOA6, (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PC26B_TIOB6, (PIO_PERIPH_B | PIO_DEFAULT)}},
         {{PIO_PC28B_TIOA7, (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PC29B_TIOB7, (PIO_PERIPH_B | PIO_DEFAULT)}},
-        {{PIO_PD7B_TIOA8, (PIO_PERIPH_B | PIO_DEFAULT)},  {PIO_PD8B_TIOB8, (PIO_PERIPH_B | PIO_DEFAULT)}}
+        {{PIO_PD7B_TIOA8,  (PIO_PERIPH_B | PIO_DEFAULT)}, {PIO_PD8B_TIOB8,  (PIO_PERIPH_B | PIO_DEFAULT)}}
         };
 
 
@@ -1487,12 +1487,13 @@ static int pwm_enable_pin(unsigned id)
 // TIO pins
 // FIXME: Fill in pin id and flags for TIO (NOPIN are just garbage place fillers)
 // Should be in order TIO0A, TIO0B, TIO1A, TIO1B, ...
-static const sam_pin_config pwm_tc_pins[]  = {
+/* static const sam_pin_config pwm_tc_pins[]  = {
   PIN_CFG_NOPIN,
   PIN_CFG_NOPIN,
   PIN_CFG_NOPIN,
   PIN_CFG_NOPIN 
   };
+*/
 
 // FIXME: Need pin mapping code also
   
@@ -1568,6 +1569,11 @@ static bool pwm_tc_id_isA( unsigned id)
   return !(id & 1);
 }
 
+// If given timer counter pwm channel is A (even), return the B (channel+1), and vice-versa
+static unsigned partner_channel(u32 tcid)
+{
+  return tcid xor 1;
+}
 
 
 // TODO: See how many places used, may be easy to get rid of this
@@ -1588,6 +1594,7 @@ static u32 tc_pwm_set_clock( unsigned id, u32 clock )
       TC_CMR_EEVT_XC0 |     // Set external events from XC0 (this setup TIOB as output)
       TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_CLEAR | // clear TIOA on RA and RC
       TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR); // clear TIOB on RB and RC;
+// Clear on RA and RC means clear all the time (output always low)
   
   if (res)
     tmode[timer_id] = TMODE_PWM;
@@ -1671,8 +1678,14 @@ static void tc_pwm_start( unsigned id )
   const unsigned timer_id = pwm_id_to_timer_id(id);
   
   if (!tc_pinEnabled[tcid]) {
-    if ( pwm_tc_pins[tcid].pin != PIO_INVALID_IDX)
-      gpio_configure_pin(pwm_tc_pins[tcid].pin, pwm_tc_pins[tcid].flags);
+    if (pwm_tc_id_isA(tcid)) {
+      if ( timer_pins[timer_id].a.pin != PIO_INVALID_IDX)
+        gpio_configure_pin(timer_pins[timer_id].a.pin, pwm_tc_pins[timer_id].a.flags);
+    }
+    else {
+      if ( timer_pins[timer_id].b.pin != PIO_INVALID_IDX)    
+        gpio_configure_pin(timer_pins[timer_id].b.pin, pwm_tc_pins[timer_id].b.flags);      
+    }
     tc_pinEnabled[tcid] = 1;
   };
 
@@ -1680,22 +1693,35 @@ static void tc_pwm_start( unsigned id )
     tc_start(tc(timer_id), pwm_tc_id_to_channel(tcid));
     tmr_running[timer_id] = 1;  // FIXME: Running logic not right - need timer running, and maybe channel running
   };
+  if (!channel_running[tcid])
+    channel_running[tcid] = 1;
 }
-
 
 static void tc_pwm_stop( unsigned id )
 {
   u32 tcid = pwm_id_to_pwm_tc(id);
   const unsigned timer_id = pwm_id_to_timer_id(id);
 
-  // FIXME: This doesn't quite work - since the other pin in the channel could still be in use
-  // Really what need to do is check if other pin in use, 
-  //    if so, then disable this pin (disconnect output from timer, or reprogram register, or ??)
-  //    if not, then stop the channel - and release it back to being a timer channel again
-  if (tmr_running[timer_id]) {
-    tc_stop(tc(timer_id), pwm_tc_id_to_channel(tcid));
-    tmr_running[timer_id] = 0;
+  if (channel_running[tcid]){
+    channel_running[tcid] = 0;
+    // Stop PWM output by changing action so clears on RA and RC
+    //  Tis is probably not right - if start is done by enabling output pin, then stop should be by disabling
+    //    (Alternatively - make start actually set the channel A actions, then stop going to all clears would)
+    if (pwm_tc_id_isA(tcid))
+      tc_SetCMR_ChannelA(chTC, chNo, TC_CMR_ACPA_CLEAR | TC_CMR_ACPC_CLEAR);  // RA -> clear TIOA, RC -> clear TIOA
+    else
+      tc_SetCMR_ChannelB(chTC, chNo, TC_CMR_BCPB_CLEAR | TC_CMR_BCPC_CLEAR);
+      
   };
+  // Really what need to do is check if other pin in use, 
+  //    if not, then stop the channel - and release it back to being a timer channel again
+  // Check if other part of timer in use, if not stop the timer
+  // Should have some way to release it for use as a counter or timer
+  if (!channel_running[partner_channel(tcid)])
+    if (tmr_running[timer_id]) {
+      tc_stop(tc(timer_id), pwm_tc_id_to_channel(tcid));
+      tmr_running[timer_id] = 0;
+    };
 }
 
 #else
