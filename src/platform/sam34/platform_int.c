@@ -189,7 +189,7 @@ void negedge_handler(uint32_t port_id, uint32_t pinmask)
   unsigned port_num = id_to_port_number(port_id);
   u32 pin = mask_to_bit(pinmask);
 
-printf("Debug: Negedge handler port_num %u, pinmask %lx, pin %lu\n", port_num, pinmask, pin);
+//printf("Debug: Negedge handler port_num %u, pinmask %lx, pin %lu\n", port_num, pinmask, pin);
   cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port_num, pin, 0 ) );
 }
   
@@ -198,6 +198,7 @@ void posedge_handler(uint32_t port_id, uint32_t pinmask)
   unsigned port_num = id_to_port_number(port_id);
   u32 pin = mask_to_bit(pinmask);
   
+printf("Debug: Posedge handler port_num %u, pinmask %lx, pin %lu\n", port_num, pinmask, pin);
   cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port_num, pin, 0 ) );
 }
 
@@ -212,7 +213,7 @@ static void tmr_common_handler( elua_int_resnum id)
   u32 channel = tchannel(id);
   u32 status = tc_get_status(tmr, channel);
   
-printf("Debug: Timer int channel %lu, status %lx\n", channel, status);
+//printf("Debug: Timer int channel %lu, status %lx\n", channel, status);
 
   if ((status & TC_SR_CPCS) == TC_SR_CPCS) {
     if ( platform_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
@@ -338,7 +339,7 @@ static int int_gpio_posedge_set_status( elua_int_resnum resnum, int status )
   u32 port_id = pio_id[ port_num ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
-printf("Debug:Posedge int set, port %lu, mask %lx, pin %d\n", port_id, pinmask, PLATFORM_IO_GET_PIN( resnum ));
+//printf("Debug:Posedge int set, port %lu, mask %lx, pin %d\n", port_id, pinmask, PLATFORM_IO_GET_PIN( resnum ));
 
   if (status)
   {
@@ -397,7 +398,7 @@ static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
   u32 port_id = pio_id[ port_num ];
   u32 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
-printf("Debug:Negedge set port %lu, mask %lx, pin %d\n", port_id, pinmask, PLATFORM_IO_GET_PIN( resnum ));
+//printf("Debug:Negedge set port %lu, mask %lx, pin %d\n", port_id, pinmask, PLATFORM_IO_GET_PIN( resnum ));
 
   if (status)
   {
