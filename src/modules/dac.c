@@ -12,15 +12,19 @@
 #include <string.h>
 #include <stdlib.h>
 
+
+#define DAC_BUF_SIZE  16
+
+
 static unsigned bytes_per_sample[NUM_DAC];
 
-// Lua: setup( dac_id, [bits_per_sample] )
+// Lua: bits_per_sample = setup( dac_id, [bits_per_sample] )
 static int dac_setup(lua_State *L) {
   
   unsigned id = luaL_checkinteger(L, 1);
   MOD_CHECK_ID(dac, id);
 
-  unsigned bits_per_sample = luaL_optinteger(L, 2, 8);
+  unsigned bits_per_sample = luaL_optinteger(L, 2, DAC_DEFAULT_RESOLUTION);
 
   int result = platform_dac_init(id, bits_per_sample, 0);
   if(result != DAC_INIT_OK)
@@ -28,8 +32,11 @@ static int dac_setup(lua_State *L) {
 
   bytes_per_sample[id] = (bits_per_sample + 7) / 8;
 
-  return 0;
+  lua_pushinteger(L, bits_per_sample);
+  return 1;
 }
+
+#define DAC_MAX(bits) (1<<bits)
 
 // Lua: putsample( dac_id, val )
 static int dac_putsample(lua_State  *L) {
@@ -37,9 +44,12 @@ static int dac_putsample(lua_State  *L) {
   unsigned id = luaL_checkinteger(L, 1);
   MOD_CHECK_ID(dac, id);
 
-  u16 val = luaL_checkinteger(L, 2);
+  u16 val = luaL_checkinteger(L, 2);    // FIXME: Should do error checking on range? (negative, too large) (does checkinteger handle -?)
 
-  platform_dac_put_sample(1 << id, &val);
+//  if (val > DAC_MAX(bits_per_sample))   // FIXME: Need to access bits per sample for check to work
+//    return luaL_error(L, "DAC putsample out of range (%u)", val);
+    
+  platform_dac_put_sample(1 << id, &val); // 
 
   return 0;
 }
@@ -95,6 +105,7 @@ static void dac_timer_int_handler(elua_int_resnum resnum) {
   }
 }
 
+
 // Lua: num_samples_output, num_underflows = putsamples( dac_id, data_source, rate, [bits_per_sample, [channels, [bias, [timer_id]]]] )
 static int dac_putsamples(lua_State *L) {
 
@@ -103,17 +114,17 @@ static int dac_putsamples(lua_State *L) {
 
   unsigned data_source_type = lua_type(L, 2);
   if(data_source_type != LUA_TSTRING && data_source_type != LUA_TTABLE && data_source_type != LUA_TFUNCTION)
-    return luaL_error(L, "data_source must either be an array of integers, a string or a function that returns a string");
+    return luaL_error(L, "DAC data_source must either be an array of integers, a string or a function that returns a string");
 
   unsigned rate = luaL_checkinteger(L, 3);
   if(rate == 0)
-    return luaL_error(L, "rate must be > 0");
+    return luaL_error(L, "DAC rate must be > 0");
 
-  unsigned bits_per_sample = luaL_optinteger(L, 4, 8);
+  unsigned bits_per_sample = luaL_optinteger(L, 4, DAC_DEFAULT_RESOLUTION);
 
   dac_state.channels = luaL_optinteger(L, 5, 1);
   if(dac_state.channels < 1 || (dac_state.dac_id + dac_state.channels > NUM_DAC))
-    return luaL_error(L, "channels must be between 1 and %d", NUM_DAC - dac_state.dac_id);
+    return luaL_error(L, "DAC channels must be between 1 and %d", NUM_DAC - dac_state.dac_id);
   dac_state.bias = luaL_optinteger(L, 6, 0);
 
   unsigned default_timer_id = 0;
@@ -149,7 +160,7 @@ static int dac_putsamples(lua_State *L) {
   if(data_source_type == LUA_TTABLE) {
     // transfer the values in the table into a small circular buffer
     int num_vals_in_table = lua_objlen(L, 2);
-    char small_buffer[16];
+    char small_buffer[DAC_BUF_SIZE];
     dac_state.sample_buffer = small_buffer;
     dac_state.sample_buffer_size = sizeof(small_buffer);
     // copy values from table into circular buffer

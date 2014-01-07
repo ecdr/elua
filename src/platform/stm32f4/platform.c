@@ -1652,7 +1652,7 @@ int platform_dac_init(unsigned id, unsigned bits_per_sample, unsigned options) {
   DAC_StructInit(&dac_init_struct);
   DAC_Init(dac_channel, &dac_init_struct);
   DAC_Cmd(dac_channel, ENABLE);
-  return 0;
+  return DAC_INIT_OK;
 }
 
 void platform_dac_put_sample(unsigned channel_mask, u16 *data) {
