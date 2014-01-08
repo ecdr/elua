@@ -204,133 +204,133 @@ static int dac_putsamples( lua_State *L )
 
   switch ( data_source_type ) {
     case LUA_TTABLE :
-    // transfer the values in the table into a small circular buffer
+      // transfer the values in the table into a small circular buffer
 
-    int num_vals_in_table = lua_objlen( L, 2 );
-    char small_buffer[DAC_BUF_SIZE];
+      int num_vals_in_table = lua_objlen( L, 2 );
+      char small_buffer[DAC_BUF_SIZE];
 
-    dac_state.sample_buffer = small_buffer;
-    dac_state.sample_buffer_size = sizeof( small_buffer );
-    // copy values from table into circular buffer
+      dac_state.sample_buffer = small_buffer;
+      dac_state.sample_buffer_size = sizeof( small_buffer );
+      // copy values from table into circular buffer
 
-    int n = 1;                        // n is table index (TODO: why int? seems like unsigned might make more sense)
-                                      // might be clearer if written as a for loop? for (n = 1; n <= num_vals_in_table; n++)
-                                      // (Would have to revise the way it waits until there is space in the buffer in order to do that
-                                      //  on the other hand that might make it clearer where the busy wait is, and where sleep might
-                                      //  be possible).
-    while ( n <= num_vals_in_table )
-    {
-      int space = dac_state.next_out - dac_state.next_in;
-      if ( space <= 0 )
-        space += dac_state.sample_buffer_size;
-      if ( space > dac_state.stride )
+      int n = 1;                        // n is table index (TODO: why int? seems like unsigned might make more sense)
+                                        // might be clearer if written as a for loop? for (n = 1; n <= num_vals_in_table; n++)
+                                        // (Would have to revise the way it waits until there is space in the buffer in order to do that
+                                        //  on the other hand that might make it clearer where the busy wait is, and where sleep might
+                                        //  be possible).
+      while ( n <= num_vals_in_table )
       {
-        if ( n == 1 )
-          dac_state.num_underflows = 0;
-        lua_rawgeti( L, 2, n++ );
-        unsigned val = luaL_checkinteger( L, -1 );
-        lua_pop( L, 1 );
-        int i;
-        for ( i = 0; i < dac_state.stride; ++i )
+        int space = dac_state.next_out - dac_state.next_in;
+        if ( space <= 0 )
+          space += dac_state.sample_buffer_size;
+        if ( space > dac_state.stride )
         {
-          // FIXME - cope with big endian format?
-          dac_state.sample_buffer[dac_state.next_in] = val;
-          val >>= 8;
-          if ( ++dac_state.next_in >= dac_state.sample_buffer_size )
-            dac_state.next_in -= dac_state.sample_buffer_size;
-        }
-      }
-    }
-      break;
-    case LUA_TFUNCTION :
-    // the function is expected to return a string of data each time it is called
-    // until there is no more data and then the function should return nil or an empty string
-    dac_state.sample_buffer = 0;
-    for (;;)
-    {
-      // call function to get next chunk of data
-      lua_pushvalue( L, 2 );
-      lua_call( L, 0, 1 );
-      if ( lua_isnoneornil( L, -1 ) )
-      {
-        // function returned nil
-        lua_pop( L, 1 );
-        break;
-      }
-      size_t byte_count = 0;
-      char *chunk = (char *)luaL_checklstring( L, -1, &byte_count );
-      if ( byte_count == 0 )
-      {
-        // function returned empty string
-        lua_pop( L, 1 );
-        break;
-      }
-      if ( !dac_state.sample_buffer )
-      {
-        // handle the first chunk of data by allocating a buffer of the same
-        // size and copying all the data into the buffer
-        dac_state.sample_buffer_size = byte_count;
-        dac_state.sample_buffer = malloc( byte_count );
-        if ( !dac_state.sample_buffer )
-        {
-          // discard function result
+          if ( n == 1 )
+            dac_state.num_underflows = 0;
+          lua_rawgeti( L, 2, n++ );
+          unsigned val = luaL_checkinteger( L, -1 );
           lua_pop( L, 1 );
-          luaL_where( L, 1 );
-          fprintf( stderr, "%sFailed to allocate %d byte sample buffer\n", luaL_checklstring( L, -1, 0 ), byte_count );
-          lua_pop( L, 1 );
-          break;
-        }
-        memcpy( dac_state.sample_buffer, chunk, byte_count );
-        // set next_in to the last byte in buffer so that the
-        // interrupt handler starts consuming data
-        dac_state.next_in = byte_count - 1;
-        // reset underflow counter
-        dac_state.num_underflows = 0;
-        while ( dac_state.next_out == 0 )
-        {
-          // wait for some data to be consumed
-        }
-        // now set next_in to zero again which is the correct
-        // value as we completely filled the buffer
-        dac_state.next_in = 0;
-      }
-      else
-      { // TODO: Why can this go byte by byte, where other needed to worry about stride size?
-        // top up circular buffer byte by byte
-        int i;
-        for ( i = 0; i < byte_count; )
-        {
-          int space = dac_state.next_out - dac_state.next_in;
-          if ( space <= 0 )
-            space += dac_state.sample_buffer_size;
-          if ( space > 1 )
+          int i;
+          for ( i = 0; i < dac_state.stride; ++i )
           {
-            //if ( i == 0 )
-            //  printf( "Buffer space now %d\n", space );
-            dac_state.sample_buffer[dac_state.next_in] = chunk[i++];
+            // FIXME - cope with big endian format?
+            dac_state.sample_buffer[dac_state.next_in] = val;
+            val >>= 8;
             if ( ++dac_state.next_in >= dac_state.sample_buffer_size )
               dac_state.next_in -= dac_state.sample_buffer_size;
           }
         }
       }
-      // discard function result
-      lua_pop( L, 1 );
-    }
+      break;
+    case LUA_TFUNCTION :
+      // the function is expected to return a string of data each time it is called
+      // until there is no more data and then the function should return nil or an empty string
+      dac_state.sample_buffer = 0;
+      for (;;)
+      {
+        // call function to get next chunk of data
+        lua_pushvalue( L, 2 );
+        lua_call( L, 0, 1 );
+        if ( lua_isnoneornil( L, -1 ) )
+        {
+          // function returned nil
+          lua_pop( L, 1 );
+          break;
+        }
+        size_t byte_count = 0;
+        char *chunk = (char *)luaL_checklstring( L, -1, &byte_count );
+        if ( byte_count == 0 )
+        {
+          // function returned empty string
+          lua_pop( L, 1 );
+          break;
+        }
+        if ( !dac_state.sample_buffer )
+        {
+          // handle the first chunk of data by allocating a buffer of the same
+          // size and copying all the data into the buffer
+          dac_state.sample_buffer_size = byte_count;
+          dac_state.sample_buffer = malloc( byte_count );
+          if ( !dac_state.sample_buffer )
+          {
+            // discard function result
+            lua_pop( L, 1 );
+            luaL_where( L, 1 );
+            fprintf( stderr, "%sFailed to allocate %d byte sample buffer\n", luaL_checklstring( L, -1, 0 ), byte_count );
+            lua_pop( L, 1 );
+            break;
+          }
+          memcpy( dac_state.sample_buffer, chunk, byte_count );
+          // set next_in to the last byte in buffer so that the
+          // interrupt handler starts consuming data
+          dac_state.next_in = byte_count - 1;
+          // reset underflow counter
+          dac_state.num_underflows = 0;
+          while ( dac_state.next_out == 0 )
+          {
+            // wait for some data to be consumed
+          }
+          // now set next_in to zero again which is the correct
+          // value as we completely filled the buffer
+          dac_state.next_in = 0;
+        }
+        else
+        { // TODO: Why can this go byte by byte, where other needed to worry about stride size?
+          // top up circular buffer byte by byte
+          int i;
+          for ( i = 0; i < byte_count; )
+          {
+            int space = dac_state.next_out - dac_state.next_in;
+            if ( space <= 0 )
+              space += dac_state.sample_buffer_size;
+            if ( space > 1 )
+            {
+              //if ( i == 0 )
+              //  printf( "Buffer space now %d\n", space );
+              dac_state.sample_buffer[dac_state.next_in] = chunk[i++];
+              if ( ++dac_state.next_in >= dac_state.sample_buffer_size )
+                dac_state.next_in -= dac_state.sample_buffer_size;
+            }
+          }
+        }
+        // discard function result
+        lua_pop( L, 1 );
+      }
 
-    while ( dac_state.next_in != dac_state.next_out )
-    {
-    // wait for buffer to drain
-    }
+      while ( dac_state.next_in != dac_state.next_out )
+      {
+      // wait for buffer to drain
+      }
 
-    free(dac_state.sample_buffer);
+      free(dac_state.sample_buffer);
       break;
     case LUA_TSTRING :
-    // trivial case, just use the string directly
-    size_t byte_count = 0;
-    dac_state.sample_buffer = (char *)luaL_checklstring( L, 2, &byte_count );
-    dac_state.sample_buffer_size = byte_count + 1;
-    dac_state.next_in = byte_count;
-    dac_state.num_underflows = 0;
+      // trivial case, just use the string directly
+      size_t byte_count = 0;
+      dac_state.sample_buffer = (char *)luaL_checklstring( L, 2, &byte_count );
+      dac_state.sample_buffer_size = byte_count + 1;
+      dac_state.next_in = byte_count;
+      dac_state.num_underflows = 0;
       break;
     case LUA_TNUMBER :
       // should handle a number as putsample does
