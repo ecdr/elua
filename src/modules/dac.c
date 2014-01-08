@@ -148,14 +148,14 @@ static void dac_timer_int_handler( elua_int_resnum resnum )
 //     numwrit = platform_dac_write(id, numsamp, buf)
 
 // Lua: num_samples_output, num_underflows = putsamples( dac_id, data_source, rate, [bits_per_sample, [channels, [bias, [timer_id]]]] )
+// FIXME: bias does not appear to be implemented - implement or remove
+
 static int dac_putsamples( lua_State *L )
 {
   dac_state.dac_id = luaL_checkinteger( L, 1 );
   MOD_CHECK_ID( dac, dac_state.dac_id );
 
-  unsigned data_source_type = lua_type( L, 2 );
-  if ( data_source_type != LUA_TSTRING && data_source_type != LUA_TTABLE && data_source_type != LUA_TFUNCTION )
-    return luaL_error( L, "DAC data_source must either be an array of integers, a string or a function that returns a string" );
+  unsigned data_source_type = lua_type( L, 2 );   // Error checking done below
 
   unsigned rate = luaL_checkinteger( L, 3 );  // TODO: What will this do if give it a negative number?
   if( rate == 0 )
@@ -202,8 +202,8 @@ static int dac_putsamples( lua_State *L )
   if( result != PLATFORM_TIMER_INT_OK )
     return luaL_error( L, "Failed to start DAC timer (%d)", result );
 
-  if( data_source_type == LUA_TTABLE )
-  {
+  switch ( data_source_type ) {
+    case LUA_TTABLE :
     // transfer the values in the table into a small circular buffer
 
     int num_vals_in_table = lua_objlen( L, 2 );
@@ -241,9 +241,8 @@ static int dac_putsamples( lua_State *L )
         }
       }
     }
-  }
-  else if ( data_source_type == LUA_TFUNCTION )
-  {
+      break;
+    case LUA_TFUNCTION :
     // the function is expected to return a string of data each time it is called
     // until there is no more data and then the function should return nil or an empty string
     dac_state.sample_buffer = 0;
@@ -324,16 +323,26 @@ static int dac_putsamples( lua_State *L )
     }
 
     free(dac_state.sample_buffer);
-  }
-  else
-  {
-    // LUA_TSTRING
+      break;
+    case LUA_TSTRING :
     // trivial case, just use the string directly
     size_t byte_count = 0;
     dac_state.sample_buffer = (char *)luaL_checklstring( L, 2, &byte_count );
     dac_state.sample_buffer_size = byte_count + 1;
     dac_state.next_in = byte_count;
     dac_state.num_underflows = 0;
+      break;
+    case LUA_TNUMBER :
+      // should handle a number as putsample does
+      unsigned val = luaL_checkinteger( L, 2 );
+      return luaL_error( L, "DAC putsamples with a number not implemented yet %d", val );
+//      platform_dac_put_sample( 1 << dac_state.dac_id, &val ); //have to put it in a buffer and send it, or would have to turn off ISR
+//      lua_pushinteger( L, 1 );  // Return values - output one sample, assume no underflows
+//      lua_pushinteger( L, 0 );
+//      return 2;
+      break;
+    default:
+      return luaL_error( L, "DAC data_source must either be an array of integers, a string or a function that returns a string" );
   }
 
   while ( dac_state.next_in != dac_state.next_out )
