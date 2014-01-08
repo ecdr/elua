@@ -291,7 +291,7 @@ int  platform_dac_exists( unsigned id );
 #define DAC_INIT_BAD_BITS_PER_SAMPLE -2
 #define DAC_INIT_BAD_OPTION          -3
 
-int  platform_dac_init( unsigned id, unsigned bits_per_sample, unsigned options );
+int  platform_dac_setup( unsigned id, unsigned bits_per_sample, unsigned options );
 void platform_dac_put_sample( unsigned channel_mask, unsigned *data );
 int  platform_dac_check_timer_id( unsigned id, unsigned timer_id );
 

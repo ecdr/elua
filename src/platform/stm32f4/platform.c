@@ -1615,7 +1615,7 @@ int platform_adc_start_sequence( )
 
 static uint32_t alignments[NUM_DAC] = { DAC_Align_8b_R, DAC_Align_8b_R };
 
-int platform_dac_init(unsigned id, unsigned bits_per_sample, unsigned options) {
+int platform_dac_setup(unsigned id, unsigned bits_per_sample, unsigned options) {
   unsigned dac_channel = 0;
   GPIO_InitTypeDef GPIO_init_struct;
   GPIO_init_struct.GPIO_Mode = GPIO_Mode_AN;
