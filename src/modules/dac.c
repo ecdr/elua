@@ -155,7 +155,9 @@ static int dac_putsamples( lua_State *L )
   dac_state.dac_id = luaL_checkinteger( L, 1 );
   MOD_CHECK_ID( dac, dac_state.dac_id );
 
-  unsigned data_source_type = lua_type( L, 2 );   // Error checking done below
+  unsigned data_source_type = lua_type( L, 2 );
+  if ( data_source_type != LUA_TSTRING && data_source_type != LUA_TTABLE && data_source_type != LUA_TFUNCTION )
+    return luaL_error( L, "DAC data_source must either be an array of integers, a string or a function that returns a string" );
 
   unsigned rate = luaL_checkinteger( L, 3 );  // TODO: What will this do if give it a negative number?
   if( rate == 0 )
@@ -332,7 +334,7 @@ static int dac_putsamples( lua_State *L )
       dac_state.next_in = byte_count;
       dac_state.num_underflows = 0;
       break;
-    case LUA_TNUMBER :
+    case LUA_TNUMBER :  // TODO: Have to let by error check also
       // should handle a number as putsample does
       unsigned val = luaL_checkinteger( L, 2 );
       return luaL_error( L, "DAC putsamples with a number not implemented yet %d", val );
@@ -342,7 +344,7 @@ static int dac_putsamples( lua_State *L )
 //      return 2;
       break;
     default:
-      return luaL_error( L, "DAC data_source must either be an array of integers, a string or a function that returns a string" );
+//      return luaL_error( L, "DAC data_source must either be an array of integers, a string or a function that returns a string" );
   }
 
   while ( dac_state.next_in != dac_state.next_out )
