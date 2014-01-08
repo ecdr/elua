@@ -20,6 +20,10 @@
 
 #define ADC_BIT_RESOLUTION    12
 
+#ifndef DAC_DEFAULT_RESOLUTION
+#define DAC_DEFAULT_RESOLUTION  8
+#endif
+
 u32 platform_s_cpu_get_frequency();
 #define CPU_FREQUENCY         platform_s_cpu_get_frequency()
 

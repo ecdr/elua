@@ -19,6 +19,11 @@
 
 #define DAC_MAX(bits) (1<<bits)
 
+// TODO: Maybe offer an official option (rather than just defining macro)?
+#ifndef DAC_DEFAULT_RESOLUTION
+#error Default bits per sample (DAC_DEFAULT_RESOLUTION) should be set in cpu file or in board file.
+#endif
+
 
 static unsigned bytes_per_sample[NUM_DAC];
 
@@ -156,7 +161,9 @@ static int dac_putsamples( lua_State *L )
   if( rate == 0 )
     return luaL_error( L, "DAC rate must be > 0" );
 
-  unsigned bits_per_sample = luaL_optinteger( L, 4, DAC_DEFAULT_RESOLUTION ); // TODO: Should make this setable in board file
+
+  unsigned bits_per_sample = luaL_optinteger( L, 4, DAC_DEFAULT_RESOLUTION ); 
+
 
   dac_state.channels = luaL_optinteger( L, 5, 1 );
   if ( dac_state.channels < 1 || (dac_state.dac_id + dac_state.channels > NUM_DAC) )
