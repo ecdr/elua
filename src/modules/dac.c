@@ -204,6 +204,8 @@ static int dac_putsamples( lua_State *L )
   if( result != PLATFORM_TIMER_INT_OK )
     return luaL_error( L, "Failed to start DAC timer (%d)", result );
 
+//  Assert(dac_state.stride < DAC_BUF_SIZE/bytes_per_sample[dac_state.dac_id]);
+  
   switch ( data_source_type ) {
     case LUA_TTABLE :
       // transfer the values in the table into a small circular buffer
