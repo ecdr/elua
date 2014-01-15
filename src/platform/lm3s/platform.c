@@ -420,9 +420,6 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #define PIN_CAN0TX	GPIO_PD1_CAN0TX
 #endif
 
-// For multiple CANs:
-// static const u32 can_gpio_base[] = { GPIO_PORTD_BASE };
-// static const u8 can_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1 };
 #endif
 
 /* Code assumes that RX and TX pins will be on same port.  
@@ -439,25 +436,42 @@ Stellarisware defines the following for some CPUs (e.g. 8962)
 
 // TODO: generalize to multiple CANs 
 
-static const u32 can_base[] = { CAN0_BASE };
+#if (NUM_CAN > 1)
+#define CAN1B , CAN1_BASE
+#define CAN1SYS , SYSCTL_PERIPH_CAN1
+#define CAN1INT , INT_CAN1
+#define CAN1GPB , CAN1_BASE
+#define CAN1P   , CAN1_PINS
+#else
+#define CAN1B
+#define CAN1SYS
+#define CAN1INT
+#define CAN1GPB
+#define CAN1P
+#endif
 
-static const u32 can_sysctl[] = { SYSCTL_PERIPH_CAN0 };
-// static const peripheral cans[] = { {CAN0_BASE, SYSCTL_PERIPH_CAN0} };
+static const u32 can_base[] =   { CAN0_BASE           CAN1B };
+static const u32 can_sysctl[] = { SYSCTL_PERIPH_CAN0  CAN1SYS };
+static const u32 can_int[] =    { INT_CAN0            CAN1INT };
 
-static const u32 can_int[] = { INT_CAN0 };
+static const u32 can_gpio_base[] =  { CAN_PORT_BASE   CAN1GPB };
+static const u8 can_gpio_pins[] =   { CAN_PORT_PINS   CAN1P };
 
-// Would also need to make can data fields into array
-// typedef struct {volatile u32 rx_flag, tx_flag, err_flag; char tx_buf[PLATFORM_CAN_MAXLEN]; tCANMsgObject msg_rx;} can_status;
-// can_status can_stat[NUM_CAN-1];
+// FIXME: Flags could be BOOL or bit
+typedef struct {
+  volatile u8 rx_flag, tx_flag, err_flag; 
+  char tx_buf[PLATFORM_CAN_MAXLEN]; 
+  tCANMsgObject msg_rx;
+} can_status_t;
 
+// FIXME: Need to initialize flags
+can_status_t can_status[ NUM_CAN-1 ];
 
-// FIXME: Not clear why the flags are u32 (looks like a BOOL, byte or a bit would do as well)
-
-volatile u8 can_rx_flag = 0;
-volatile u8 can_tx_flag = 0;
-volatile u8 can_err_flag = 0;
-char can_tx_buf[PLATFORM_CAN_MAXLEN];
-tCANMsgObject can_msg_rx;
+//volatile u8 can_rx_flag = 0;
+//volatile u8 can_tx_flag = 0;
+//volatile u8 can_err_flag = 0;
+//char can_tx_buf[PLATFORM_CAN_MAXLEN];
+//tCANMsgObject can_msg_rx;
 
 // LM3S9Bxx and LM4F120 MCU CAN seems to run off of system clock, LM3S8962 has 8 MHz clock
 
@@ -474,12 +488,12 @@ void can0_handler(void)
 	CANIntHandler(0);
 }
 
-void can1_handler(void);
+void can1_handler(void)
 {
 	CANIntHandler(1);
 }
 
-void can2_handler(void);
+void can2_handler(void)
 {
 	CANIntHandler(2);
 }
@@ -489,30 +503,30 @@ void CANIntHandler(unsigned id)
 {
 // Fixme: Needs to handle multiple CANs (flags)
 
-  u32 status = CANIntStatus(can_base[id], CAN_INT_STS_CAUSE);
+  u32 status = MAP_CANIntStatus(can_base[id], CAN_INT_STS_CAUSE);
 
 // ToDO: Why not use a switch statement?
   if(status == CAN_INT_INTID_STATUS)
   {
-    status = CANStatusGet(can_base[id], CAN_STS_CONTROL);
+    status = MAP_CANStatusGet(can_base[id], CAN_STS_CONTROL);
 // Why is the status fetched but not used?
-    can_err_flag = 1;
-    can_tx_flag = 0;
+    can_status[id].err_flag = 1;
+    can_status[id].tx_flag = 0;
   }
   else if( status == 1 ) // Message receive
   {
-    CANIntClear(can_base[id], 1);
-    can_rx_flag = 1;
-    can_err_flag = 0;
+    MAP_CANIntClear(can_base[id], 1);
+    can_status[id].rx_flag = 1;
+    can_status[id].err_flag = 0;
   }
   else if( status == 2 ) // Message send
   {
-    CANIntClear(can_base[id], 2);
-    can_tx_flag = 0;
-    can_err_flag = 0;
+    MAP_CANIntClear(can_base[id], 2);
+    can_status[id].tx_flag = 0;
+    can_status[id].err_flag = 0;
   }
   else
-    CANIntClear(can_base[id], status);
+    MAP_CANIntClear(can_base[id], status);
 }
 
 
@@ -521,31 +535,39 @@ void cans_init( void )
   unsigned id;
 
   for( id = 0; id < NUM_CAN; id++){
-	MAP_SysCtlPeripheralEnable( can_sysctl[id] );
-	MAP_CANInit( can_base[id] );
-	CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, 500000);
-	MAP_CANIntEnable(can_base[id], CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
-	MAP_IntEnable(can_int[id]);
-	MAP_CANEnable(can_base[id]);
+    MAP_SysCtlPeripheralEnable( can_sysctl[id] );
+    MAP_CANInit( can_base[id] );
+    MAP_CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, 500000);
+    MAP_CANIntEnable(can_base[id], CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
+    MAP_IntEnable(can_int[id]);
+    MAP_CANEnable(can_base[id]);
 
-  	// Configure default catch-all message object
-	can_msg_rx.ulMsgID = 0; 					// Fixme: multi-can
-	can_msg_rx.ulMsgIDMask = 0; 					// Fixme: multi-can
-	can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER; 					// Fixme: multi-can
-      can_msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;		// Fixme: multi-can
-	MAP_CANMessageSet(can_base[id], 1, &can_msg_rx, MSG_OBJ_TYPE_RX); 		// Fixme: multi-can
-   }
+      // Configure default catch-all message object
+    can_status[id].msg_rx.ulMsgID = 0;
+    can_status[id].msg_rx.ulMsgIDMask = 0;
+    can_status[id].msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
+      can_status[id].msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;
+    MAP_CANMessageSet(can_base[id], 1, &can_status[id].msg_rx, MSG_OBJ_TYPE_RX);
+  }
 }
 
 u32 platform_can_setup( unsigned id, u32 clock )
 {
-  //Fixme: adapt pin map to multiple CANs
-  GPIOPinConfigure(PIN_CAN0RX);
-  GPIOPinConfigure(PIN_CAN0TX);
-  MAP_GPIOPinTypeCAN(CAN_PORT_BASE, CAN_PORT_PINS);
+  //TODO: generalize to more than 2 CANs
+  if (id == 0) 
+  {
+    MAP_GPIOPinConfigure(PIN_CAN0RX);
+    MAP_GPIOPinConfigure(PIN_CAN0TX);
+  } else {
+#if (NUM_CAN > 1)  
+    MAP_GPIOPinConfigure(PIN_CAN1RX);
+    MAP_GPIOPinConfigure(PIN_CAN1TX);
+#endif    
+  }
+  MAP_GPIOPinTypeCAN(can_gpio_base[id], can_gpio_pins[id]);
 
   MAP_CANDisable(can_base[id]);
-  CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, clock );
+  MAP_CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, clock );
   MAP_CANEnable(can_base[id]);
   return clock;
 }
@@ -556,9 +578,8 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   const char *s = ( char * )data;
   char *d;
 
-	// Fixme: multi-can
   // Wait for outgoing messages to clear
-  while( can_tx_flag == 1 );
+  while( can_status[id].tx_flag == 1 );
 
   msg_tx.ulFlags = MSG_OBJ_TX_INT_ENABLE;
   
@@ -568,28 +589,27 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   msg_tx.ulMsgIDMask = 0;
   msg_tx.ulMsgID = canid;
   msg_tx.ulMsgLen = len;
-  msg_tx.pucMsgData = ( u8 * )can_tx_buf;
+  msg_tx.pucMsgData = ( u8 * )can_status[id].tx_buf;
 
-  d = can_tx_buf;
+  d = can_status[id].tx_buf;
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
-  can_tx_flag = 1;
-  CANMessageSet(can_base[id], 2, &msg_tx, MSG_OBJ_TYPE_TX);
+  can_status[id].tx_flag = 1;
+  MAP_CANMessageSet(can_base[id], 2, &msg_tx, MSG_OBJ_TYPE_TX);
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
-	// Fixme: multi-can
   // wait for a message
-  if( can_rx_flag != 0 )
+  if( can_status[id].rx_flag != 0 )
   {
-    can_msg_rx.pucMsgData = data;
-    CANMessageGet(can_base[id], 1, &can_msg_rx, 0);
-    can_rx_flag = 0;
+    can_status[id].msg_rx.pucMsgData = data;
+    MAP_CANMessageGet(can_base[id], 1, &can_status[id].msg_rx, 0);
+    can_status[id].rx_flag = 0;
 
-    *canid = ( u32 )can_msg_rx.ulMsgID;
-    *idtype = ( can_msg_rx.ulFlags & MSG_OBJ_EXTENDED_ID )? ELUA_CAN_ID_EXT : ELUA_CAN_ID_STD;
-    *len = can_msg_rx.ulMsgLen;
+    *canid = ( u32 )can_status[id].msg_rx.ulMsgID;
+    *idtype = ( can_status[id].msg_rx.ulFlags & MSG_OBJ_EXTENDED_ID )? ELUA_CAN_ID_EXT : ELUA_CAN_ID_STD;
+    *len = can_status[id].msg_rx.ulMsgLen;
     return PLATFORM_OK;
   }
   else

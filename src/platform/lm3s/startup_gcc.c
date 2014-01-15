@@ -199,17 +199,17 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Quadrature Encoder 1
 #if defined( BUILD_CAN )
 #if NUM_CAN > 0
-    can0_handler(),                         // CAN0
+    can0_handler,                         // CAN0
 #else
     IntDefaultHandler,                      // CAN0
 #endif
 #if NUM_CAN > 1
-    can1_handler(),
+    can1_handler,
 #else
     IntDefaultHandler,                      // CAN1
 #endif
 #if NUM_CAN > 2
-    can2_handler(),
+    can2_handler,
 #else
     IntDefaultHandler,                      // CAN2
 #endif
