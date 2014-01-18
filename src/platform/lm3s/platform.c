@@ -779,7 +779,7 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
   // Dummy receive so don't get junk on first read
 
   // FIXME: Not finished - needs to return boolean
-}; // Returns boolean  - need to figure out semantics for return
+}; // Returns boolean  - need to figure out semantics for return "1 for success, 0 for error."
 
 // FIXME: Arbitrarily defined - just number of loops, should be based on time
 #define I2C_MAX_WAIT	100000
@@ -804,12 +804,12 @@ int platform_i2c_send_byte( unsigned id, u8 data )
   return (MAP_I2CMasterError( i2c_base[id] ) == I2C_MASTER_ERR_NONE) ? 1 : 0;
 };
 
-//FIXME: what should this do?
+//FIXME: what should this do? "Send an I2C START condition on the specified interface."
 void platform_i2c_send_start( unsigned id )
 {
 };
 
-//FIXME: Just a guess at what this might do
+//FIXME: Just a guess at what this might do  "Send an I2C STOP condition on the specified interface."
 void platform_i2c_send_stop( unsigned id )
 {
 	MAP_I2CMasterControl( i2c_base[id], I2C_MASTER_CMD_BURST_SEND_FINISH );
