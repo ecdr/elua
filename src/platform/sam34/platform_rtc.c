@@ -48,7 +48,7 @@ int platform_rtc_init( void )
   for (waitcount = 0; waitcount < RTC_TIMEOUT_COUNT; waitcount++)
     if (pmc_osc_is_ready_32kxtal())
       {
-      rtc_set_hour_mode(RTC, PLATFORM_CLOCK_HR_MODE);    // 24 hour mode
+      rtc_set_hour_mode(RTC, PLATFORM_CLOCK_HR_MODE);
 
       rtc_initialized = 1;
       return 0;
@@ -59,7 +59,7 @@ int platform_rtc_init( void )
   return 1;
 #else
   rtc_initialized = 1;
-  rtc_set_hour_mode(RTC, PLATFORM_CLOCK_HR_MODE);    // 24 hour mode
+  rtc_set_hour_mode(RTC, PLATFORM_CLOCK_HR_MODE);
   return 0;
 #endif //  PLATFORM_RTC_EXTERNAL_CRYSTAL
 }

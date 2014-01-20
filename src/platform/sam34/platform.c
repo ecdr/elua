@@ -630,31 +630,33 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
   
   */
   lua_assert(false);
-  return PLATFORM_ERR;  //? what is return
+  return PLATFORM_ERR;  //? what is return       ret = "1 for success, 0 for error."
+
 }
 
 int platform_i2c_send_byte( unsigned id, u8 data )
 {
   twi_write_byte(i2c_base[id], data);
   lua_assert(false);
-  return ; //? what is return
+  return ; //FIXME: return "1 for success, 0 for error."
 }
 
-// FIXME: What are send_start and send_stop for?
+// FIXME: "Send an I2C START condition on the specified interface."
 void platform_i2c_send_start( unsigned id )
 {
   lua_assert(false);
 }
 
+// "Send an I2C STOP condition on the specified interface."
 void platform_i2c_send_stop( unsigned id )
 {
   lua_assert(false);
 }
 
-// FIXME: What is ack for?
+// FIXME: What is ack for? "1 to send ACK, 0 to send NAK. If $ACK$ is 0 a STOP condition will automatically be generated after the NAK.
 int platform_i2c_recv_byte( unsigned id, int ack )
 {
-  return twi_read_byte(i2c_base[id]);
+  return twi_read_byte(i2c_base[id]);  // FIXME: return "1 for success, 0 for error."
 }
 
 #endif	// NUM_I2C > 0
@@ -917,6 +919,7 @@ unsigned const channels_per_tc = 3;
 
 // Indicate which module is using each timer
 // TODO: Look at other modules that use timers, as timers - ADC, UART (should they also have indicator)?
+// TODO: Add quadrature decoder (which uses channels 0 and 1 of corresponding TC, and channel 2, if measuring velocity)
 typedef enum {
   TMODE_UNINIT = 0,
   TMODE_TIMER,
