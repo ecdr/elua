@@ -2239,7 +2239,7 @@ static void qei_init()
 // TODO: Why is this expression used?  If QEI_CH0 = 1 and QEI_CH1 = 2 (or vice-versa), could eliminate portion from == on 
 //  if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
 
-void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
+void lm3s_qei_setup( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
 {
     /* -Configure each QE channel (0 or 1) to use either phase A or both A & B. */
     /* -LM3S8962 RevA2 Errata states that software cannot be relied upon
@@ -2292,7 +2292,7 @@ void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
     }
 }
 
-void lm3s_qei_vel_init( u8 enc_id, u32 vel_period )
+void lm3s_qei_vel_setup( u8 enc_id, u32 vel_period )
 {
     vel_ticks = vel_period * (MAP_SysCtlClockGet()/1000000);
     /* -Configures the QEI to compute the velocity.
@@ -2313,7 +2313,7 @@ void lm3s_qei_vel_init( u8 enc_id, u32 vel_period )
     }
 }
 
-void lm3s_qei_enable( u8 enc_id )
+void lm3s_qei_start( u8 enc_id )
 {
     if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
         MAP_QEIEnable(QEI0_BASE);
@@ -2321,7 +2321,7 @@ void lm3s_qei_enable( u8 enc_id )
         MAP_QEIEnable(QEI1_BASE);
 }
 
-void lm3s_qei_disable( u8 enc_id )
+void lm3s_qei_stop( u8 enc_id )
 {
     if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
         MAP_QEIDisable(QEI0_BASE);
@@ -2335,7 +2335,7 @@ u32 lm3s_qei_get_sys_clk()
     return MAP_SysCtlClockGet();
 }
 
-u32 lm3s_qei_getPulses( u8 enc_id )
+u32 lm3s_qei_get_pulses( u8 enc_id )
 {
     /* Returns the number of pulses detected in the time period
      * specified during velocity measurement configuration. */
@@ -2344,19 +2344,19 @@ u32 lm3s_qei_getPulses( u8 enc_id )
     return MAP_QEIVelocityGet( base );
 }
 
-u32 lm3s_qei_getPosition( u8 enc_id )
+u32 lm3s_qei_get_position( u8 enc_id )
 {
     u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     return MAP_QEIPositionGet( base );
 }
 
-void lm3s_qei_setPosition( u8 enc_id, u32 position )
+void lm3s_qei_set_position( u8 enc_id, u32 position )
 {
     u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     MAP_QEIPositionSet( base, position );
 }
 
-long lm3s_qei_getDirection( u8 enc_id)
+long lm3s_qei_get_direction( u8 enc_id)
 {
     u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     return MAP_QEIDirectionGet( base ); /* 1=fwd, rev=-1 */

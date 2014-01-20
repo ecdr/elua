@@ -36,7 +36,7 @@ data_en =
   -- Functions
   funcs =
   {
-    { sig = "#qei.init#( encoder_id, phase, swap, index, max_count )",
+    { sig = "#qei.setup#( encoder_id, phase, swap, index, max_count )",
       desc = "Initiates the encoder channels for use.",
       args =
       {
@@ -47,7 +47,7 @@ data_en =
         "$max_count$ - Sets the maximum count of the encoder before it resets to zero.",
       }
     },
-    { sig = "#qei.velInit#( encoder_id, vel_period, ppr, edges )",
+    { sig = "#qei.velSetup#( encoder_id, vel_period, ppr, edges )",
       desc = "Optionally initialises the encoder channels for use in velocity measurement.",
       args =
       {
@@ -57,14 +57,14 @@ data_en =
         "$edges$ - The number of edges the encoder is triggering on.",
       }
     },
-    { sig = "#qei.enable#( encoder_id )",
+    { sig = "#qei.start#( encoder_id )",
       desc = "Enables the encoder, post initialisation.",
       args =
       {
         "$encoder_id$ - QEI channel ID. Specified as qei.CH0, qei.CH1, qei.CHO1. Channels 0 or 1 can be enabled separately by calling this function once on each encoder.",
       }
     },
-    { sig = "#qei.disable#( encoder_id )",
+    { sig = "#qei.stop#( encoder_id )",
       desc = "Disables the encoder.",
       args =
       {

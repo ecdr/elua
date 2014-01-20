@@ -40,16 +40,16 @@ u32 vel_ticks;
 /* Function Prototypes */
 
 int platform_qei_exists( u8 enc_id );
-void lm3s_qei_setPosition( u8 enc_id, u32 position );
+void lm3s_qei_set_position( u8 enc_id, u32 position );
 
-void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count );
-void lm3s_qei_vel_init( u8 enc_id, u32 vel_period );
-void lm3s_qei_enable( u8 enc_id );
-void lm3s_qei_disable( u8 enc_id );
+void lm3s_qei_setup( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count );
+void lm3s_qei_vel_setup( u8 enc_id, u32 vel_period );
+void lm3s_qei_start( u8 enc_id );
+void lm3s_qei_stop( u8 enc_id );
 u32 lm3s_qei_get_sys_clk();
-u32 lm3s_qei_getPulses( u8 enc_id );
-u32 lm3s_qei_getPosition( u8 enc_id );
-long lm3s_qei_getDirection( u8 enc_id );
+u32 lm3s_qei_get_pulses( u8 enc_id );
+u32 lm3s_qei_get_position( u8 enc_id );
+long lm3s_qei_get_direction( u8 enc_id );
 
 #endif // ENABLE_QEI
 

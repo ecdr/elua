@@ -17,8 +17,8 @@ static u32 vel_modifier = 0;
 
 // Fixme: test error handling in functions that formerly returned voids
 
-//Lua: lm3s.qei.init( encoder_id, phase, swap, index, max_count )
-static int qei_init( lua_State *L )
+//Lua: lm3s.qei.setup( encoder_id, phase, swap, index, max_count )
+static int qei_setup( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     u8 phase = ( u8 )luaL_checkinteger( L, 2 );
@@ -31,13 +31,13 @@ static int qei_init( lua_State *L )
       return luaL_error( L, "qei invalid argument" );
 
 // Todo:is there a useful range check for max_count?
-    lm3s_qei_init( enc_id, phase, swap, index, max_count );
+    lm3s_qei_setup( enc_id, phase, swap, index, max_count );
     qei_flag |= (enc_id << INIT_FLAG_OFFSET);
     return 0;
 }
 
-//Lua: lm3s.qei.velInit( encoder_id, vel_period, ppr, edges )
-static int qei_velInit( lua_State *L )
+//Lua: lm3s.qei.velSetup( encoder_id, vel_period, ppr, edges )
+static int qei_vel_setup( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -47,7 +47,7 @@ static int qei_velInit( lua_State *L )
     int edges = ( int )luaL_checkinteger( L, 4 );
 
 // ToDo: Are there any useful range checks to make on arguments?
-    lm3s_qei_vel_init( enc_id, vel_period );
+    lm3s_qei_vel_setup( enc_id, vel_period );
 
     qei_flag |= ( enc_id << VEL_FLAG_OFFSET );  //Sets encoder velocity flag
     u32 clk_freq = lm3s_qei_get_sys_clk();
@@ -55,8 +55,8 @@ static int qei_velInit( lua_State *L )
     return 0;
 }
 
-//Lua: lm3s.qei.enable( encoder_id )
-static int qei_enable( lua_State *L )
+//Lua: lm3s.qei.start( encoder_id )
+static int qei_start( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -65,13 +65,13 @@ static int qei_enable( lua_State *L )
       lua_pushinteger( L, QEI_ERR_NOT_INIT );
 	return 1;	// Error (qei not initialized) QEI_ERR_NOT_INIT
     }
-    lm3s_qei_enable( enc_id );
+    lm3s_qei_start( enc_id );
     qei_flag |= enc_id;
     return 0;
 }
 
-//Lua: lm3s.qei.disable( encoder_id )
-static int qei_disable( lua_State *L )
+//Lua: lm3s.qei.stop( encoder_id )
+static int qei_stop( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -80,13 +80,13 @@ static int qei_disable( lua_State *L )
       lua_pushinteger( L, QEI_ERR_NOT_INIT );
 	return 1;	// Error (qei not initialized) 
     }
-    lm3s_qei_disable( enc_id );
+    lm3s_qei_stop( enc_id );
     qei_flag &= ~enc_id;
     return 0;
 }
 
 //Lua: vel, err = lm3s.qei.getVelPulses( encoder_id )
-static int qei_getVelPulses( lua_State *L )
+static int qei_get_vel_pulses( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -113,7 +113,7 @@ static int qei_getVelPulses( lua_State *L )
         lua_pushinteger( L, err );
         return 2;
     }
-    u32 pulses = lm3s_qei_getPulses( enc_id );
+    u32 pulses = lm3s_qei_get_pulses( enc_id );
     lua_pushinteger( L, pulses );
     lua_pushinteger( L, err );
     return 2;
@@ -147,15 +147,15 @@ static int qei_getRPM( lua_State *L )
         lua_pushinteger( L, err );
         return 2;
     }
-    u32 pulses = lm3s_qei_getPulses( enc_id );
-    s32 rpm = pulses * vel_modifier * lm3s_qei_getDirection( enc_id );
+    u32 pulses = lm3s_qei_get_pulses( enc_id );
+    s32 rpm = pulses * vel_modifier * lm3s_qei_get_direction( enc_id );
     lua_pushinteger( L, rpm );
     lua_pushinteger( L, err );
     return 2;
 }
 
 //Lua: pos, err = lm3s.qei.getPosition( encoder_id )
-static int qei_getPosition( lua_State *L )
+static int qei_get_position( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -175,14 +175,14 @@ static int qei_getPosition( lua_State *L )
         lua_pushinteger( L, err );
         return 2;
     }
-    lua_pushinteger( L, lm3s_qei_getPosition( enc_id ) );
+    lua_pushinteger( L, lm3s_qei_get_position( enc_id ) );
     lua_pushinteger( L, err );
     return 2;
 }
 
 // Fixme: The returns are probably not right here - check some other code for examples
 //Lua: err = lm3s.qei.setPosition( encoder_id, position)
-static int qei_setPosition( lua_State *L )
+static int qei_set_position( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
     MOD_CHECK_ID( qei, enc_id );
@@ -201,7 +201,7 @@ static int qei_setPosition( lua_State *L )
         lua_pushinteger( L, err );
         return 1;
     }
-    lm3s_qei_setPosition( enc_id, position );
+    lm3s_qei_set_position( enc_id, position );
     lua_pushinteger( L, err );
     return 1;
 }
@@ -211,14 +211,14 @@ static int qei_setPosition( lua_State *L )
 #include "lrodefs.h"
 const LUA_REG_TYPE qei_map[] =
 {
-    { LSTRKEY( "init" ), LFUNCVAL( qei_init ) },
-    { LSTRKEY( "velInit" ), LFUNCVAL( qei_velInit ) },
-    { LSTRKEY( "enable" ), LFUNCVAL( qei_enable ) },
-    { LSTRKEY( "disable" ), LFUNCVAL( qei_disable ) },
-    { LSTRKEY( "getVelPulses" ), LFUNCVAL( qei_getVelPulses ) },
+    { LSTRKEY( "setup" ), LFUNCVAL( qei_setup ) },
+    { LSTRKEY( "velSetup" ), LFUNCVAL( qei_vel_setup ) },
+    { LSTRKEY( "start" ), LFUNCVAL( qei_start ) },
+    { LSTRKEY( "stop" ), LFUNCVAL( qei_stop ) },
+    { LSTRKEY( "getVelPulses" ), LFUNCVAL( qei_get_vel_pulses ) },
     { LSTRKEY( "getRPM" ), LFUNCVAL( qei_getRPM ) },
-    { LSTRKEY( "getPosition" ), LFUNCVAL( qei_getPosition ) },
-    { LSTRKEY( "setPosition" ), LFUNCVAL( qei_setPosition ) },
+    { LSTRKEY( "getPosition" ), LFUNCVAL( qei_get_position ) },
+    { LSTRKEY( "setPosition" ), LFUNCVAL( qei_set_position ) },
 
     { LSTRKEY( "PHA" ), LNUMVAL( LM3S_QEI_PHA ) },
     { LSTRKEY( "PHAB" ), LNUMVAL( LM3S_QEI_PHAB ) },
@@ -237,5 +237,5 @@ const LUA_REG_TYPE qei_map[] =
     { LNILKEY, LNILVAL }
 };
 
-/*endif ENABLE_QEI*/
-#endif
+
+#endif // ENABLE_QEI
