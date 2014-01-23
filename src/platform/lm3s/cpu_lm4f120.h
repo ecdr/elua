@@ -20,7 +20,7 @@
 #define NUM_ADC               13	// Actually 12 channels, temperature sensor is last channel
 #define NUM_CAN               1	// Max is 1
 
-
+#define FORLM4F				// Common defines for LM4F
 
 /* #warning I2C support not written for LM3/4 
 #elif defined( FORLM6918 ) || defined( FORLM6965 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
@@ -49,7 +49,7 @@
 // This was draft at code for that from platform_conf.h
 
 // UART - Max 3 unless LM4F120
-#if defined (FORLM4F120)
+#if defined ( FORLM4F )
   #define MAX_UART            8
 #else
   #define MAX_UART 		3
@@ -61,7 +61,7 @@
   #define NUM_UART            3
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_UART            3
-#elif defined (FORLM4F120)
+#elif defined( FORLM4F )
   #define NUM_UART            4
 //  LM4F120 actually has 8, but UART number 6 uses same pins as USB
 #else
@@ -76,7 +76,7 @@
 
 
 // NUM_TIMERS - Max 4 unless LM4F120
-#ifdef FORLM4F120
+#ifdef FORLM4F
   #define MAX_TIMER            12
 #else
   #define MAX_TIMER             4
@@ -102,7 +102,7 @@
 
 // From platform_conf.h - much of this may already be in other places, just haven't found it
 /*
-#if defined( FORLM4F120 ) || defined( ELUA_BOARD_SOLDERCORE )
+#if defined( FORLM4F ) || defined( ELUA_BOARD_SOLDERCORE )
 #define USE_PIN_MUX
 #endif
 
@@ -207,7 +207,7 @@
 
 /* 
 // ToDo: Add support for USB
-#ifdef FORLM4F120
+#ifdef FORLM4F
   #define NUM_USB             1
 #else
   #define NUM_USB             0

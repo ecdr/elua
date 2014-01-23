@@ -24,6 +24,7 @@
 // QEI0 PHA = PD6, PHB = PD7, IDX = PD3 (or PF0, PF1, PF4 )
 // QEI1 PHA = PC5, PHB = PC6, IDX = PC4
 
+#define FORLM4F				// Common defines for LM4F
 
 /* #warning I2C support not written for LM3/4 
 #elif defined( FORLM6918 ) || defined( FORLM6965 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
@@ -64,7 +65,7 @@
   #define NUM_UART            3
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_UART            3
-#elif defined (FORLM4F120)
+#elif defined (FORLM4F)
   #define NUM_UART            4
 //  LM4F120 actually has 8, but UART number 6 uses same pins as USB
 #else
@@ -78,8 +79,8 @@
 #endif
 
 
-// NUM_TIMERS - Max 4 unless LM4F120
-#ifdef FORLM4F120
+// NUM_TIMERS - Max 4 unless LM4F
+#ifdef FORLM4F
   #define MAX_TIMER            12
 #else
   #define MAX_TIMER             4
@@ -87,7 +88,7 @@
 
 #ifndef NUM_TIMER
   #define NUM_TIMER             6
-// LM4F120 actually has 12 (6 normal, 6 wide), but haven't added all of code to handle wide timers
+// LM4F actually has 12 (6 normal, 6 wide), but haven't added all of code to handle wide timers
 // Using wide timers for PWMs
 #else
   #define NUM_TIMER             4
@@ -105,7 +106,7 @@
 
 // From platform_conf.h - much of this may already be in other places, just haven't found it
 /*
-#if defined( FORLM4F120 ) || defined( FORLM4F230 )|| defined( ELUA_BOARD_SOLDERCORE )
+#if defined( FORLM4F )|| defined( ELUA_BOARD_SOLDERCORE )
 #define USE_PIN_MUX
 #endif
 
@@ -203,7 +204,7 @@
 
 /* 
 // ToDo: Add support for USB
-#ifdef FORLM4F120
+#ifdef FORLM4F
   #define NUM_USB             1
 #else
   #define NUM_USB             0

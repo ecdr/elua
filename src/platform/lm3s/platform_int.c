@@ -58,7 +58,7 @@ static const u8 gpio_int_ids[] = { INT_GPIOA, INT_GPIOB, INT_GPIOC, INT_GPIOD, I
 extern const u32 timer_base[];
 extern u8 lm3s_timer_int_periodic_flag[ NUM_TIMER ];
 
-#if defined( FORLM4F120 ) || defined( FORLM4F230 )
+#ifdef FORLM4F
 
 static const u8 timer_int_ids[] = { INT_TIMER0A, INT_TIMER1A, INT_TIMER2A, INT_TIMER3A, INT_TIMER4A, INT_TIMER5A };
   // INT_WTIMER0A, INT_WTIMER1A, INT_WTIMER2A, INT_WTIMER3A, INT_WTIMER4A, INT_WTIMER5A
@@ -97,7 +97,7 @@ void uart2_handler()
   uart_common_rx_handler( 2 );
 }
 
-#if defined( FORLM4F120 ) || defined( FORLM4F230 )
+#ifdef FORLM4F 
 
 void uart3_handler()
 {
@@ -244,7 +244,7 @@ void tmr5_handler()
   tmr_common_handler( 5 );
 }
 
-#if defined( FORLM4F120 ) || defined( FORLM4F230 )
+#if defined( FORLM4F )
 
 void tmr6_handler()
 {
@@ -276,7 +276,7 @@ void tmr11_handler()
   tmr_common_handler( 11 );
 }
 
-#endif // defined( FORLM4F120 ) || defined( FORLM4F230 )
+#endif // defined( FORLM4F )
 
 // ****************************************************************************
 // Helpers
@@ -582,7 +582,7 @@ void tmr5_handler()
 {
 }
 
-#if defined( FORLM4F120 ) || defined( FORLM4F230 )
+#if defined( FORLM4F )
 
 void tmr6_handler()
 {
