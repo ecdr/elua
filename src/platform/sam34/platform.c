@@ -378,9 +378,11 @@ u32 platform_can_setup( unsigned id, u32 clock )
 }
 
 // FIXME: To be written
-void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
+int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
   lua_assert(false);
+  // PLATFORM_OK for success, PLATFORM_ERR if the message wasn't sent.
+  return PLATFORM_ERR;
 }
 
 // FIXME: To be written
