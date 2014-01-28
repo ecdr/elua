@@ -103,9 +103,15 @@
 // forward
 static void timers_init();
 static void uarts_init();
+
+#if NUM_SPI > 0
 static void spis_init();
+#endif
+
 static void pios_init();
-#ifdef BUILD_PWM
+
+#if NUM_PWM > 0
+// #ifdef BUILD_PWM
 static void pwms_init();
 #endif
 
@@ -133,6 +139,7 @@ static void comps_init();
 static void i2cs_init();
 #endif
 
+
 int platform_init()
 {
   // Set the clocking to run from PLL
@@ -146,8 +153,10 @@ int platform_init()
   // Setup PIO
   pios_init();
 
-  // Setup SSIs
+#if NUM_SPI > 0
+  // Setup SPIs
   spis_init();
+#endif
 
   // Setup UARTs
   uarts_init();
@@ -160,7 +169,8 @@ int platform_init()
   i2cs_init();
 #endif // ifdef BUILD_I2C
 
-#ifdef BUILD_PWM
+#if NUM_PWM > 0
+//#ifdef BUILD_PWM
   // Setup PWMs
   pwms_init();
 #endif
@@ -431,7 +441,16 @@ Stellarisware defines the following for some CPUs (e.g. 8962)
 // can_status can_stat[NUM_CAN];
 
 
-// FIXME: Not clear why the flags are u32 (looks like a BOOL, byte or a bit would do as well)
+// Speed used in INIT
+#ifndef CAN_INIT_SPEED
+#define CAN_INIT_SPEED	500000
+#endif
+
+// Message object for receiving
+#define CAN_MSG_OBJ_RX	1
+
+// Message object for transmitting
+#define CAN_MSG_OBJ_TX	2
 
 volatile u8 can_rx_flag = 0;
 volatile u8 can_tx_flag = 0;
@@ -460,15 +479,15 @@ void CANIntHandler(void)
     can_err_flag = 1;
     can_tx_flag = 0;
   }
-  else if( status == 1 ) // Message receive
+  else if( status == CAN_MSG_OBJ_RX ) // Message receive
   {
-    MAP_CANIntClear(CAN0_BASE, 1);
+    MAP_CANIntClear(CAN0_BASE, CAN_MSG_OBJ_RX);
     can_rx_flag = 1;
     can_err_flag = 0;
   }
-  else if( status == 2 ) // Message send
+  else if( status == CAN_MSG_OBJ_TX ) // Message send
   {
-    MAP_CANIntClear(CAN0_BASE, 2);
+    MAP_CANIntClear(CAN0_BASE, CAN_MSG_OBJ_TX);
     can_tx_flag = 0;
     can_err_flag = 0;
   }
@@ -481,7 +500,7 @@ void cans_init( void )
 {
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 ); 
   MAP_CANInit( CAN0_BASE );
-  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, 500000);
+  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, CAN_INIT_SPEED);
   MAP_CANIntEnable( CAN0_BASE, CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
   MAP_IntEnable(INT_CAN0);
   MAP_CANEnable(CAN0_BASE);
@@ -491,7 +510,7 @@ void cans_init( void )
   can_msg_rx.ulMsgIDMask = 0;
   can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
   can_msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;
-  MAP_CANMessageSet(CAN0_BASE, 1, &can_msg_rx, MSG_OBJ_TYPE_RX);
+  MAP_CANMessageSet(CAN0_BASE, CAN_MSG_OBJ_RX, &can_msg_rx, MSG_OBJ_TYPE_RX);
 }
 
 u32 platform_can_setup( unsigned id, u32 clock )
@@ -506,7 +525,7 @@ u32 platform_can_setup( unsigned id, u32 clock )
   return clock;
 }
 
-void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
+int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
   tCANMsgObject msg_tx;
   const char *s = ( char * )data;
@@ -529,7 +548,9 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
   can_tx_flag = 1;
-  MAP_CANMessageSet(CAN0_BASE, 2, &msg_tx, MSG_OBJ_TYPE_TX);
+  MAP_CANMessageSet(CAN0_BASE, CAN_MSG_OBJ_TX, &msg_tx, MSG_OBJ_TYPE_TX);
+
+  return PLATFORM_OK;
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
@@ -538,7 +559,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
   if( can_rx_flag != 0 )
   {
     can_msg_rx.pucMsgData = data;
-    MAP_CANMessageGet(CAN0_BASE, 1, &can_msg_rx, 0);
+    MAP_CANMessageGet(CAN0_BASE, CAN_MSG_OBJ_RX, &can_msg_rx, 0);
     can_rx_flag = 0;
 
     *canid = ( u32 )can_msg_rx.ulMsgID;
@@ -550,11 +571,14 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
     return PLATFORM_UNDERFLOW;
 }
 
-#endif
+#endif // BUILD_CAN
+
 
 
 // ****************************************************************************
 // SPI
+
+#if NUM_SPI > 0
 
 // LM4F120 has 4 SPIs - need way to specify how many to use
 
@@ -702,6 +726,8 @@ void platform_spi_select( unsigned id, int is_select )
   id = id;
   is_select = is_select;
 }
+
+#endif // NUM_SPI > 0
 
 
 // ****************************************************************************
@@ -935,6 +961,10 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
       config |= UART_CONFIG_PAR_EVEN;
     else if( parity == PLATFORM_UART_PARITY_ODD )
       config |= UART_CONFIG_PAR_ODD;
+    else if( parity == PLATFORM_UART_PARITY_MARK )
+      config |= UART_CONFIG_PAR_ONE;
+    else if( parity == PLATFORM_UART_PARITY_SPACE )
+      config |= UART_CONFIG_PAR_ZERO;
     else
       config |= UART_CONFIG_PAR_NONE;
 
@@ -1109,6 +1139,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // Similar on LM3S8962 and LM3S6965
 // LM3S6918 has no PWM
 
+
 #if ( NUM_PWM > 0 )
 // #ifdef BUILD_PWM
 
@@ -1116,6 +1147,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // TODO: Implement clock divisors (at moment just uses system clock)
 
 #else
+
 // SYSCTL div data and actual div factors
 const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, 
 	SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
@@ -1329,8 +1361,9 @@ void platform_pwm_stop( unsigned id )
   MAP_PWMGenDisable( PWM_BASE, pwm_gens[ id >> 1 ] );
 #endif // EMULATE_PWM
 }
-#endif // BUILD_PWM
 
+//#endif // BUILD_PWM
+#endif // NUM_PWM > 0
 
 // *****************************************************************************
 // ADC specific functions and variables

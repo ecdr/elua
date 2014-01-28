@@ -1,7 +1,7 @@
 // eLua platform configuration
 
-#ifndef __PLATFORM_CONF_H__
-#define __PLATFORM_CONF_H__
+#ifndef __DESKTOP_CONF_H__
+#define __DESKTOP_CONF_H__
 
 #ifdef LUA_RPC
 #include "auxmods.h"
@@ -10,7 +10,13 @@
 #define LUARPC_ENABLE_SERIAL
 
 #define LUA_PLATFORM_LIBS_REG \
-  {LUA_OSLIBNAME, luaopen_os}
+  {LUA_LOADLIBNAME,	luaopen_package },\
+  {LUA_TABLIBNAME,	luaopen_table },\
+  {LUA_IOLIBNAME,	luaopen_io },\
+  {LUA_OSLIBNAME, luaopen_os},\
+  {LUA_STRLIBNAME,	luaopen_string },\
+  {LUA_MATHLIBNAME,	luaopen_math },\
+  {LUA_DBLIBNAME,	luaopen_debug }
 
 #define LUA_PLATFORM_LIBS_ROM \
   _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )\

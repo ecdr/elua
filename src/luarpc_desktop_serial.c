@@ -14,10 +14,14 @@
 #include "lauxlib.h"
 
 #include "luarpc_rpc.h"
-#include "serial.h"
+#include "rpc_serial.h"
 
 #ifndef LUA_CROSS_COMPILER
 #include "platform_conf.h"
+#endif
+
+#ifdef LUA_RPC
+#include "desktop_conf.h"
 #endif
 
 void transport_open( Transport *tpt, const char *path );
