@@ -75,6 +75,6 @@ LUALIB_API int ( luaopen_i2c )( lua_State *L );
 #define MOD_REG_NUMBER( L, name, val )\
   lua_pushnumber( L, val );\
   lua_setfield( L, -2, name )
-    
+
 #endif
 
