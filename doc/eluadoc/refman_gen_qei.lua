@@ -1,6 +1,6 @@
 -- eLua reference manual - QEI
 
-data_en = 
+data_en =
 {
 
   -- Title
@@ -24,9 +24,9 @@ data_en =
             text = [[// eLua qei error codes
             enum
             {
-                ELUA_QEI_ERR_OK = 0,                // exported as $qei.ERR_OK$
+                ELUA_QEI_ERR_OK = 0,           // exported as $qei.ERR_OK$
                 ELUA_QEI_ERR_VEL_NOT_ENABLED,  // exported as $qei.ERR_VELOCITY_NOT_ENABLED$
-                ELUA_QEI_ERR_ENC_NOT_ENABLED,   // exported as $qei.ERR_ENCODER_NOT_ENABLED$
+                ELUA_QEI_ERR_ENC_NOT_ENABLED,  // exported as $qei.ERR_ENCODER_NOT_ENABLED$
             };]],
             name = "Error codes",
             desc = "These are the error codes defined by the eLua_qei layer and are returned by a number of functions in this module.",
@@ -34,11 +34,11 @@ data_en =
     },
   
   -- Functions
-  funcs = 
+  funcs =
   {
     { sig = "#qei.init#( encoder_id, phase, swap, index, max_count )",
       desc = "Initiates the encoder channels for use.",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Specified as qei.CH0, qei.CH1, qei.CHO1. Channels 0 or 1 can be initialised together or separately by calling this function once on each encoder.",
         "$phase$ - Each encoder has two phases: A and B. Either qei.PHA or qei.PHAB can be specified, effecting resolution. NOTE: phase B cannot be set on its own.",
@@ -49,7 +49,7 @@ data_en =
     },
     { sig = "#qei.velInit#( encoder_id, vel_period, ppr, edges )",
       desc = "Optionally initialises the encoder channels for use in velocity measurement.",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Specified as qei.CH0, qei.CH1, qei.CHO1. Channels 0 or 1 can be initialised together or separately by calling this function once on each encoder.",
         "$vel_period$ - Sets the period in micro seconds over which time the velocity is calculated.",
@@ -59,25 +59,25 @@ data_en =
     },
     { sig = "#qei.enable#( encoder_id )",
       desc = "Enables the encoder, post initialisation.",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Specified as qei.CH0, qei.CH1, qei.CHO1. Channels 0 or 1 can be enabled separately by calling this function once on each encoder.",
       }
     },
     { sig = "#qei.disable#( encoder_id )",
       desc = "Disables the encoder.",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Specified as qei.CH0, qei.CH1, qei.CHO1. Channels 0 or 1 can be disabled separately by calling this function once on each encoder.",
       }
     },
     { sig = "#qei.getPosition#( encoder_id )",
       desc = "Returns the current count of the encoder, ranging between 0 and maximum value set during initialisation.",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Ethier qei.CH0 or qei.CH1 can be called. NOTE: qei.CH01 cannot be called. Must call each encoder separately.",
       }
-      ret = 
+      ret =
       {
         "$count$ - the current encoder count between 0 and max_count set during initialisation.",
         "$err$ - Error code as defined above."
@@ -85,11 +85,11 @@ data_en =
     },
     { sig = "#qei.getVelPulses#( encoder_id )",
       desc = "Returns the number of pulses counted during the vel_period set during initialisation of velocity measurement. This value can be used raw, but is also used to calculate the RPM. ",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Ethier qei.CH0 or qei.CH1 can be called. NOTE: qei.CH01 cannot be called. Must call each encoder separately.",
       }
-      ret = 
+      ret =
       {
         "$pulses$ - The number of pulses recorded during the period defined during initialisation.",
         "$err$ - Error code as defined above."
@@ -97,11 +97,11 @@ data_en =
     },
     { sig = "#qei.getRPM#( encoder_id )",
       desc = "Returns the current number of revolutions per minute (RPM) of the selected encoder.",
-      args = 
+      args =
       {
         "$encoder_id$ - QEI channel ID. Ethier qei.CH0 or qei.CH1 can be called. NOTE: qei.CH01 cannot be called. Must call each encoder separately.",
       }
-      ret = 
+      ret =
       {
         "$rpm$ - The current rpm.",
         "$err$ - Error code as defined above."

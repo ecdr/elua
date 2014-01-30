@@ -1,4 +1,4 @@
-//  Quadrature Encoding Interface (QEI)
+// Quadrature Encoding Interface (QEI)
 
 #ifndef __LM3S_QEI_H__
 #define __LM3S_QEI_H__

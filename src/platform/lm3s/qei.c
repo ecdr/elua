@@ -16,7 +16,7 @@
 
 static u32 vel_modifier = 0;
 
-//Lua: lm3s.qei.init( encoder_id,  phase, swap, index, max_count )
+//Lua: lm3s.qei.init( encoder_id, phase, swap, index, max_count )
 static void qei_init( lua_State *L )
 {
     u8 enc_id = ( u8 )luaL_checkinteger( L, 1 );
