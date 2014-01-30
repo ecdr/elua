@@ -12,6 +12,9 @@ function add_platform_components( t, board, cpu )
   if board == 'EK-LM3S1968' or board == 'EK-LM3S6965' or board == 'EK-LM3S8962' then
     t.lm3s_disp = { macro = 'ENABLE_DISP' }
   end
+  if board == 'EK-LM3S8962' or board == 'EK-LM3S6965' or board == 'EK-LM4F230' then
+    t.lm3s_qei = { macro = 'ENABLE_QEI' }
+  end
   t.lm3s_pio = { macro = 'ENABLE_LM3S_GPIO' }
 end
 
@@ -32,6 +35,9 @@ function get_platform_modules( board, cpu )
   board = board:upper()
   if board == 'EK-LM3S1968' or board == 'EK-LM3S6965' or board == 'EK-LM3S8962' then
     m.disp = { guards = { 'ENABLE_DISP' }, lib = '"disp"', open = false }
+  end
+  if board == 'EK-LM3S8962' or board == 'EK-LM3S6965' or board == 'EK-LM4F230' then
+    m.qei = { guards = { 'ENABLE_QEI' }, lib = '"qei"', open = false }		-- ToDo: what does open mean?
   end
   return m
 end

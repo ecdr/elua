@@ -42,7 +42,11 @@
 #include "driverlib/systick.h"
 #include "driverlib/flash.h"
 #include "driverlib/interrupt.h"
+
+#ifdef BUILD_QEI
 #include "driverlib/qei.h"
+#endif
+
 #include "elua_net.h"
 #include "dhcpc.h"
 #include "buf.h"
@@ -51,7 +55,10 @@
 #include "rit128x96x4.h"
 #include "disp.h"
 #endif
+
+#ifdef BUILD_QEI
 #include "qei.h"
+#endif
 
 #include "utils.h"
 
@@ -137,7 +144,9 @@ static void comps_init();
 static void i2cs_init();
 #endif
 
+#ifdef BUILD_QEI
 static void qei_init();
+#endif
 
 int platform_init()
 {
@@ -2180,6 +2189,7 @@ ControlHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 
 #endif // BUILD_USB_CDC
 
+
 // *********************************************************************
 // Support for Quadrature Encoder Interface (QEI)
 // FIXME: Tested on the lm3s8962 only
@@ -2206,6 +2216,7 @@ void lm3s_qei_init( u8 enc_id, u8 phase, u8 swap, u8 index, u32 max_count )
      * -LM3S8962 RevA2 Errata states that software cannot be relied upon
      *  to disable the index pulse using QEI_CONFIG_NO_RESET. They
      *  suggest you do not connect the index pulse if not needed. */
+
     if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
     {
         MAP_QEIConfigure( QEI0_BASE, (qei_capture[ phase ]
@@ -2228,6 +2239,7 @@ void lm3s_qei_vel_init( u8 enc_id, u32 vel_period )
      *  signal before it is counted. Set to QEI_VELDIV_1 aka div by 1 */
     /* Enabled here but will not capture until the QEI is also
      * enabled using the lm3s_qei_enable() call. */
+
     if( (enc_id & LM3S_QEI_CH0) == LM3S_QEI_CH0 )
     {
         MAP_QEIVelocityConfigure(QEI0_BASE, QEI_VELDIV_1, vel_ticks);
@@ -2266,6 +2278,7 @@ u32 lm3s_qei_getPulses( u8 enc_id )
 {
     /* Returns the number of pulses detected in the time period
      * specified during velocity measurement configuration. */
+
     u32 base = (enc_id==LM3S_QEI_CH0) ? QEI0_BASE : QEI1_BASE ;
     return MAP_QEIVelocityGet( base );
 }
@@ -2284,6 +2297,7 @@ long lm3s_qei_getDirection( u8 enc_id)
 
 #endif
 
+
 // ****************************************************************************
 // Flash access functions
 
@@ -2299,6 +2313,7 @@ int platform_flash_erase_sector( u32 sector_id )
 }
 #endif // #ifdef BUILD_WOFS
 
+
 // ****************************************************************************
 // Platform specific modules go here
 
@@ -2309,7 +2324,10 @@ int platform_flash_erase_sector( u32 sector_id )
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"
 
+#if defined( ENABLE_DISP )
 extern const LUA_REG_TYPE disp_map[];
+#endif
+
 extern const LUA_REG_TYPE lm3s_pio_map[];
 
 #if defined( ENABLE_QEI )
@@ -2328,6 +2346,7 @@ const LUA_REG_TYPE platform_map[] =
 #if defined( ENABLE_QEI )
   { LSTRKEY( "qei" ), LROVAL( qei_map ) },
 #endif
+#endif
   { LNILKEY, LNILVAL }
 };
 
@@ -2344,9 +2363,16 @@ LUALIB_API int luaopen_platform( lua_State *L )
   lua_newtable( L );
   luaL_register( L, NULL, disp_map );
   lua_setfield( L, -2, "disp" );
+#endif
   lua_newtable( L );
   luaL_register( L, NULL, lm3s_pio_map );
   lua_setfield( L, -2, "pio" );
+#endif
+
+#if defined( ENABLE_QEI )
+  lua_newtable( L );
+  luaL_register( L, NULL, qei_map );
+  lua_setfield( L, -2, "qei" );
 #endif
 
 #if defined( ENABLE_QEI )
@@ -2366,7 +2392,7 @@ LUALIB_API int luaopen_platform( lua_State *L )
   return 0;
 }
 
-#endif // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO )
+#endif // #if defined( ENABLE_DISP ) || defined( ENABLE_LM3S_GPIO ) || defined( ENABLE_QEI )
 
 */
 
