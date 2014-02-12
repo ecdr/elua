@@ -18,6 +18,8 @@
 #define NUM_ADC               4
 #define NUM_CAN               0
 
+//#define NUM_QEI			
+
 #define ADC_BIT_RESOLUTION    10
 
 // CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)

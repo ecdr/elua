@@ -25,6 +25,7 @@ return {
   modules = {
     generic = { 'all', '-i2c', '-can' },
     platform = 'all',
-  }
+  },
+  macros = {{ "ENABLE_QEI", ""}}
 }
 

@@ -15,10 +15,12 @@
 #define NUM_UART              2
 #define NUM_TIMER             4
 #define NUM_PWM               6
-#define NUM_I2C			1
-#define NUM_COMP			1		// ToDo: Write comparator for eLua and for LM3
+#define NUM_I2C			          1
+#define NUM_COMP			        1		// ToDo: Write comparator for eLua and for LM3
 #define NUM_ADC               4
 #define NUM_CAN               1
+
+#define NUM_QEI			          2
 
 #define ADC_BIT_RESOLUTION    10
 
