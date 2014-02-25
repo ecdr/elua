@@ -92,7 +92,7 @@
 #ifndef LUA_RPC
 
 #ifndef LUA_PATH_DEFAULT
-#define LUA_PATH_DEFAULT  "/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/wo/?.lua;/wo/?.lc;/rom/?.lua;/rom/?.lc"
+#define LUA_PATH_DEFAULT  "/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/wo/?.lua;/wo/?.lc;/rom/?.lua;/rom/?.lc;/semi/?.lua;/semi/?.lc;"
 #endif
 
 #define LUA_CPATH_DEFAULT ""
@@ -112,7 +112,7 @@
 
 #ifndef LUA_RPC
 #ifndef LUA_PATH_DEFAULT
-#define LUA_PATH_DEFAULT  "/mmc/?.lua;/mmc/?.lc;/wo/?.lua;/wo/?.lc;/rom/?.lua;/rom/?.lc"
+#define LUA_PATH_DEFAULT  "/mmc/?.lua;/mmc/?.lc;/wo/?.lua;/wo/?.lc;/rom/?.lua;/rom/?.lc;/semi/?.lua;/semi/?.lc;"
 #endif
 #define LUA_CPATH_DEFAULT ""
 #else // #ifndef LUA_RPC
@@ -884,7 +884,7 @@ typedef long int32_t;
 #define LUA_META_ROTABLES 
 #endif
 
-#if LUA_OPTIMIZE_MEMORY == 2 && LUA_USE_POPEN
+#if LUA_OPTIMIZE_MEMORY == 2 && defined(LUA_USE_POPEN)
 #error "Pipes not supported in aggresive optimization mode (LUA_OPTIMIZE_MEMORY=2)"
 #endif
 

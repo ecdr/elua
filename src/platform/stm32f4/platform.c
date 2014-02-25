@@ -193,7 +193,7 @@ static void NVIC_Configuration(void)
 // PIO
 // This is pretty much common code to all STM32 devices.
 // todo: Needs updates to support different processor lines.
-static GPIO_TypeDef * const pio_port[] = { GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG, GPIOH, GPIOI };
+GPIO_TypeDef * const pio_port[] = { GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG, GPIOH, GPIOI };
 static const u32 pio_port_clk[]        = { RCC_AHB1Periph_GPIOA , RCC_AHB1Periph_GPIOB
          , RCC_AHB1Periph_GPIOC , RCC_AHB1Periph_GPIOD , RCC_AHB1Periph_GPIOE
          , RCC_AHB1Periph_GPIOF , RCC_AHB1Periph_GPIOG , RCC_AHB1Periph_GPIOH
@@ -849,45 +849,69 @@ timer_data_type platform_timer_read_sys()
 // TODO: Many things
 #if (NUM_CAN > 0)
 
-#if defined( ELUA_BOARD_STM32F4ALT )
-#define CANx                       CAN1
-#define CAN_CLK                    RCC_APB1Periph_CAN1
-#define CAN_RX_PIN                 GPIO_Pin_8
-#define CAN_TX_PIN                 GPIO_Pin_9
-#define CAN_GPIO_PORT              GPIOB
-#define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOB
-#define CAN_AF_PORT                GPIO_AF_CAN1
-#define CAN_RX_SOURCE              GPIO_PinSource8
-#define CAN_TX_SOURCE              GPIO_PinSource9
+CAN_TypeDef *const stm32_can[] =             { CAN1,                CAN2 };
+const u8 stm32_can_AF[] =                    { GPIO_AF_CAN1,        GPIO_AF_CAN2 };
+static const u32 can_clock[] =               { RCC_APB1Periph_CAN1, RCC_APB1Periph_CAN2 };
 
-#elif defined( ELUA_BOARD_STM32_E407 )
-#define CANx                       CAN1
-#define CAN_CLK                    RCC_APB1Periph_CAN1
-#define CAN_RX_PIN                 GPIO_Pin_8
-#define CAN_TX_PIN                 GPIO_Pin_9
-#define CAN_GPIO_PORT              GPIOB
-#define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOB
-#define CAN_AF_PORT                GPIO_AF_CAN1
-#define CAN_RX_SOURCE              GPIO_PinSource8
-#define CAN_TX_SOURCE              GPIO_PinSource9
+#if defined( ELUA_BOARD_STM32F4_CAN_PIN_CONFIG_1 )
+
+static GPIO_TypeDef *const can_gpio_port[] = { GPIOD,               GPIOB };
+static const u16 can_gpio_rx_pin[] =         { GPIO_Pin_0,          GPIO_Pin_12 };
+static const u8 can_gpio_rx_pin_source[] =   { GPIO_PinSource0,     GPIO_PinSource12 };
+static const u16 can_gpio_tx_pin[] =         { GPIO_Pin_1,          GPIO_Pin_13 };
+static const u8 can_gpio_tx_pin_source[] =   { GPIO_PinSource1,     GPIO_PinSource13 };
+
+#elif defined( ELUA_BOARD_STM32F4_CAN_PIN_CONFIG_2 )
+
+static GPIO_TypeDef *const can_gpio_port[] = { GPIOD,               GPIOB };
+static const u16 can_gpio_rx_pin[] =         { GPIO_Pin_0,          GPIO_Pin_5 };
+static const u8 can_gpio_rx_pin_source[] =   { GPIO_PinSource0,     GPIO_PinSource5 };
+static const u16 can_gpio_tx_pin[] =         { GPIO_Pin_1,          GPIO_Pin_6 };
+static const u8 can_gpio_tx_pin_source[] =   { GPIO_PinSource1,     GPIO_PinSource6 };
+
+#elif defined( ELUA_BOARD_STM32F4_CAN_PIN_CONFIG_3 )
+
+static GPIO_TypeDef *const can_gpio_port[] = { GPIOB,               GPIOB };
+static const u16 can_gpio_rx_pin[] =         { GPIO_Pin_8,          GPIO_Pin_12 };
+static const u8 can_gpio_rx_pin_source[] =   { GPIO_PinSource8,     GPIO_PinSource12 };
+static const u16 can_gpio_tx_pin[] =         { GPIO_Pin_9,          GPIO_Pin_13 };
+static const u8 can_gpio_tx_pin_source[] =   { GPIO_PinSource9,     GPIO_PinSource13 };
+
+#elif defined( ELUA_BOARD_STM32F4_CAN_PIN_CONFIG_4 )
+
+static GPIO_TypeDef *const can_gpio_port[] = { GPIOB,               GPIOB };
+static const u16 can_gpio_rx_pin[] =         { GPIO_Pin_8,          GPIO_Pin_5 };
+static const u8 can_gpio_rx_pin_source[] =   { GPIO_PinSource8,     GPIO_PinSource5 };
+static const u16 can_gpio_tx_pin[] =         { GPIO_Pin_9,          GPIO_Pin_6 };
+static const u8 can_gpio_tx_pin_source[] =   { GPIO_PinSource9,     GPIO_PinSource6 };
+
+#elif defined( ELUA_BOARD_STM32F4ALT ) || defined( ELUA_BOARD_STM32_E407 )
+
+static GPIO_TypeDef *const can_gpio_port[] = { GPIOB,               GPIOB };
+static const u16 can_gpio_rx_pin[] =         { GPIO_Pin_8,          GPIO_Pin_12 };
+static const u8 can_gpio_rx_pin_source[] =   { GPIO_PinSource8,     GPIO_PinSource12 };
+static const u16 can_gpio_tx_pin[] =         { GPIO_Pin_9,          GPIO_Pin_13 };
+static const u8 can_gpio_tx_pin_source[] =   { GPIO_PinSource9,     GPIO_PinSource13 };
+
 #else
 
-#define CANx                       CAN1
-#define CAN_CLK                    RCC_APB1Periph_CAN1
-#define CAN_RX_PIN                 GPIO_Pin_0
-#define CAN_TX_PIN                 GPIO_Pin_1
-#define CAN_GPIO_PORT              GPIOD
-#define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOD
-#define CAN_AF_PORT                GPIO_AF_CAN1
-#define CAN_RX_SOURCE              GPIO_PinSource0
-#define CAN_TX_SOURCE              GPIO_PinSource1
+static GPIO_TypeDef *const can_gpio_port[] = { GPIOD,               GPIOB };
+static const u16 can_gpio_rx_pin[] =         { GPIO_Pin_0,          GPIO_Pin_12 };
+static const u8 can_gpio_rx_pin_source[] =   { GPIO_PinSource0,     GPIO_PinSource12 };
+static const u16 can_gpio_tx_pin[] =         { GPIO_Pin_1,          GPIO_Pin_13 };
+static const u8 can_gpio_tx_pin_source[] =   { GPIO_PinSource1,     GPIO_PinSource13 };
+
 #endif
 
 void cans_init( void )
 {
   // CAN Periph clock enable
-  RCC_APB1PeriphClockCmd(CAN_CLK, ENABLE);
+  RCC_APB1PeriphClockCmd(can_clock[0], ENABLE);
+  RCC_APB1PeriphClockCmd(can_clock[1], ENABLE);
 }
+
+
+#if ELUA_BOARD_CPU_CLOCK_HZ == 168000000
 
 /*       BS1 BS2 SJW Pre
 1M:      12  8   1   2
@@ -901,6 +925,43 @@ static const u8 can_baud_bs1[]    = { CAN_BS1_12tq, CAN_BS1_12tq, CAN_BS1_8tq, C
 static const u8 can_baud_bs2[]    = { CAN_BS1_8tq,  CAN_BS1_8tq,  CAN_BS1_5tq, CAN_BS1_5tq, CAN_BS1_8tq };
 static const u8 can_baud_sjw[]    = { CAN_SJW_1tq,  CAN_SJW_1tq,  CAN_SJW_1tq, CAN_SJW_1tq, CAN_SJW_1tq };
 static const u8 can_baud_pre[]    = { 20, 16, 12, 6, 2 };
+
+#endif
+
+#if ELUA_BOARD_CPU_CLOCK_HZ == 120000000
+
+/*       BS1 BS2 SJW Pre
+1M:      6   3   1   3
+500k:    12  7   1   3
+250k:    12  7   1   6
+125k:    12  7   1   12
+100k:    12  7   1   15 */
+
+#define CAN_BAUD_COUNT 5
+static const u8 can_baud_bs1[]    = { CAN_BS1_12tq, CAN_BS1_12tq, CAN_BS1_12tq, CAN_BS1_12tq, CAN_BS1_6tq };
+static const u8 can_baud_bs2[]    = { CAN_BS1_7tq,  CAN_BS1_7tq,  CAN_BS1_7tq, CAN_BS1_7tq, CAN_BS1_3tq };
+static const u8 can_baud_sjw[]    = { CAN_SJW_1tq,  CAN_SJW_1tq,  CAN_SJW_1tq, CAN_SJW_1tq, CAN_SJW_1tq };
+static const u8 can_baud_pre[]    = { 15, 12, 6, 3, 3 };
+
+#endif
+
+#if ELUA_BOARD_CPU_CLOCK_HZ == 96000000
+
+/*       BS1 BS2 SJW Pre
+1M:      4   3   1   3
+500k:    9   6   1   3
+250k:    9   6   1   6
+125k:    9   6   1   12
+100k:    9   6   1   15 */
+
+#define CAN_BAUD_COUNT 5
+static const u8 can_baud_bs1[]    = { CAN_BS1_9tq, CAN_BS1_9tq, CAN_BS1_9tq, CAN_BS1_9tq, CAN_BS1_4tq };
+static const u8 can_baud_bs2[]    = { CAN_BS1_6tq,  CAN_BS1_6tq,  CAN_BS1_6tq, CAN_BS1_6tq, CAN_BS1_3tq };
+static const u8 can_baud_sjw[]    = { CAN_SJW_1tq,  CAN_SJW_1tq,  CAN_SJW_1tq, CAN_SJW_1tq, CAN_SJW_1tq };
+static const u8 can_baud_pre[]    = { 15, 12, 6, 3, 3 };
+
+#endif
+
 static const u32 can_baud_rate[]  = { 100000, 125000, 250000, 500000, 1000000 };
 
 u32 platform_can_setup( unsigned id, u32 clock )
@@ -911,16 +972,16 @@ u32 platform_can_setup( unsigned id, u32 clock )
   int cbaudidx = -1;
 
   /* Connect CAN pins to AF9 */
-  GPIO_PinAFConfig(CAN_GPIO_PORT, CAN_RX_SOURCE, CAN_AF_PORT);
-  GPIO_PinAFConfig(CAN_GPIO_PORT, CAN_TX_SOURCE, CAN_AF_PORT);
+  GPIO_PinAFConfig(can_gpio_port[id], can_gpio_rx_pin_source[id], stm32_can_AF[id]);
+  GPIO_PinAFConfig(can_gpio_port[id], can_gpio_tx_pin_source[id], stm32_can_AF[id]);
 
   // Configure IO Pins -- This is for STM32F103RE
-  GPIO_InitStructure.GPIO_Pin   = CAN_RX_PIN | CAN_TX_PIN;
+  GPIO_InitStructure.GPIO_Pin   = can_gpio_rx_pin[id] | can_gpio_tx_pin[id];
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
-  GPIO_Init( CAN_GPIO_PORT, &GPIO_InitStructure );
+  GPIO_Init( can_gpio_port[id], &GPIO_InitStructure );
 
   // Select baud rate up to requested rate, except for below min, where min is selected
   if ( clock >= can_baud_rate[ CAN_BAUD_COUNT - 1 ] ) // round down to peak rate if >= peak rate
@@ -935,7 +996,7 @@ u32 platform_can_setup( unsigned id, u32 clock )
   }
 
   /* Deinitialize CAN Peripheral */
-  CAN_DeInit( CANx );
+  CAN_DeInit( stm32_can[id] );
   CAN_StructInit( &CAN_InitStructure );
 
   /* CAN cell init */
@@ -950,10 +1011,10 @@ u32 platform_can_setup( unsigned id, u32 clock )
   CAN_InitStructure.CAN_BS1=can_baud_bs1[ cbaudidx ];
   CAN_InitStructure.CAN_BS2=can_baud_bs2[ cbaudidx ];
   CAN_InitStructure.CAN_Prescaler=can_baud_pre[ cbaudidx ];
-  CAN_Init( CANx, &CAN_InitStructure );
+  CAN_Init( stm32_can[id], &CAN_InitStructure );
 
-  /* CAN filter init */
-  CAN_FilterInitStructure.CAN_FilterNumber=0;
+  /* CAN filter init, start bank for CAN2 defaults to 0x0e */
+  CAN_FilterInitStructure.CAN_FilterNumber=(CAN1==stm32_can[id])? 0 : 14;
   CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdMask;
   CAN_FilterInitStructure.CAN_FilterScale=CAN_FilterScale_32bit;
   CAN_FilterInitStructure.CAN_FilterIdHigh=0x0000;
@@ -983,7 +1044,7 @@ u32 platform_can_op( unsigned id, int op, u32 data )
   return res;
 }
 
-void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
+int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
   CanTxMsg TxMessage;
   const char *s = ( char * )data;
@@ -1007,7 +1068,10 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   d = ( char * )TxMessage.Data;
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
-  CAN_Transmit( CAN1, &TxMessage );
+  if( CAN_Transmit( stm32_can[id], &TxMessage ) == CAN_TxStatus_NoMailBox )
+    return PLATFORM_ERR;
+
+  return PLATFORM_OK;
 }
 
 void USB_LP_CAN_RX0_IRQHandler(void)
@@ -1023,7 +1087,7 @@ void USB_LP_CAN_RX0_IRQHandler(void)
   RxMessage.Data[0]=0x00;
   RxMessage.Data[1]=0x00;
 
-  CAN_Receive(CANx, CAN_FIFO0, &RxMessage);
+  CAN_Receive(stm32_can[id], CAN_FIFO0, &RxMessage);
 
   if((RxMessage.ExtId==0x1234) && (RxMessage.IDE==CAN_ID_EXT)
      && (RxMessage.DLC==2) && ((RxMessage.Data[1]|RxMessage.Data[0]<<8)==0xDECA))
@@ -1042,9 +1106,9 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
   const char *s;
   char *d;
 
-  if( CAN_MessagePending( CAN1, CAN_FIFO0 ) > 0 )
+  if( CAN_MessagePending( stm32_can[id], CAN_FIFO0 ) > 0 )
   {
-    CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
+    CAN_Receive(stm32_can[id], CAN_FIFO0, &RxMessage);
 
     if( RxMessage.IDE == CAN_ID_STD )
     {
@@ -1641,47 +1705,4 @@ int platform_flash_erase_sector( u32 sector_id )
 }
 
 #endif // #ifdef BUILD_WOFS
-
-
-// ****************************************************************************
-// Platform specific modules go here
-
-#ifdef ENABLE_STM32_CPU
-
-#define MIN_OPT_LEVEL 2
-#include "lrodefs.h"
-extern const LUA_REG_TYPE stm32_cpu_map[];
-
-const LUA_REG_TYPE platform_map[] =
-{
-#if LUA_OPTIMIZE_MEMORY > 0
-  { LSTRKEY( "cpu" ), LROVAL( stm32_cpu_map ) },
-#endif
-  { LNILKEY, LNILVAL }
-};
-
-LUALIB_API int luaopen_platform( lua_State *L )
-{
-#if LUA_OPTIMIZE_MEMORY > 0
-  return 0;
-#else // #if LUA_OPTIMIZE_MEMORY > 0
-  luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
-
-  // Setup the new tables inside platform table
-  lua_newtable( L );
-  luaL_register( L, NULL, stm32_cpu_map );
-  lua_setfield( L, -2, "cpu" );
-
-  return 1;
-#endif // #if LUA_OPTIMIZE_MEMORY > 0
-}
-
-#else // #ifdef ENABLE_ENC
-
-LUALIB_API int luaopen_platform( lua_State *L )
-{
-  return 0;
-}
-
-#endif // #ifdef ENABLE_ENC
 

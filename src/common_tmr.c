@@ -3,9 +3,7 @@
 
 #include "platform.h"
 #include "platform_conf.h"
-#include "type.h"
 #include "common.h"
-#include "elua_int.h"
 #include "utils.h"
 #include <stdio.h>
 
@@ -45,7 +43,7 @@ static volatile u8 vtmr_int_flag[ ( VTMR_NUM_TIMERS + 7 ) >> 3 ];
 #endif // #ifdef CMN_TIMER_INT_SUPPORT
 
 // This should be called from the platform's timer interrupt at VTMR_FREQ_HZ
-void cmn_virtual_timer_cb()
+void cmn_virtual_timer_cb(void)
 {
   unsigned i;
 #ifdef CMN_TIMER_INT_SUPPORT
@@ -159,7 +157,7 @@ static int vtmr_int_get_status( elua_int_resnum resnum )
 
 #else // #if VTMR_NUM_TIMERS > 0
 
-void cmn_virtual_timer_cb()
+void cmn_virtual_timer_cb(void)
 {
 }
 
@@ -168,13 +166,13 @@ void cmn_virtual_timer_cb()
 // ============================================================================
 // Actual timer functions
 
-int platform_timer_sys_available()
+int platform_timer_sys_available(void)
 {
   return SYSTIMER_SUPPORT;
 }
 
 #ifndef PLATFORM_HAS_SYSTIMER
-timer_data_type platform_timer_read_sys()
+timer_data_type platform_timer_read_sys(void)
 {
   return 0;
 }
@@ -307,7 +305,10 @@ timer_data_type platform_timer_get_diff_us( unsigned id, timer_data_type start, 
   freq = platform_timer_op( id, PLATFORM_TIMER_OP_GET_CLOCK, 0 );
   if( tstart > tend )
     tend += platform_timer_op( id, PLATFORM_TIMER_OP_GET_MAX_CNT, 0 ) + 1;
-  tstart = ( ( tend - tstart ) * 1000000 ) / freq;
+  if( freq == 1000000 )
+    tstart = tend - tstart;
+  else
+    tstart = ( ( tend - tstart ) * 1000000 ) / freq;
   return UMIN( tstart, PLATFORM_TIMER_SYS_MAX );
 }
 
@@ -415,28 +416,29 @@ void cmn_systimer_set_interrupt_period_us( u32 period )
   cmn_systimer_us_per_interrupt = period;
 }
 
-void cmn_systimer_periodic()
+void cmn_systimer_periodic(void)
 {
   cmn_systimer_counter += cmn_systimer_us_per_interrupt;
 }
 
-timer_data_type cmn_systimer_get()
+timer_data_type cmn_systimer_get(void)
 {
   u64 tempsys, tempcnt, crtsys;
 
-  tempcnt = platform_timer_sys_raw_read();
   tempsys = cmn_systimer_counter;
+  tempcnt = platform_timer_sys_raw_read();
   while( ( crtsys = cmn_systimer_counter ) != tempsys )
   {
-    tempcnt = platform_timer_sys_raw_read();
     tempsys = crtsys;
+    tempcnt = platform_timer_sys_raw_read();
   }
   crtsys += tempcnt / cmn_systimer_ticks_for_us;
   if( crtsys > PLATFORM_TIMER_SYS_MAX ) // timer overflow
   {
-    crtsys %= PLATFORM_TIMER_SYS_MAX;
+    crtsys -= PLATFORM_TIMER_SYS_MAX;
     platform_timer_sys_disable_int();
-    cmn_systimer_counter = 0;
+    if( cmn_systimer_counter > PLATFORM_TIMER_SYS_MAX )
+      cmn_systimer_counter -= PLATFORM_TIMER_SYS_MAX;
     platform_timer_sys_enable_int();
   }
   return ( timer_data_type )crtsys;

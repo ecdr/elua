@@ -134,7 +134,7 @@ static void gpioh_set_interrupt( elua_int_resnum resnum )
 
 /* Now for the interrupt handlers ... a bit weird, but easy to follow. The manual
 has this to say: "In every port there are four interrupt lines connected to the 
-interrupt controller. Every eigth interrupts in the port are ORed together to form 
+interrupt controller. Every eight interrupts in the port are ORed together to form 
 an interrupt line.". So we have an IRQ for each group of 8 consecutive GPIO pins.
 We could use a single interrupt handler and scan through all pins to see which one
 generated the interrupt, but it would take a lot of time for 109 pins. Instead,
@@ -336,7 +336,7 @@ void platform_int_init()
 
 // ****************************************************************************
 // Interrupt table
-// Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+// Must have a 1-to-1 correspondence with the interrupt enum in platform_ints.h!
 
 const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
 {
