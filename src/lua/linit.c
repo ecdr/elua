@@ -18,11 +18,19 @@
 #include "platform_conf.h"
 #endif
 
-// Dummy open function
-int luaopen_dummy(lua_State *L)
-{
-  return 0;
-}
+#ifdef LUA_RPC
+#include "desktop_conf.h"
+#endif
+
+LUALIB_API int luaopen_platform (lua_State *L);
+int luaopen_dummy(lua_State *L);
+
+// Declare table
+#if defined(LUA_PLATFORM_LIBS_ROM) && LUA_OPTIMIZE_MEMORY == 2
+#undef _ROM
+#define _ROM( name, openf, table ) extern const luaR_entry table[];
+LUA_PLATFORM_LIBS_ROM;
+#endif
 
 // ****************************************************************************
 // Platform module handling
@@ -100,6 +108,13 @@ LUALIB_API int luaopen_platform (lua_State *L)
 // End of platform module section
 // ****************************************************************************
 
+
+// Dummy open function
+int luaopen_dummy(lua_State *L)
+{
+  return 0;
+}
+
 #undef _ROM
 #define _ROM( name, openf, table ) { name, openf },
 
@@ -117,11 +132,6 @@ static const luaL_Reg lualibs[] = {
   {NULL, NULL}
 };
 
-#if defined(LUA_PLATFORM_LIBS_ROM) && LUA_OPTIMIZE_MEMORY == 2
-#undef _ROM
-#define _ROM( name, openf, table ) extern const luaR_entry table[];
-LUA_PLATFORM_LIBS_ROM;
-#endif
 const luaR_table lua_rotable[] = 
 {
 #if defined(LUA_PLATFORM_LIBS_ROM) && LUA_OPTIMIZE_MEMORY == 2

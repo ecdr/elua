@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "type.h"
-#include "devman.h"
 #include "platform.h"
 #include "romfs.h"
 #include "xmodem.h"
@@ -27,14 +25,22 @@
 
 // Define here your autorun/boot files, 
 // in the order you want eLua to search for them
-char *boot_order[] = {
+const char *boot_order[] = {
 #if defined(BUILD_MMCFS)
   "/mmc/autorun.lua",
   "/mmc/autorun.lc",
 #endif
+#if defined(BUILD_WOFS)
+  "/wo/autorun.lua",
+  "/wo/autorun.lc",
+#endif
 #if defined(BUILD_ROMFS)
   "/rom/autorun.lua",
   "/rom/autorun.lc",
+#endif
+#if defined(BUILD_SEMIFS)
+  "/semi/autorun.lua",
+  "/semi/autorun.lc",
 #endif
 };
 
@@ -94,7 +100,7 @@ int main( void )
     if( ( fp = fopen( boot_order[ i ], "r" ) ) != NULL )
     {
       fclose( fp );
-      char* lua_argv[] = { "lua", boot_order[i], NULL };
+      char* lua_argv[] = { (char *)"lua", (char *)boot_order[i], NULL };
       lua_main( 2, lua_argv );
       break; // autoruns only the first found
     }
@@ -108,7 +114,7 @@ int main( void )
   if( shell_init() == 0 )
   {
     // Start Lua directly
-    char* lua_argv[] = { "lua", NULL };
+    char* lua_argv[] = { (char *)"lua", NULL };
     lua_main( 1, lua_argv );
   }
   else

@@ -1,9 +1,7 @@
 // MMC filesystem implementation using FatFs
 #include "mmcfs.h"
-#include "type.h"
 #include <string.h>
 #include <errno.h>
-#include "devman.h"
 #include <stdio.h>
 #include "ioctl.h"
 #include <sys/types.h>
@@ -20,7 +18,7 @@
 static FIL mmcfs_fd_table[ MMCFS_MAX_FDS ];
 static int mmcfs_num_fd;
 
-extern void elua_mmc_init();
+extern void elua_mmc_init( void );
 
 #ifndef MMCFS_NUM_CARDS
 #define NUM_CARDS             1

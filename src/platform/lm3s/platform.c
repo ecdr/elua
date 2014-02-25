@@ -114,9 +114,15 @@
 // forward
 static void timers_init();
 static void uarts_init();
+
+#if NUM_SPI > 0
 static void spis_init();
+#endif
+
 static void pios_init();
-#ifdef BUILD_PWM
+
+#if NUM_PWM > 0
+// #ifdef BUILD_PWM
 static void pwms_init();
 #endif
 
@@ -167,8 +173,10 @@ int platform_init()
   // Setup PIO
   pios_init();
 
-  // Setup SSIs
+#if NUM_SPI > 0
+  // Setup SPIs
   spis_init();
+#endif
 
   // Setup UARTs
   uarts_init();
@@ -181,7 +189,8 @@ int platform_init()
   i2cs_init();
 #endif // ifdef BUILD_I2C
 
-#ifdef BUILD_PWM
+#if NUM_PWM > 0
+//#ifdef BUILD_PWM
   // Setup PWMs
   pwms_init();
 #endif
@@ -486,6 +495,17 @@ typedef struct {
 // FIXME: Need to initialize flags
 can_status_t can_status[ NUM_CAN-1 ];
 
+// Speed used in INIT
+#ifndef CAN_INIT_SPEED
+#define CAN_INIT_SPEED	500000
+#endif
+
+// Message object for receiving
+#define CAN_MSG_OBJ_RX	1
+
+// Message object for transmitting
+#define CAN_MSG_OBJ_TX	2
+
 //volatile u8 can_rx_flag = 0;
 //volatile u8 can_tx_flag = 0;
 //volatile u8 can_err_flag = 0;
@@ -533,15 +553,15 @@ void CANIntHandler(unsigned id)
     can_status[id].err_flag = 1;
     can_status[id].tx_flag = 0;
   }
-  else if( status == 1 ) // Message receive
+  else if( status == CAN_MSG_OBJ_RX ) // Message receive
   {
-    MAP_CANIntClear(can_base[id], 1);
+    MAP_CANIntClear(can_base[id], CAN_MSG_OBJ_RX);
     can_status[id].rx_flag = 1;
     can_status[id].err_flag = 0;
   }
-  else if( status == 2 ) // Message send
+  else if( status == CAN_MSG_OBJ_TX ) // Message send
   {
-    MAP_CANIntClear(can_base[id], 2);
+    MAP_CANIntClear(can_base[id], CAN_MSG_OBJ_TX);
     can_status[id].tx_flag = 0;
     can_status[id].err_flag = 0;
   }
@@ -557,7 +577,7 @@ void cans_init( void )
   for( id = 0; id < NUM_CAN; id++){
     MAP_SysCtlPeripheralEnable( can_sysctl[id] );
     MAP_CANInit( can_base[id] );
-    MAP_CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, 500000);
+    MAP_CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, CAN_INIT_SPEED);
     MAP_CANIntEnable(can_base[id], CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
     MAP_IntEnable(can_int[id]);
     MAP_CANEnable(can_base[id]);
@@ -567,7 +587,7 @@ void cans_init( void )
     can_status[id].msg_rx.ulMsgIDMask = 0;
     can_status[id].msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
       can_status[id].msg_rx.ulMsgLen = PLATFORM_CAN_MAXLEN;
-    MAP_CANMessageSet(can_base[id], 1, &can_status[id].msg_rx, MSG_OBJ_TYPE_RX);
+    MAP_CANMessageSet(can_base[id], CAN_MSG_OBJ_RX, &can_status[id].msg_rx, MSG_OBJ_TYPE_RX);
   }
 }
 
@@ -592,7 +612,7 @@ u32 platform_can_setup( unsigned id, u32 clock )
   return clock;
 }
 
-void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
+int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
 {
   tCANMsgObject msg_tx;
   const char *s = ( char * )data;
@@ -615,7 +635,9 @@ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *dat
   DUFF_DEVICE_8( len,  *d++ = *s++ );
 
   can_status[id].tx_flag = 1;
-  MAP_CANMessageSet(can_base[id], 2, &msg_tx, MSG_OBJ_TYPE_TX);
+  MAP_CANMessageSet(can_base[id], CAN_MSG_OBJ_TX, &msg_tx, MSG_OBJ_TYPE_TX);
+
+  return PLATFORM_OK;
 }
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
@@ -624,7 +646,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
   if( can_status[id].rx_flag != 0 )
   {
     can_status[id].msg_rx.pucMsgData = data;
-    MAP_CANMessageGet(can_base[id], 1, &can_status[id].msg_rx, 0);
+    MAP_CANMessageGet(can_base[id], CAN_MSG_OBJ_RX, &can_status[id].msg_rx, 0);
     can_status[id].rx_flag = 0;
 
     *canid = ( u32 )can_status[id].msg_rx.ulMsgID;
@@ -636,13 +658,16 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
     return PLATFORM_UNDERFLOW;
 }
 
-#endif
+#endif // BUILD_CAN
+
 
 
 // ****************************************************************************
 // SPI
 
-// LM4F has 4 SPIs - need way to specify how many to use
+#if NUM_SPI > 0
+
+// LM4F120 has 4 SPIs - need way to specify how many to use
 
 // Think I fixed the defines, but haven't looked at the code to see if anything needs adapting for LM4F.
 // FIXME: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
@@ -792,6 +817,8 @@ void platform_spi_select( unsigned id, int is_select )
   id = id;
   is_select = is_select;
 }
+
+#endif // NUM_SPI > 0
 
 
 // ****************************************************************************
@@ -1027,6 +1054,10 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
       config |= UART_CONFIG_PAR_EVEN;
     else if( parity == PLATFORM_UART_PARITY_ODD )
       config |= UART_CONFIG_PAR_ODD;
+    else if( parity == PLATFORM_UART_PARITY_MARK )
+      config |= UART_CONFIG_PAR_ONE;
+    else if( parity == PLATFORM_UART_PARITY_SPACE )
+      config |= UART_CONFIG_PAR_ZERO;
     else
       config |= UART_CONFIG_PAR_NONE;
 
@@ -1201,6 +1232,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // PWMs
 // Similar on LM3S8962 and LM3S6965
 // LM3S6918 has no PWM
+
 
 #if ( NUM_PWM > 0 )
 // #ifdef BUILD_PWM
@@ -1448,8 +1480,9 @@ void platform_pwm_stop( unsigned id )
   MAP_PWMGenDisable( PWM_BASE, pwm_gens[ id >> 1 ] );
 #endif // EMULATE_PWM
 }
-#endif // BUILD_PWM
 
+//#endif // BUILD_PWM
+#endif // NUM_PWM > 0
 
 // *****************************************************************************
 // ADC specific functions and variables
