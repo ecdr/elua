@@ -28,7 +28,7 @@ The list of CPUs and boards currently supported by eLua is given below:
 | _LM3S9B92      |  Cortex-M3    o|    LM3S               |  _EK-LM3S9B92     | _sok
 | _LM3S1968      |  Cortex-M3    o|    LM3S               |  _EK-LM3S1968     | _sok
 | _LM4F120       |  Cortex-M4    o|    LM3S               |  _EK-LM4F120      | _snt
-| _TM4C123       |  Cortex-M4    o|    LM3S               |  _EK-TM4C123      | _sni
+| _TM4C123       |  Cortex-M4    o|    LM3S               |  _EK-TM4C123      | _snt
 | _AT32UC3A0128  |  AVR32        o|    AVR32              |  _Mizar32         | _sok
 | _AT32UC3A0256  |  AVR32        o|    AVR32              |  _Mizar32         | _sok
 | _AT32UC3A0512  |  AVR32        o|    AVR32              |  _Mizar32         | _sok
@@ -84,7 +84,7 @@ The relationship between a module and its implementation on a particular platfor
 | _LM3S9B92      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sok  | _snt  | _sok  | _sni
 | _LM3S1968      | _sok  | _snt  | _sok   | _sok  | _sok  | _sna  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sni  | _sni
 | _LM4F120       | _sok  | _sok  | _snt   | _snt  | _sni  | _sna  | _sok  | _sok  | _snt  | _sok  | _sok  | _snt  | _sok  | _snt  | _snt  | _sni
-| _TM4C123       | _sok  | _snt  | _snt   | _snt  | _sni  | _sna  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _sni
+| _TM4C123       | _sok  | _snt  | _snt   | _snt  | _snt  | _sna  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _sni
 | _AT32UC3A0128  | _sok  | _sok  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sok  | _sok
 | _AT32UC3A0256  | _sok  | _sok  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sok  | _sok
 | _AT32UC3A0512  | _sok  | _sok  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sok  | _sok

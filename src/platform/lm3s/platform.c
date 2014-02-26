@@ -1279,8 +1279,6 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 #elif defined( FORLM4F230 ) 
 
-// FIXME: 230 has PWMs, need to fill in data
-
 // TODO: Way to chose alternative pins for PWMS (C6 vs D0, C7 vs D1, A6 vs E4, A7 vs E5)
 
 // M0, 8 PWMS PORTB:4-7, E:4-5, C:4-5 [or] D:0-1, fault on D:2 or D:6 or F:2
