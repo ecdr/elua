@@ -1279,6 +1279,12 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 #elif defined( FORLM4F230 ) 
 
+// Has two PWM modules - PWM_BASE0, PWM_BASE1 each with 8 pins, 4 generators, 8 PWM_OUTs
+// TODO: Parameterize better (number of modules, number pins/module, etc.)
+//   so get better error checking on various mappings,
+//   so fewer cases for different CPUs 
+//   make easier to add a new CPU
+
 // TODO: Way to chose alternative pins for PWMS (C6 vs D0, C7 vs D1, A6 vs E4, A7 vs E5)
 
 // M0, 8 PWMS PORTB:4-7, E:4-5, C:4-5 [or] D:0-1, fault on D:2 or D:6 or F:2
@@ -1313,6 +1319,22 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 #endif
 
+
+// PWM modules
+
+#if defined( FORLM4F230 )
+  const static u32 pwm_base[] = { PWM0_BASE, PWM1_BASE };
+#else
+  const static u32 pwm_base[] = { PWM_BASE };
+#endif
+
+// FIXME: Range checks to be sure arrays filled in - need to fix syntax
+/*
+#if ((sizeof(pwm_base)/sizeof(u32)) < (NUM_PWM >> 3))
+#error Not enough pwm_base
+#endif
+*/
+
 // PWM generators
 #if defined ( EMULATE_PWM )
 
@@ -1334,19 +1356,46 @@ const static u32 pwm_timer_sysctl[] = {
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 
 #elif defined( FORLM4F230 )
-  const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1 };
+  const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3,
+    PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 
+// TODO: Check to confirm that second PWM module uses same PWM_GEN as first
+    //PWM_GEN_2 Covers M1PWM4 and M1PWM5
+    //PWM_GEN_3 Covers M1PWM6 and M1PWM7 See page 207 4/11/13 DriverLib doc
+    
 #else 
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
 #endif
+
+/*
+#if (sizeof(pwm_gens)/sizeof(u16) < (NUM_PWM/2))
+#error Not enough pwm_gens
+#endif
+//  assert( id >> 1 < sizeof(pwm_gens)/ sizeof( u16 ));
+*/
 
 // PWM outputs
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
 					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7};
+#elif defined( FORLM4F230 ) 
+const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
+					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7,
+          PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
+					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7
+          };
+
+// TODO: Check PWM_OUTs - think second module uses same set as first
+          
 #else
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
 #endif
+
+/*
+#if sizeof(pwm_outs)/sizeof(u16) < NUM_PWM
+#error Not enough pwm_outs
+#endif
+*/
 
 // TODO: What do these do on a system with no PWMs?
 static void pwms_init()
@@ -1357,7 +1406,15 @@ static void pwms_init()
 //	pwm_enabled[id] = FALSE;
 
 #else
+
+#if defined( FORLM4F230 ) 
+// TODO: Generalize/parameterize with number of PWM generators (rather than casing on specific CPU)
+  MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM0 );
+  MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM1 );
+#else
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
+#endif
+  
   MAP_SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
 #endif // EMULATE_PWM
 }
@@ -1405,7 +1462,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 {
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
-
+  
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 ) || defined( FORLM4F230 )
   GPIOPinConfigure( pwm_configs[ id ] );
 #endif
@@ -1435,10 +1492,10 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   // Compute period
   period = pwmclk / frequency;
   // Set the period
-  MAP_PWMGenConfigure( PWM_BASE, pwm_gens[ id >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
-  MAP_PWMGenPeriodSet( PWM_BASE, pwm_gens[ id >> 1 ], period );
+  MAP_PWMGenConfigure( pwm_base[id >> 3], pwm_gens[ id >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+  MAP_PWMGenPeriodSet( pwm_base[id >> 3], pwm_gens[ id >> 1 ], period );
   // Set duty cycle
-  MAP_PWMPulseWidthSet( PWM_BASE, pwm_outs[ id ], ( period * duty ) / 100 );
+  MAP_PWMPulseWidthSet( pwm_base[id >> 3], pwm_outs[ id ], ( period * duty ) / 100 );
   // Return actual frequency
 #endif // EMULATE_PWM
 
@@ -1448,11 +1505,11 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 void platform_pwm_start( unsigned id )
 {
 #ifdef EMULATE_PWM
-//FIXME: what does PWMOutputState do?
+//FIXME: what does PWMOutputState do?  - // Turn on the Output pins
     MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
 #else
-  MAP_PWMOutputState( PWM_BASE, 1 << id, true );
-  MAP_PWMGenEnable( PWM_BASE, pwm_gens[ id >> 1 ] );
+  MAP_PWMOutputState( pwm_base[id >> 3], 1 << id, true );      // Turn on the Output pins
+  MAP_PWMGenEnable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );  // Enable the PWM generator
 #endif // EMULATE_PWM
 }
 
@@ -1462,8 +1519,8 @@ void platform_pwm_stop( unsigned id )
 //FIXME: what does PWMOutputState do?
     MAP_TimerDisable(pwm_timer_base[id], TIMER_A);
 #else
-  MAP_PWMOutputState( PWM_BASE, 1 << id, false );
-  MAP_PWMGenDisable( PWM_BASE, pwm_gens[ id >> 1 ] );
+  MAP_PWMOutputState( pwm_base[id >> 3], 1 << id, false );      // Turn off the Output pin
+  MAP_PWMGenDisable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );
 #endif // EMULATE_PWM
 }
 
