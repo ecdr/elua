@@ -1295,6 +1295,11 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 //  const static u32 pwm_configs[] = { };
 
+  const static u32 pwm_configs[] = { GPIO_PB6_M0PWM0, GPIO_PB7_M0PWM1, GPIO_PB4_M0PWM2, GPIO_PB5_M0PWM3, 
+						GPIO_PE4_M0PWM4, GPIO_PE5_M0PWM5, GPIO_PC4_M0PWM6, GPIO_PC5_M0PWM7, 
+						GPIO_PD0_M1PWM0, GPIO_PD1_M1PWM1, GPIO_PA6_M1PWM2, GPIO_PA7_M1PWM3, 
+						GPIO_PF0_M1PWM4, GPIO_PF1_M1PWM5, GPIO_PF2_M1PWM6, GPIO_PF3_M1PWM7 };
+
 #elif defined( FORLM3S6918 )
   const static u32 pwm_ports[] = {};
   const static u8 pwm_pins[] = {};
@@ -1401,7 +1406,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
 
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 ) || defined( FORLM4F230 )
   GPIOPinConfigure( pwm_configs[ id ] );
 #endif
 
