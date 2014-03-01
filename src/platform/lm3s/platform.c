@@ -1287,8 +1287,8 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 // TODO: Way to chose alternative pins for PWMS (C6 vs D0, C7 vs D1, A6 vs E4, A7 vs E5)
 
-// M0, 8 PWMS PORTB:4-7, E:4-5, C:4-5 [or] D:0-1, fault on D:2 or D:6 or F:2
-// M1, 8 PWMS PORTD:0-1, A:6-7 [or] E:4-5, F:0-3, fault on F:4
+// Module0, 8 PWMS PORTB:4-7, E:4-5, C:4-5 [or] D:0-1, fault on D:2 or D:6 or F:2
+// Module1, 8 PWMS PORTD:0-1, A:6-7 [or] E:4-5, F:0-3, fault on F:4
 
   const static u32 pwm_ports[] = {  GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, 
 						GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE, 
@@ -1307,6 +1307,8 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 						GPIO_PF0_M1PWM4, GPIO_PF1_M1PWM5, GPIO_PF2_M1PWM6, GPIO_PF3_M1PWM7 };
 
 #elif defined( FORLM3S6918 )
+
+// TODO: So why is this here, why doesn't the 6918 just not build the PWM code?
   const static u32 pwm_ports[] = {};
   const static u8 pwm_pins[] = {};
 
@@ -1335,7 +1337,6 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 #endif
 */
 
-// PWM generators
 #if defined ( EMULATE_PWM )
 
 static BOOL pwm_enabled[NUM_PWM] = { FALSE };
@@ -1352,6 +1353,9 @@ const static u32 pwm_timer_sysctl[] = {
 
 #endif //EMULATE_PWM
 
+
+
+// PWM generators
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 
@@ -1475,16 +1479,16 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 //  if allow timer to be used as PWM or timer, then need to keep track of use
 //TODO: Maybe belong in general init 
   if (!pwm_enabled[id]){	// Initialize timer if not already set up
-	MAP_GPIOPinTypeTimer(pwm_ports[id], pwm_pins[id]); 
-	MAP_SysCtlPeripheralEnable(pwm_timer_base[id]);	
-	MAP_TimerConfigure(pwm_timer_base[id], TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_PWM);
+	MAP_GPIOPinTypeTimer( pwm_ports[id], pwm_pins[id] ); 
+	MAP_SysCtlPeripheralEnable( pwm_timer_base[id] );	
+	MAP_TimerConfigure( pwm_timer_base[id], TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_PWM );
 	pwm_enabled[id] = TRUE;
   }
 
   // Compute period
   period = pwmclk / frequency;
-  MAP_TimerLoadSet(pwm_timer_base[id], TIMER_A, period);
-  MAP_TimerMatchSet(pwm_timer_base[id], TIMER_A, ( period * duty ) / 100);
+  MAP_TimerLoadSet( pwm_timer_base[id], TIMER_A, period);
+  MAP_TimerMatchSet( pwm_timer_base[id], TIMER_A, ( period * duty ) / 100);
 #else
 
   // Set pin as PWM
@@ -1508,7 +1512,7 @@ void platform_pwm_start( unsigned id )
 //FIXME: what does PWMOutputState do?  - // Turn on the Output pins
     MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
 #else
-  MAP_PWMOutputState( pwm_base[id >> 3], 1 << id, true );      // Turn on the Output pins
+  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], true );      // Turn on the Output pin
   MAP_PWMGenEnable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );  // Enable the PWM generator
 #endif // EMULATE_PWM
 }
@@ -1519,7 +1523,7 @@ void platform_pwm_stop( unsigned id )
 //FIXME: what does PWMOutputState do?
     MAP_TimerDisable(pwm_timer_base[id], TIMER_A);
 #else
-  MAP_PWMOutputState( pwm_base[id >> 3], 1 << id, false );      // Turn off the Output pin
+  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], false );      // Turn off the Output pin
   MAP_PWMGenDisable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );
 #endif // EMULATE_PWM
 }
