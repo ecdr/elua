@@ -1287,7 +1287,7 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 //   so fewer cases for different CPUs 
 //   make easier to add a new CPU
 
-// TODO: Way to chose alternative pins for PWMS (PWM6 C4 vs D0, PWM7 C5 vs D1, PWM10 A6 vs E4, PWM11 A7 vs E5)
+// TODO: Maybe way to chose alternative pins for PWMS (PWM6 C4 vs D0, PWM7 C5 vs D1, PWM10 A6 vs E4, PWM11 A7 vs E5)
 // However - the alternate pins are also handled by other PWMs D0 is PWM8, etc., so may not need to handle map
 
 // Module0, 8 PWMS PORTB:4-7, E:4-5, C:4-5 [or] D:0-1, fault on D:2 or D:6 or F:2
@@ -1337,7 +1337,7 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 #if (NUM_PWM_MOD == 2)
   const static u32 pwm_base[] = { PWM0_BASE, PWM1_BASE };
-#warning 2 PWM Mod  
+#warning 2 PWM Mod
 #else
   const static u32 pwm_base[] = { PWM_BASE };
 #warning 1 PWM Mod
@@ -1393,9 +1393,10 @@ const static u32 pwm_timer_sysctl[] = {
 
 
 // PWM outputs
-#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
+#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92) || defined( FORLM4F230 ) 
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
 					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7};
+/*
 #elif defined( FORLM4F230 ) 
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
 					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7,
@@ -1403,7 +1404,9 @@ const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3,
 					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7
           };
 
-// TODO: Maybe simplify, since second module same PWM_OUTs as first
+// since second module same PWM_OUTs as first, 
+// Use array covering one module, and modulo in access code
+*/
 
 #else
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
@@ -1515,7 +1518,8 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   MAP_PWMGenConfigure( pwm_base[id >> 3], pwm_gens[ id >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
   MAP_PWMGenPeriodSet( pwm_base[id >> 3], pwm_gens[ id >> 1 ], period );
   // Set duty cycle
-  MAP_PWMPulseWidthSet( pwm_base[id >> 3], pwm_outs[ id ], ( period * duty ) / 100 );
+  MAP_PWMPulseWidthSet( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], ( period * duty ) / 100 );
+//  MAP_PWMPulseWidthSet( pwm_base[id >> 3], pwm_outs[ id ], ( period * duty ) / 100 );
   // Return actual frequency
 #endif // EMULATE_PWM
 
@@ -1528,7 +1532,8 @@ void platform_pwm_start( unsigned id )
 //FIXME: what does PWMOutputState do?  - // Turn on the Output pins
     MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
 #else
-  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], true );      // Turn on the Output pin
+  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], true );      // Turn on the Output pin
+//  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], true );      // Turn on the Output pin
   MAP_PWMGenEnable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );  // Enable the PWM generator
 #endif // EMULATE_PWM
 }
@@ -1539,7 +1544,8 @@ void platform_pwm_stop( unsigned id )
 //FIXME: what does PWMOutputState do?
     MAP_TimerDisable(pwm_timer_base[id], TIMER_A);
 #else
-  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], false );      // Turn off the Output pin
+  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], false );      // Turn off the Output pin
+//  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], false );      // Turn off the Output pin
   MAP_PWMGenDisable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );
 #endif // EMULATE_PWM
 }
