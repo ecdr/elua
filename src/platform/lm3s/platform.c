@@ -1235,6 +1235,23 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 #endif // EMULATE_PWM
 
 
+#if defined( EMULATE_PWM )
+
+static BOOL pwm_enabled[NUM_PWM] = { FALSE };
+
+#if defined( FORLM4F120 ) 
+const static u32 pwm_timer_base[] = { WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
+					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
+// FIXME: Remove wide timers from timer area if using them for PWMs
+
+const static u32 pwm_timer_sysctl[] = { 
+	SYSCTL_PERIPH_WTIMER0, SYSCTL_PERIPH_WTIMER1, SYSCTL_PERIPH_WTIMER2,
+	SYSCTL_PERIPH_WTIMER3, SYSCTL_PERIPH_WTIMER4, SYSCTL_PERIPH_WTIMER5 };
+#endif
+
+#endif //EMULATE_PWM
+
+
 
 // Port/pin information for all channels
 #if defined(FORLM3S1968)
@@ -1326,6 +1343,7 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 // Module has at most 8 PWM channels
 #define PWM_PER_MOD 8
+// TODO: Use this parameter instead of >> 3
 
 #if (PWM_PER_MOD * 2 < NUM_PWM)
 #error Need to extend support for more than 2 PWM modules
@@ -1351,25 +1369,9 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 */
 
 
-#if defined( EMULATE_PWM )
-
-static BOOL pwm_enabled[NUM_PWM] = { FALSE };
-
-#if defined( FORLM4F120 ) 
-const static u32 pwm_timer_base[] = { WTIMER0_BASE, WTIMER1_BASE, WTIMER2_BASE,
-					WTIMER3_BASE, WTIMER4_BASE, WTIMER5_BASE };
-// FIXME: Remove wide timers from timer area if using them for PWMs
-
-const static u32 pwm_timer_sysctl[] = { 
-	SYSCTL_PERIPH_WTIMER0, SYSCTL_PERIPH_WTIMER1, SYSCTL_PERIPH_WTIMER2,
-	SYSCTL_PERIPH_WTIMER3, SYSCTL_PERIPH_WTIMER4, SYSCTL_PERIPH_WTIMER5 };
-#endif
-
-#endif //EMULATE_PWM
-
-
-
 // PWM generators
+// Up to 4 generators per module
+
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 
@@ -1552,6 +1554,7 @@ void platform_pwm_stop( unsigned id )
 
 //#endif // BUILD_PWM
 #endif // NUM_PWM > 0
+
 
 // *****************************************************************************
 // ADC specific functions and variables
