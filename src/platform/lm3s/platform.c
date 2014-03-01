@@ -1220,6 +1220,8 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 #if ( NUM_PWM > 0 )
 // #ifdef BUILD_PWM
 
+
+// PWM Clock
 #ifdef EMULATE_PWM
 // TODO: Implement clock divisors (at moment just uses system clock)
 
@@ -1279,13 +1281,14 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 #elif defined( FORLM4F230 ) 
 
-// Has two PWM modules - PWM_BASE0, PWM_BASE1 each with 8 pins, 4 generators, 8 PWM_OUTs
+// Has two PWM modules - PWM_BASE0, PWM_BASE1 each with 4 generators, 8 pins, 8 PWM_OUTs
 // TODO: Parameterize better (number of modules, number pins/module, etc.)
 //   so get better error checking on various mappings,
 //   so fewer cases for different CPUs 
 //   make easier to add a new CPU
 
-// TODO: Way to chose alternative pins for PWMS (C6 vs D0, C7 vs D1, A6 vs E4, A7 vs E5)
+// TODO: Way to chose alternative pins for PWMS (PWM6 C4 vs D0, PWM7 C5 vs D1, PWM10 A6 vs E4, PWM11 A7 vs E5)
+// However - the alternate pins are also handled by other PWMs D0 is PWM8, etc., so may not need to handle map
 
 // Module0, 8 PWMS PORTB:4-7, E:4-5, C:4-5 [or] D:0-1, fault on D:2 or D:6 or F:2
 // Module1, 8 PWMS PORTD:0-1, A:6-7 [or] E:4-5, F:0-3, fault on F:4
@@ -1298,8 +1301,6 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 						GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_5,
 						GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_6, GPIO_PIN_7,
 						GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
-
-//  const static u32 pwm_configs[] = { };
 
   const static u32 pwm_configs[] = { GPIO_PB6_M0PWM0, GPIO_PB7_M0PWM1, GPIO_PB4_M0PWM2, GPIO_PB5_M0PWM3, 
 						GPIO_PE4_M0PWM4, GPIO_PE5_M0PWM5, GPIO_PC4_M0PWM6, GPIO_PC5_M0PWM7, 
@@ -1314,7 +1315,6 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 #else
 
-
   const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, 
 						GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
   const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
@@ -1324,10 +1324,23 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 
 // PWM modules
 
-#if defined( FORLM4F230 )
+// Module has at most 8 PWM channels
+#define PWM_PER_MOD 8
+
+#if (PWM_PER_MOD * 2 < NUM_PWM)
+#error Need to extend support for more than 2 PWM modules
+#elif (PWM_PER_MOD < NUM_PWM)
+#define NUM_PWM_MOD 2
+#else
+#define NUM_PWM_MOD 1
+#endif
+
+#if (NUM_PWM_MOD == 2)
   const static u32 pwm_base[] = { PWM0_BASE, PWM1_BASE };
+#warning 2 PWM Mod  
 #else
   const static u32 pwm_base[] = { PWM_BASE };
+#warning 1 PWM Mod
 #endif
 
 // FIXME: Range checks to be sure arrays filled in - need to fix syntax
@@ -1337,7 +1350,8 @@ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
 #endif
 */
 
-#if defined ( EMULATE_PWM )
+
+#if defined( EMULATE_PWM )
 
 static BOOL pwm_enabled[NUM_PWM] = { FALSE };
 
@@ -1363,9 +1377,8 @@ const static u32 pwm_timer_sysctl[] = {
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3,
     PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 
-// TODO: Check to confirm that second PWM module uses same PWM_GEN as first
-    //PWM_GEN_2 Covers M1PWM4 and M1PWM5
-    //PWM_GEN_3 Covers M1PWM6 and M1PWM7 See page 207 4/11/13 DriverLib doc
+    //MODULE1 PWM_GEN_2 Covers M1PWM4 and M1PWM5
+    //MODULE1 PWM_GEN_3 Covers M1PWM6 and M1PWM7 See page 207 4/11/13 DriverLib doc
     
 #else 
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
@@ -1378,6 +1391,7 @@ const static u32 pwm_timer_sysctl[] = {
 //  assert( id >> 1 < sizeof(pwm_gens)/ sizeof( u16 ));
 */
 
+
 // PWM outputs
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
@@ -1389,17 +1403,18 @@ const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3,
 					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7
           };
 
-// TODO: Check PWM_OUTs - think second module uses same set as first
-          
+// TODO: Maybe simplify, since second module same PWM_OUTs as first
+
 #else
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
 #endif
 
 /*
-#if sizeof(pwm_outs)/sizeof(u16) < NUM_PWM
+#if (sizeof(pwm_outs)/sizeof(u16) < NUM_PWM)
 #error Not enough pwm_outs
 #endif
 */
+
 
 // TODO: What do these do on a system with no PWMs?
 static void pwms_init()
@@ -1411,13 +1426,14 @@ static void pwms_init()
 
 #else
 
-#if defined( FORLM4F230 ) 
-// TODO: Generalize/parameterize with number of PWM generators (rather than casing on specific CPU)
+#if (NUM_PWM_MOD == 2)
+// TODO: Generalize to more than 2 PWM modules
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM0 );
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM1 );
+
 #else
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
-#endif
+#endif // NUM_PWM_MOD
   
   MAP_SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
 #endif // EMULATE_PWM
