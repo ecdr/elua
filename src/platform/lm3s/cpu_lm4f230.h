@@ -20,7 +20,7 @@
 #define NUM_CAN               1	// Max is 2
 
 #define NUM_COMP			2	// ToDo: Not written yet
-#define NUM_QEI			2	// ToDo: Not written yet
+#define NUM_QEI			  2	// ToDo: Not written yet
 // QEI0 PHA = PD6, PHB = PD7, IDX = PD3 (or PF0, PF1, PF4 )
 // QEI1 PHA = PC5, PHB = PC6, IDX = PC4
 
@@ -31,21 +31,6 @@
   #define NUM_I2C             2
 #endif
 #endif // BUILD_I2C */
-
-
-// ToDo: ADC needs work on pinmux code
-
-// ToDo: Add simulated PWMs for LM4F
-
-// ToDo: LM4F has CAN, but disabled until get other things working
-
-// ToDo: working on EEPROM - eLua code, platform code
-
-// ToDo: working on I2C - need platform code
-
-// ToDo: working on comparators - need eLua code, need platform code
-
-// ToDo: Maybe build USB CDC for LM4F120?  (but probably not enough RAM)  (see SOLDERCORE)
 
 
 /*
@@ -119,15 +104,10 @@
 */
 
 
-//TODO: Using wide timers for PWM on LM4F
-// #define EMULATE_PWM
-
 #define ADC_BIT_RESOLUTION    12
 
 // TODO: ADC should be adjusted to support multiple ADC devices
 
-
-// FixMe: CAN - Maximum is 1 (but are devices with multiple CANs)
 
 // CAN - LM4F120 can use port B, E, or F
 #define CAN_PORT	B
@@ -214,5 +194,3 @@
 
 
 #endif // #ifndef __CPU_LM4F230_H__
-
-
