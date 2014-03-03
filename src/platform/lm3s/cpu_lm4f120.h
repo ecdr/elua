@@ -1,4 +1,5 @@
 // LM4F120 CPU definition
+// Same as the TM4C1233H6PM
 
 #ifndef __CPU_LM4F120_H__
 #define __CPU_LM4F120_H__
@@ -15,10 +16,10 @@
 #define NUM_UART              4	// Max is 8
 #define NUM_TIMER             6	// Max is 12
 #define NUM_PWM               0	// ToDo: Simulate with timers
-#define NUM_I2C			4	// ToDo: Not written yet for lm3
+#define NUM_I2C			  4	// ToDo: Not written yet for lm3
 #define NUM_COMP			2	// ToDo: Not written yet
 #define NUM_ADC               13	// Actually 12 channels, temperature sensor is last channel
-#define NUM_CAN               1	// Max is 1
+#define NUM_CAN               1
 
 #define FORLM4F				// Common defines for LM4F
 
@@ -32,8 +33,6 @@
 // ToDo: ADC needs work on pinmux code
 
 // ToDo: Add simulated PWMs for LM4F
-
-// ToDo: LM4F has CAN, but disabled until get other things working
 
 // ToDo: working on EEPROM - eLua code, platform code
 
@@ -122,8 +121,6 @@
 
 // TODO: ADC should be adjusted to support multiple ADC devices
 
-
-// FixMe: CAN - Maximum is 1 (but are devices with multiple CANs)
 
 // CAN - LM4F120 can use port B, E, or F
 #define CAN_PORT	B

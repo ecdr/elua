@@ -1,5 +1,6 @@
--- EK-LM4F120 build configuration
+-- EK-LM4F120 build configuration - Stellaris launchpad
 
+-- CPU same as the TM4C1233H6PM
 return {
   cpu = 'lm4f120',
   components = {
