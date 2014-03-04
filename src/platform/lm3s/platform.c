@@ -1560,9 +1560,9 @@ void platform_pwm_start( unsigned id )
 //FIXME: what does PWMOutputState do?  - // Turn on the Output pins
     MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
 #else
+  MAP_PWMGenEnable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );  // Enable the PWM generator
   MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], true );      // Turn on the Output pin
 //  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], true );      // Turn on the Output pin
-  MAP_PWMGenEnable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );  // Enable the PWM generator
 #endif // EMULATE_PWM
 }
 
