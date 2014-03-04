@@ -1431,6 +1431,8 @@ static void pwms_init()
 
 #else
 
+  unsigned i;
+
 #if (NUM_PWM_MOD == 2)
 // TODO: Generalize to more than 2 PWM modules
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM0 );
@@ -1441,6 +1443,30 @@ static void pwms_init()
 #endif // NUM_PWM_MOD
   
   MAP_SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
+
+  for ( i = 0; i < NUM_PWM; i++)
+    MAP_PWMGenConfigure( pwm_base[i >> 3], pwm_gens[ i >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+// PWMGenConfigure was in platform_pwm_setup, and it seemed to work on EK-LM3S8962
+// However the Stellarisware documentation says that it leaves the generator disabled.
+// The Stellarisware code does not appear to disable the generator (version 9453)
+// However processor may be using ROM code.
+// Having problems running on the Tiva launchpad.
+// TODO: Check Tiva LP to see if running a start after configure fixes the problem (or moving configure out of platform_pwm_setup).
+
+// FIXME: eLua documentation does not specify what (if any) effect platform_pwm_setup should have on the start/stoped status of the PWM.
+// The example code seems to assume that platform_pwm_setup will not stop the generator.
+
+// FIXME: Documentation says that this leaves the generator disabled.  So would have to call start after each time change period.
+//   That is not how the example program works.  
+// However, I thought this code and the example worked on the EK-LM3S8962
+//
+// Although the documentation says that this leaves the PWM disabled, I do not see in the library code where that is the case.
+//   However - since may be using the library in ROM, the code it is running may not be the code in the library source.
+//     (i.e. they may have fixed the Tivaware code to match documentation)
+//
+// Check eLua documentation (what is it supposed to do) - unspecified.  
+// Check how functions work on other platforms - on AVR32 and LPC17xx it looks like platform_pwm_setup does not stop the PWM.
+  
 #endif // EMULATE_PWM
 }
 
@@ -1517,7 +1543,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   // Compute period
   period = pwmclk / frequency;
   // Set the period
-  MAP_PWMGenConfigure( pwm_base[id >> 3], pwm_gens[ id >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+
   MAP_PWMGenPeriodSet( pwm_base[id >> 3], pwm_gens[ id >> 1 ], period );
   // Set duty cycle
   MAP_PWMPulseWidthSet( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], ( period * duty ) / 100 );

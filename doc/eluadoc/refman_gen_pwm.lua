@@ -16,7 +16,7 @@ data_en =
   funcs = 
   {
     { sig = "frequency = #pwm.setup#( id, frequency, duty )",
-      desc = "Setup the PWM modules.",
+      desc = "Setup the PWM module.  Does not change whether the PWM module is started or stopped.",
       args = 
       {
         "$id$ - the ID of the PWM module.",
