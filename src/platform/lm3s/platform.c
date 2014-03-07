@@ -1372,19 +1372,29 @@ const static u32 pwm_timer_sysctl[] = {
 // PWM generators
 // Up to 4 generators per module
 
-#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
+#if (4 == NUM_PWM_GEN)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
 
-#elif defined( FORLM4F230 )
+#elif (8 == NUM_PWM_GEN)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3,
     PWM_GEN_0, PWM_GEN_1, PWM_GEN_2, PWM_GEN_3 };
-
     //MODULE1 PWM_GEN_2 Covers M1PWM4 and M1PWM5
     //MODULE1 PWM_GEN_3 Covers M1PWM6 and M1PWM7 See page 207 4/11/13 DriverLib doc
-    
-#else 
+
+  // TODO: Since 5 through 8 are repeats, could use modulo on array index instead
+
+#elif (3 == NUM_PWM_GEN)
   const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
+
+#elif defined(EMULATE_PWM)
+// Don't need NUM_PWM_GEN if emulating PWM
+
+#else
+
+#error NUM_PWM_GEN not defined
+
 #endif
+
 
 /*
 #if (sizeof(pwm_gens)/sizeof(u16) < (NUM_PWM/2))

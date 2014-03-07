@@ -33,6 +33,8 @@
 // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
 #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 4, 4, 2 }
 
+#define NUM_PWM_GEN   3
+
 // Internal Flash data
 #define INTERNAL_FLASH_SIZE             ( 256 * 1024 )
 #define INTERNAL_FLASH_WRITE_UNIT_SIZE  4

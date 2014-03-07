@@ -130,6 +130,7 @@
 //#error NUM PIO not match PIO PIN_ARRAY 
 //#endif
 
+#define NUM_PWM_GEN   8
 
 
 // Internal Flash data
