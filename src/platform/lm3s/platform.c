@@ -1215,6 +1215,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
 // PWMs
 // Similar on LM3S8962 and LM3S6965
 // LM3S6918 has no PWM
+// LM4F230 has 2 PWM modules, each with 4 generators, 8 pins, 8 PWM_OUTs
 
 
 #if ( NUM_PWM > 0 )
@@ -1405,7 +1406,8 @@ const static u32 pwm_timer_sysctl[] = {
 
 
 // PWM outputs
-#if defined( FORLM3S9B92 ) || defined(FORLM3S9D92) || defined( FORLM4F230 ) 
+#ifndef EMULATE_PWM
+#if (NUM_PWM > 6)
 const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, 
 					PWM_OUT_4, PWM_OUT_5, PWM_OUT_6, PWM_OUT_7};
 /*
@@ -1429,6 +1431,8 @@ const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_
 #error Not enough pwm_outs
 #endif
 */
+
+#endif // EMULATE_PWM
 
 
 // TODO: What do these do on a system with no PWMs?
