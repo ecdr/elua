@@ -1,5 +1,5 @@
--- EK-TM4C123 build configuration
--- CPU same as lm4f230h5qr
+-- EK-TM4C123G build configuration
+-- CPU lm4f230h5qr same as TM4C123GH6PM
 
 -- Should make it inherit from lm4F120 but not sure how to handle macros 
 -- local t = dofile( "boards/known/ek-lm4f120.lua" )
@@ -9,7 +9,7 @@
 -- return t
 
 return {
-  cpu = 'lm4f230',	-- Fixme: CPU 'tm4c123' or 'lm4f230'
+  cpu = 'lm4f230',
   components = {
     sercon = { uart = 0, speed = 115200 },
     wofs = true,
@@ -28,11 +28,11 @@ return {
   },
   modules = {
     generic = { 'all', '-i2c', '-net' },
-	-- ToDo: PWM needs support for built-in PWM
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
     platform = 'all'
   },
-  macros = { { "PART_LM4F230H5QR", "" },	-- Needed for PIN_MAP.
+  macros = { { "PART_LM4F230H5QR", "" },	-- Needed for Stellarisware PIN_MAP.
+--    { "PART_TM4C123GH6PM", "" },	-- Needed for Tivaware PIN_MAP.
 		 { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
  },
   build = {
@@ -40,7 +40,7 @@ return {
   }
 }
 
--- ToDo: Need to add cpu to platform code (CAN ports, PWMs)
 -- ToDo: 2 CAN
 -- ToDo: 2 PWM (16 channels)
+	-- ToDo: PWM needs support for built-in PWM
 -- ToDo: QEI
