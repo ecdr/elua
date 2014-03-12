@@ -1,6 +1,6 @@
 -- EK-LM4F120 build configuration - Stellaris launchpad
-
 -- CPU same as the TM4C1233H6PM
+
 return {
   cpu = 'lm4f120',
   components = {
@@ -32,7 +32,8 @@ return {
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
     platform = {'all', '-pwm', '-mmc'},
   },
-  macros = { { "PART_LM4F120H5QR", "" },	-- Needed for PIN_MAP.
+  macros = { { "PART_LM4F120H5QR", "" },	-- Needed for Stellarisware PIN_MAP.
+-- { "PART_TM4C1233H6PM", "" },	-- Needed for Tivaware PIN_MAP.  
 		 { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
   },
   build = {
