@@ -246,8 +246,16 @@ void (* const g_pfnVectors[])(void) =
 #else
     IntDefaultHandler,
 #endif
+#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
+    uart6_handler,                          // UART6 Rx and Tx
+#else
     IntDefaultHandler,                      // UART6 Rx and Tx
+#endif
+#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
+    uart7_handler,                          // UART7 Rx and Tx
+#else
     IntDefaultHandler,                      // UART7 Rx and Tx
+#endif
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved

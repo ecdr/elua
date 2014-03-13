@@ -110,14 +110,15 @@ void uart5_handler()
   uart_common_rx_handler( 5 );
 }
 
+// Swap UART6 and UART7 (since UART6 uses same pins as USB, don't want to use it if using USB)
 void uart6_handler()
 {
-  uart_common_rx_handler( 6 );
+  uart_common_rx_handler( 7 );
 }
 
 void uart7_handler()
 {
-  uart_common_rx_handler( 7 );
+  uart_common_rx_handler( 6 );
 }
 
 #endif
