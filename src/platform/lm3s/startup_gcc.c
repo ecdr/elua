@@ -424,6 +424,10 @@ ResetISR(void)
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
 
+// FIXME: Use console UART for error indicators
+// Instead of UART0_BASE, should use uart_base[CON_UART_ID]
+// Still would not be right for USB_CDC
+
 //*****************************************************************************
 //
 // This is the code that gets called when the processor receives a NMI.  This
@@ -434,6 +438,9 @@ ResetISR(void)
 static void
 NmiSR(void)
 {
+    UARTCharPut( UART0_BASE, 'N' );
+    UARTCharPut( UART0_BASE, 'M' );
+    UARTCharPut( UART0_BASE, 'I' );
     //
     // Enter an infinite loop.
     //
@@ -456,11 +463,11 @@ FaultISR(void)
     //
     // Enter an infinite loop.
     //
-   UARTCharPut( UART0_BASE, '#' );
-   UARTCharPut( UART0_BASE, '#' );
-   UARTCharPut( UART0_BASE, '#' );
-   UARTCharPut( UART0_BASE, '#' );
-   UARTCharPut( UART0_BASE, '#' );
+   UARTCharPut( UART0_BASE, 'F' );
+   UARTCharPut( UART0_BASE, 'a' );
+   UARTCharPut( UART0_BASE, 'u' );
+   UARTCharPut( UART0_BASE, 'l' );
+   UARTCharPut( UART0_BASE, 't' );
    while(1)
    {
    }
@@ -476,6 +483,9 @@ FaultISR(void)
 static void
 IntDefaultHandler(void)
 {
+  UARTCharPut( UART0_BASE, 'I' );
+  UARTCharPut( UART0_BASE, 'n' );
+  UARTCharPut( UART0_BASE, 't' );
     //
     // Go into an infinite loop.
     //
