@@ -782,8 +782,8 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   //FIXME: Pin mux - may not need for all parts
 
 #ifdef USE_PIN_MUX
-  GPIOPinConfigure(i2c_scl_pin[ id ]);
-  GPIOPinConfigure(i2c_sda_pin[ id ]);
+  MAP_GPIOPinConfigure(i2c_scl_pin[ id ]);
+  MAP_GPIOPinConfigure(i2c_sda_pin[ id ]);
 #endif
 
   MAP_GPIOPinTypeI2C( i2c_gpio_base [ id ], i2c_gpio_pins[ id ] );
@@ -797,11 +797,11 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
 // Address is 0..127, direction - from enum, return is boolean
 int platform_i2c_send_address( unsigned id, u16 address, int direction )
 {
-	BOOL bReceive = (direction == PLATFORM_I2C_DIRECTION_RECEIVER);
+	tBoolean bReceive = (direction == PLATFORM_I2C_DIRECTION_RECEIVER);
 
   MAP_I2CMasterSlaveAddrSet( i2c_base[id], address, receive	);
 
-  if (bReceive) I2CMasterControl(i2c_base[id], I2C_MASTER_CMD_SINGLE_RECEIVE);
+  if (bReceive) MAP_I2CMasterControl(i2c_base[id], I2C_MASTER_CMD_SINGLE_RECEIVE);
   // Dummy receive so don't get junk on first read
 
   // FIXME: Not finished - needs to return boolean
@@ -847,7 +847,7 @@ void platform_i2c_send_stop( unsigned id )
 
 int platform_i2c_recv_byte( unsigned id, int ack )
 {
-    I2CMasterControl( i2c_base[id], I2C_MASTER_CMD_SINGLE_RECEIVE);
+  MAP_I2CMasterControl( i2c_base[id], I2C_MASTER_CMD_SINGLE_RECEIVE);
 
 	return MAP_I2CMasterDataGet( i2c_base[id] );
 	// FIXME: this doesn't check for errors, doesn't use ack
@@ -897,7 +897,6 @@ static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_
 	GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_4 | GPIO_PIN_5, 
 	GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_4 | GPIO_PIN_5 };
 
-// Not really sure what this does, or if filled it in right
 // Looks like this is really 2 fields per UUART (should be in a struct) with GPIO_PORTs and PINs
 static const u32 uart_gpiofunc[] = {
 	GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PB0_U1RX, GPIO_PB1_U1TX,
@@ -905,7 +904,7 @@ static const u32 uart_gpiofunc[] = {
 	GPIO_PC4_U4RX, GPIO_PC5_U4TX, GPIO_PE4_U5RX, GPIO_PE5_U5TX,
 	GPIO_PE0_U7RX, GPIO_PE1_U7TX, GPIO_PD4_U6RX, GPIO_PD5_U6TX };
 
-#else
+#else // FORLM4F
 
 // All possible LM3S uart defs
 const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
@@ -922,7 +921,7 @@ static const u32 uart_gpiofunc[] = { 0, 0, 0, 0, 0, 0 };
 static const u32 uart_gpiofunc[] = { GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PD2_U1RX, GPIO_PD3_U1TX, GPIO_PG0_U2RX, GPIO_PG1_U2TX };
 #endif
 
-#endif
+#endif // FORLM4F
 
 static void uarts_init()
 {
@@ -1301,8 +1300,8 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
 
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F120 )
-  GPIOPinConfigure( pwm_configs[ id ] );
+#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F )
+  MAP_GPIOPinConfigure( pwm_configs[ id ] );
 #endif
 
 #ifdef EMULATE_PWM
@@ -1387,7 +1386,7 @@ void platform_pwm_stop( unsigned id )
                                   ADC_CTL_CH8, ADC_CTL_CH9, ADC_CTL_CH10, ADC_CTL_CH11,
                                   ADC_CTL_CH12, ADC_CTL_CH13, ADC_CTL_CH14, ADC_CTL_CH15 };
 
-  #define ADC_PIN_CONFIG
+#define ADC_PIN_CONFIG
 #elif defined( FORLM4F )
 
 // 11 Pins - AIN0 .. AIN 11
@@ -1401,7 +1400,7 @@ void platform_pwm_stop( unsigned id )
                                     GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_4, GPIO_PIN_5, };
 
 // Do pin maping
-  #define ADC_PIN_CONFIG
+#define ADC_PIN_CONFIG
 
 
   const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3,
@@ -1769,8 +1768,8 @@ static void eth_init()
   MAP_SysCtlPeripheralReset( SYSCTL_PERIPH_ETH );
 
 #if defined( FORLM3S9B92 ) || defined(FORLM3S9D92)
-  GPIOPinConfigure(GPIO_PF2_LED1);
-  GPIOPinConfigure(GPIO_PF3_LED0);
+  MAP_GPIOPinConfigure(GPIO_PF2_LED1);
+  MAP_GPIOPinConfigure(GPIO_PF3_LED0);
 #endif
 
   // Enable Ethernet LEDs
@@ -1893,8 +1892,8 @@ void EthernetIntHandler()
   u32 temp;
 
   // Read and Clear the interrupt.
-  temp = EthernetIntStatus( ETH_BASE, false );
-  EthernetIntClear( ETH_BASE, temp );
+  temp = MAP_EthernetIntStatus( ETH_BASE, false );
+  MAP_EthernetIntClear( ETH_BASE, temp );
 
   // Call the UIP main loop
   elua_uip_mainloop();
@@ -2116,7 +2115,7 @@ u32 platform_s_flash_write( const void *from, u32 toaddr, u32 size )
 
 int platform_flash_erase_sector( u32 sector_id )
 {
-  return FlashErase( sector_id * INTERNAL_FLASH_SECTOR_SIZE ) == 0 ? PLATFORM_OK : PLATFORM_ERR;
+  return MAP_FlashErase( sector_id * INTERNAL_FLASH_SECTOR_SIZE ) == 0 ? PLATFORM_OK : PLATFORM_ERR;
 }
 #endif // #ifdef BUILD_WOFS
 
