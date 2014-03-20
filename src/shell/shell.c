@@ -356,6 +356,11 @@ const SHELL_COMMAND* shellh_execute_command( char* cmd, int interactive_mode )
   return pcmd;
 }
 
+#ifdef SHELL_SHOW_INFO 
+extern char flash_used_size[];  // Exported by linker, see common.c
+#endif
+
+
 // Execute the eLua "shell" in an infinite loop
 void shell_start( void )
 {
@@ -365,7 +370,62 @@ void shell_start( void )
   int i;
 #endif
 
+#ifdef SHELL_SHOW_INFO 
+// FIXME: This was from SAM, need to make portable
+//  u32 mstart[] = MEM_START_ADDRESS; // see common.c
+#endif
+
   printf( SHELL_WELCOMEMSG, ELUA_STR_VERSION );
+#ifdef SHELL_SHOW_INFO
+// Show additional information about the eLua build, board, etc.
+
+// FIXME: Get the macros to substitute in string
+  printf( "Board: %s, platform: %s\n", "##ELUA_BOARD##", "ELUA_PLATFORM" );
+
+//#define PLATFORM_MSG_PWM "PWM, "
+//#define PLATFORM_MSG_CAN "CAN(ni), "
+
+// TODO: Add information about modules (if included, testing status, etc.)
+
+#ifdef PLATFORM_MSG_ADC
+#endif
+#ifdef PLATFORM_MSG_TMR
+#endif
+#ifdef PLATFORM_MSG_LUAINTS
+#endif
+#ifdef PLATFORM_MSG_PWM
+  printf(PLATFORM_MSG_PWM);
+#endif
+#ifdef PLATFORM_MSG_CAN
+#endif
+#ifdef PLATFORM_MSG_USB_CDC
+#endif
+#ifdef PLATFORM_MSG_I2C
+#endif
+#ifdef PLATFORM_MSG_SPI
+#endif
+#ifdef PLATFORM_MSG_NET
+#endif
+#ifdef PLATFORM_MSG_WOFS
+#endif
+#ifdef PLATFORM_MSG_MMCFS
+#endif
+#ifdef PLATFORM_MSG_PLATFORM_MODULES
+#endif
+
+// TODO: Consider other status, like number of Vtimers
+
+// FIXME: Substitute macro in string
+  printf( "CPU: %s, speed: %ld\n", "ELUA_CPU", CPU_FREQUENCY);
+
+//  printf( "Free mem: %ld flash, %ld RAM\n",  INTERNAL_FLASH_SIZE - (u32) flash_used_size, 
+//    INTERNAL_RAM1_LAST_FREE - (u32) mstart);
+#ifdef PLATFORM_SHELL_INFO
+  platform_show_startup();    // Show platform specific configuration/startup message
+#endif //PLATFORM_SHELL_INFO
+
+#endif //SHELL_SHOW_INFO
+
   while( 1 )
   {
     while( linenoise_getline( LINENOISE_ID_SHELL, cmd, SHELL_MAXSIZE - 1, SHELL_PROMPT ) == -1 )

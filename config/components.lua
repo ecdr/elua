@@ -99,6 +99,9 @@ function init()
   components.shell = { macro = 'BUILD_SHELL' }
   -- Advanced shell
   components.advanced_shell = { macro = 'BUILD_ADVANCED_SHELL', autoenable = 'shell' }
+  -- Shell information
+  -- TODO: Should make shellinfo an optional attribute of shell
+  components.shellinfo = { macro = 'SHELL_SHOW_INFO', needs = 'shell' }
   -- Term
   components.term = {
     macro = 'BUILD_TERM',
