@@ -2257,6 +2257,7 @@ LUALIB_API int luaopen_platform( lua_State *L )
 */
 
 
+// ****************************************************************************
 // Assertion failure error handler
 // TODO: Give feedback on console, and place for breakpoint for debugging
 
@@ -2267,3 +2268,16 @@ __error__(char *pcFilename, unsigned long ulLine)
 }
 #endif
 
+// ****************************************************************************
+// Shell information
+
+#ifdef PLATFORM_SHELL_INFO
+void platform_show_startup(void)
+{
+  unsigned int did0 = SYSCTL_DID0_R;
+  unsigned int did1 = SYSCTL_DID1_R;
+
+  printf("DID0: %x: revision: %c%x\n", did0, 'A'+((did0 & SYSCTL_DID0_MAJ_M)>>8), (did0 & SYSCTL_DID0_MIN_M) );
+  printf("DID1: %x: part: %x family: %x\n", did1, 'A'+((did1 & SYSCTL_DID1_PRTNO_M)>> 16), (did1 & SYSCTL_DID1_FAM_M) );
+}
+#endif

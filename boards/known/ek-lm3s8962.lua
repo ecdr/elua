@@ -7,6 +7,7 @@ return {
     wofs = true,
     romfs = true,
     shell = true,
+    shellinfo = true,
     term = { lines = 25, cols = 80 },
     cints = true,
     lm3s_disp = true,
@@ -21,6 +22,9 @@ return {
   },
   config = {
     vtmr = { num = 4, freq = 4 },
+  },
+  macros = { { "PLATFORM_SHELL_INFO", "" },
+  --{ "SHELL_SHOW_INFO", "" }, 
   },
   modules = {
     generic = { 'all', '-i2c' },
