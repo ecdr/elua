@@ -134,10 +134,7 @@ static void gpio_common_handler( int port )
   u32 iev = HWREG( base + GPIO_O_IEV );
 
   // Check each pin in turn
-// FIXME: pin should probably run up to number of pins on port, rather than 8 (see wherever PIO_PIN_ARRAY is used)
-//   (Assuming that the pins are assigned from low to high, if not then ...)
-//   Or - why not use PINS_PER_PORT instead of assuming 8
-  for( pin = 0, pinmask = 1; pin < 8; pin ++, pinmask <<= 1 )
+  for( pin = 0, pinmask = 1; pin < platform_pio_get_num_pins( port ); pin ++, pinmask <<= 1 )
     if( HWREG( base + GPIO_O_MIS ) & pinmask ) // interrupt on pin
     {
       if( MAP_GPIOPinRead( base, pinmask ) && ( ( ibe & pinmask ) || ( iev & pinmask ) ) ) // high level and posedge interrupt enabled 
