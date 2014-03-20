@@ -331,6 +331,18 @@ void platform_adc_set_timer( unsigned id, u32 timer )
 #endif // #ifdef BUILD_ADC
 
 // ****************************************************************************
+// COMP functions
+
+int platform_comp_exists( unsigned id )
+{
+#if defined( NUM_COMP )
+  return id < NUM_COMP;
+#else
+  return 0;
+#endif
+}
+
+// ****************************************************************************
 // Allocator support
 
 #define MIN_ALIGN         8

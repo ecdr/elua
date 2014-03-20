@@ -278,6 +278,34 @@ void platform_adc_set_freerunning( unsigned id, u32 mode );
 u32  platform_adc_is_done( unsigned id );
 void platform_adc_set_timer( unsigned id, u32 timer );
 
+
+// *****************************************************************************
+// The platform COMP functions
+
+// Comparator options - bitfield
+enum
+{
+  PLATFORM_COMP_INVERT = 1,
+  PLATFORM_COMP_OUT = 2,
+  PLATFORM_COMP_REF_INTERNAL = 4,
+  PLATFORM_COMP_REF_PIN0 = 8,
+  PLATFORM_COMP_INT_RISE = 16,
+  PLATFORM_COMP_INT_FALL = 32,
+  PLATFORM_COMP_INT_HIGH = 64,
+  PLATFORM_COMP_INT_LOW = 128
+};
+
+// Functions requiring platform-specific implementation
+int platform_comp_setup(unsigned id);
+int platform_comp_stop(unsigned id);
+unsigned platform_comp_ref_set(unsigned id, unsigned vref);
+unsigned platform_comp_ref_get(unsigned id);
+int platform_comp_value_get( unsigned id );
+
+// COMP Common Functions
+int  platform_comp_exists( unsigned id );
+
+
 // *****************************************************************************
 // I2C platform interface
 
