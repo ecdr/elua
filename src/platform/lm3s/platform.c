@@ -41,7 +41,7 @@
 #include "driverlib/ethernet.h"
 #include "driverlib/systick.h"
 #include "driverlib/flash.h"
-#include "driverlib/interrupt.h"
+//#include "driverlib/interrupt.h"    // Duplicate
 #include "elua_net.h"
 #include "dhcpc.h"
 #include "buf.h"
@@ -587,11 +587,26 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 //  Port D, uses same pins as SSI3
 //  Port F, uses pins connected to buttons and LED
 
-#ifdef FORLM4F
+#if defined( FORLM4F )
+
+// TM4C 4 SPI ports
+
 static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE, SSI2_BASE, SSI3_BASE };
 static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1, 
                                   SYSCTL_PERIPH_SSI2, SYSCTL_PERIPH_SSI3};
 
+#else // defined( FORLM4F )
+
+// Same configuration on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (2 SPI ports)
+// All possible LM3S SPIs defs
+
+static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE };
+static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
+
+#endif // defined( FORLM4F )
+
+
+#if defined( FORLM4F )
 // PIN information from LM4F120H5QR Datasheet
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, 
                                      GPIO_PORTB_BASE, GPIO_PORTD_BASE };
@@ -604,18 +619,10 @@ static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_
 static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
 static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_2, GPIO_PIN_4, GPIO_PIN_0};
 
-#else
-
-// Same configuration on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (2 SPI ports)
-// All possible LM3S SPIs defs
-
-// FIXME this anticipates support for a platform with 2 SPI port
+#elif defined( ELUA_BOARD_SOLDERCORE )
 
 //  PIN info extracted from LM3S6950 and 5769 datasheets
-static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE };
-static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
 
-#if defined( ELUA_BOARD_SOLDERCORE )
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE };
 static const u8 spi_gpio_pins[] = {  GPIO_PIN_4 | GPIO_PIN_5,
                                      GPIO_PIN_4 | GPIO_PIN_5 };
@@ -630,8 +637,11 @@ static const u8 spi_gpio_pins[] = { GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
 //                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
 static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE };
 static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
-#endif
-#endif
+
+#endif // defined( ELUA_BOARD_SOLDERCORE )
+
+
+#warning Think there is an error here in array names ssi_pin_rx vs ssi_rx_pin - track it back
 
 
 #if defined( ELUA_BOARD_SOLDERCORE )
@@ -786,7 +796,7 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   MAP_GPIOPinConfigure(i2c_sda_pin[ id ]);
 #endif
 
-  MAP_GPIOPinTypeI2C( i2c_gpio_base [ id ], i2c_gpio_pins[ id ] );
+  MAP_GPIOPinTypeI2C( i2c_gpio_base[ id ], i2c_gpio_pins[ id ] );
 
   MAP_I2CMasterInitExpClk( i2c_base[id], MAP_SysCtlClockGet(),  
                     speed == PLATFORM_I2C_SPEED_SLOW);
@@ -1613,47 +1623,67 @@ int platform_adc_start_sequence()
 
 #ifdef BUILD_COMP
 
+#ifdef FORLM4F
+
 // LM4F120 - 2 comparators
 // C0, positive input PC6, negative input, PC7, output PF0
 // C1, positive input PC5, negative input, PC4, output PF1
 
-#ifdef FORLM4F
-
-const static u32 comp_in_ports[] =  { GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE, GPIO_PORTC_BASE };
-const static u8 comp_in_pins[] =    { GPIO_PIN_6, GPIO_PIN_7, GPIO_PIN_5, GPIO_PIN_4 };
+const static u32 comp_in_ports[] =  { GPIO_PORTC_BASE, GPIO_PORTC_BASE };
+const static u8 comp_in_pins[] =    { GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_5 | GPIO_PIN_4 };
 
 // FIXME: Need special handling to reprogram Port F0, also note F1 is chanel of LED
-const static u32 comp_out_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTF_BASE };
-const static u8 comp_out_pins[] =    { GPIO_PIN_0, GPIO_PIN_1 };
+const static u32 comp_out_ports[] = { GPIO_PORTF_BASE, GPIO_PORTF_BASE };
+const static u8 comp_out_pins[] =   { GPIO_PIN_0, GPIO_PIN_1 };
 
+// FIXME: Where are the definitions for input pin configuration?
+// static const u32 comp_pin_in[] =    { };
+static const u32 comp_pin_out[] =   { GPIO_PF0_C0O, GPIO_PF1_C1O };
+
+
+comp_gpiofunc
+
+// FIXME: Think comp_ctls is redundant/unneeded
 const static u32 comp_ctls[] = { 0, 1 };
 // all comparators use same base - COMP_BASE
 
 const static u32 comp_ints[] = { INT_COMP0, INT_COMP1 };
 
-// Predefined reference values, in order
-const static u32 comp_refs[] = {};	// Voltage bins
-const static u32 comp_ref_codes[] = {};	// Codes used by library
-#define NUM_COMP_REFS	(sizeof(comp_refs)/sizeof(u32))
+#else
+
+#error Comparator data not set up for this CPU
 
 #endif // FORLM4F
 
 
+// Predefined reference values, in order
+#warning Comparator - need to fill in voltage levels and codes
+
+const static u32 comp_refs[] = {};	// Voltage bins
+const static u32 comp_ref_codes[] = {};	// Codes used by library
+
+#define NUM_COMP_REFS	(sizeof(comp_refs)/sizeof(u32))
+
+
 // TODO: What can you do with a comparator 
-// Generate an output
+// Generate an output (or inverted output)
 // Generate an interrupt
 // Trigger ADC
 
 // Compare to pin or to internal reference
 
+// Helper functions
+
 static void comps_init()
 {
+  MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_COMP0);
 }
 
 // Translate whatever voltage reference scheme eLua uses to platform specific
 // FIXME: for now vref is reference voltage * 1000 (maybe should make it * 1024)
 static unsigned long comp_ref_encode(unsigned vref)
 {
+#warning Comparator - need to write comp_ref_encode
 // Assuming that bins are of fairly uniform width - use an index search
 /* FIXME: Pseudocode
 n bins between VMIN and VMAX
@@ -1669,33 +1699,82 @@ n bins between VMIN and VMAX
 static unsigned comp_ref_decode(unsigned long refcode)
 {
 	return comp_refs[i];
-};
+}
 
-static unsigned comp_ref_index;
+static unsigned comp_ref_index = 0;
 
-// This platform only allows one vref
-unsigned platform_comp_ref_set(unsigned vref)
+// This platform only allows one vref - should interface allow setting vref on a per comparator basis?
+
+// Set reference voltage, returns voltage set
+unsigned platform_comp_ref_set(unsigned id, unsigned vref)
 {
 	unsigned long refindex;
 
 	comp_ref_index = comp_vref_encode( vref);
-	ComparatorRefSet(COMP_BASE, comp_ref_codes[comp_ref_index]);
+	MAP_ComparatorRefSet(COMP_BASE, comp_ref_codes[comp_ref_index]);
 	return comp_vref_decode(comp_ref_index);
 
-};
+}
 
+// Options -
+// PLATFORM_COMP_INVERT - invert result
+// PLATFORM_COMP_OUT - output comparator result on pin
+// PLATFORM_COMP_REF_INTERNAL - internal voltage ref
+// PLATFORM_COMP_REF_PIN0 - use Comp0+ as reference pin
+// reference pin Comp+, pin Comp0+ or Internal
+//
+// Int trigger: High, Low, Rise, Fall, Both
+
+int platform_comp_setup(unsigned id, int vref, unsigned options )
+{
+  uint32_t intflag;
+
+// Todo: Map pins
+  MAP_GPIOPinTypeComparator( comp_in_ports[ id ], comp_in_pins[ id ] );
+// FIXME: maps both input pins as comparator, but should depend on whether using Cn+ or C0+ or internal ref  
+// ?? does it need pin configures? - have not found the macros in pin_map
+// FIXME: Configure as GPIO inputs, analog buffer (AFSEL), clear DEN
+
+  if (options & PLATFORM_COMP_OUT)
+    {
+    // Only do these if output on pin
+    MAP_GPIOPinTypeComparator( comp_out_ports[ id ], comp_out_pins[ id ] );
+    MAP_GPIOPinConfigure( comp_pin_out[ id ] );
+    }
+
+  // Decode int flags
+  // TODO: could do a bit more error checking (e.g. are there combinations that do not work, e.g. INT_HIGH and INT_LOW)
+  intflag = ((options & PLATFORM_COMP_INT_HIGH) ? COMP_INT_HIGH ) |
+    ((options & PLATFORM_COMP_INT_LOW) ? COMP_INT_LOW ) |
+    ((options & PLATFORM_COMP_INT_RISE) ?
+      ((options & PLATFORM_COMP_INT_FALL) ? COMP_INT_BOTH : COMP_INT_RISE ) :
+      ((options & PLATFORM_COMP_INT_FALL) ? COMP_INT_FALL : 0 ));
+
+  MAP_ComparatorConfigure(COMP_BASE, id, (COMP_TRIG_NONE | intflag |
+    (((options & PLATFORM_COMP_REF_INTERNAL) ? COMP_ASRCP_REF :
+      ((options & PLATFORM_COMP_REF_PIN0) ? COMP_ASRCP_PIN0 : COMP_ASRCP_PIN )))| 
+    ((options & PLATFORM_COMP_INVERT) ? COMP_OUTPUT_INVERT : COMP_OUTPUT_NORMAL )) );
+    // NO ADC trigger, use internal reference, non-inverted output
+  return PLATFORM_OK;
+}
+
+int platform_comp_stop(unsigned id)
+{
+#warning platform_comp_stop not written
+  return PLATFORM_ERR;
+}
+
+// Read reference voltage
 unsigned platform_comp_ref_get(unsigned id)
 {
 	return comp_vref_decode(comp_ref_index);
-};
+}
 
-unsigned long platform_comp_value_get(unsigned id)
+// Read comparator result (boolean) true if output high (vin- < vin+)
+int platform_comp_value_get(unsigned id)
 {
 	return MAP_ComparatorValueGet(COMP_BASE, id);
-}; // Actually returns boolean
-
-
-
+}
 
 
 #endif // ifdef BUILD_COMP

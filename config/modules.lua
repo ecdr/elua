@@ -27,7 +27,7 @@ local elua_generic_modules = {
   bit = {}, 
   bitarray = {},
   can = { guards = { "NUM_CAN > 0" } }, 
---  comp = { guards = { "BUILD_COMP" } },
+  comp = { guards = { "BUILD_COMP", "NUM_COMP > 0" } },
   cpu = {}, 
   elua = {}, 
   i2c = { guards = { "NUM_I2C > 0" } },
