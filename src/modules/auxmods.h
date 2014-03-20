@@ -46,6 +46,9 @@ LUALIB_API int ( luaopen_cpu )( lua_State* L );
 #define AUXLIB_ADC      "adc"
 LUALIB_API int ( luaopen_adc )( lua_State *L );
 
+#define AUXLIB_COMP     "comp"
+LUALIB_API int ( luaopen_comp )( lua_State *L );
+
 #define AUXLIB_RPC   "rpc"
 LUALIB_API int ( luaopen_rpc )( lua_State *L );
 

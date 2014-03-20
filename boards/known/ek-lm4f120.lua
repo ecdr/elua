@@ -26,7 +26,7 @@ return {
 	vtmr = false,
   },
   modules = {
-    generic = { 'all', '-i2c', '-net', '-pwm', '-mmc' }, -- '+bitarray' does not work
+    generic = { 'all', '-i2c', '-net', '-pwm', '-mmc', '-comp' }, -- '+bitarray' does not work
 	-- ToDo: CAN tested in loopback, needs testing with transceiver
 	-- ToDo: PWM needs code to use timers instead
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
