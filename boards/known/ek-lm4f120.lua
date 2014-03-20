@@ -8,6 +8,7 @@ return {
     wofs = true,
     romfs = true,
     shell = true,
+    shellinfo = true,
     term = { lines = 25, cols = 80 },
 -- Fixme: Testing, I thought it had line editor before, maybe this is why gone?
     linenoise = { shell_lines = 3, lua_lines = 10 }, -- was 10/50 on mbed
@@ -32,9 +33,11 @@ return {
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
     platform = {'all', '-pwm', '-mmc'},
   },
-  macros = { { "PART_LM4F120H5QR", "" },	-- Needed for Stellarisware PIN_MAP.
--- { "PART_TM4C1233H6PM", "" },	-- Needed for Tivaware PIN_MAP.  
-		 { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
+  macros = { 
+    { "PART_LM4F120H5QR", "" },	-- Needed for Stellarisware PIN_MAP.
+--  { "PART_TM4C1233H6PM", "" },	-- Needed for Tivaware PIN_MAP.  
+    { "PLATFORM_SHELL_INFO", "" },
+    { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
   },
   build = {
     target = "lualong"			-- Integer only to conserve memory
