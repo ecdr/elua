@@ -24,6 +24,7 @@ function add_platform_configs( t, board, cpu )
     },
     required = { first_timer = 0, num_timers = "NUM_TIMER" }
   }
+  t.lm4f_unlock_nmi = { macro = "PIO_UNLOCK_NMI" }
 end
 
 -- Return an array of all the available platform modules for the given cpu

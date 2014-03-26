@@ -25,6 +25,7 @@ return {
   config = {
 --    vtmr = { num = 4, freq = 4 },
 	vtmr = false,
+  lm4f_unlock_nmi = false, 	-- Allow use of PF0 and PD7 as GPIO pins
   },
   modules = {
     generic = { 'all', '-i2c', '-net', '-pwm', '-mmc', '-comp' }, -- '+bitarray' does not work
@@ -37,7 +38,6 @@ return {
     { "PART_LM4F120H5QR", "" },	-- Needed for Stellarisware PIN_MAP.
 --  { "PART_TM4C1233H6PM", "" },	-- Needed for Tivaware PIN_MAP.  
     { "PLATFORM_SHELL_INFO", "" },
-    { "PIO_UNLOCK_NMI", ""} 	-- Allow use of PF0 and PD7 as GPIO pins
   },
   build = {
     target = "lualong"			-- Integer only to conserve memory
