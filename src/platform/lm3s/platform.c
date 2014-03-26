@@ -41,7 +41,7 @@
 #include "driverlib/ethernet.h"
 #include "driverlib/systick.h"
 #include "driverlib/flash.h"
-//#include "driverlib/interrupt.h"    // Duplicate
+
 #include "elua_net.h"
 #include "dhcpc.h"
 #include "buf.h"
@@ -476,6 +476,7 @@ void CANIntHandler(void)
   {
     status = MAP_CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
 // Why is the status fetched but not used?
+
     can_err_flag = 1;
     can_tx_flag = 0;
   }
@@ -500,7 +501,7 @@ void cans_init( void )
 {
   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 ); 
   MAP_CANInit( CAN0_BASE );
-  CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, CAN_INIT_SPEED);
+  MAP_CANBitRateSet(CAN0_BASE, LM3S_CAN_CLOCK, CAN_INIT_SPEED);
   MAP_CANIntEnable( CAN0_BASE, CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
   MAP_IntEnable(INT_CAN0);
   MAP_CANEnable(CAN0_BASE);
@@ -676,9 +677,9 @@ static void spis_init()
   unsigned i;
 
 #if defined( ELUA_BOARD_SOLDERCORE )
-  GPIOPinConfigure( GPIO_PH4_SSI1CLK );
-  GPIOPinConfigure( GPIO_PF4_SSI1RX );
-  GPIOPinConfigure( GPIO_PF5_SSI1TX );
+  MAP_GPIOPinConfigure( GPIO_PH4_SSI1CLK );
+  MAP_GPIOPinConfigure( GPIO_PF4_SSI1RX );
+  MAP_GPIOPinConfigure( GPIO_PF5_SSI1TX );
 #else
 // TODO: fix Pin Mux
 #ifdef USE_PIN_MUX
@@ -693,6 +694,7 @@ static void spis_init()
 //    GPIOPinConfigure(ssi_fss_pin[i]);
   };
 #endif
+
 #endif
 
   for( i = 0; i < NUM_SPI; i ++ )
@@ -715,8 +717,8 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
   MAP_GPIOPinTypeSSI( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ] );
 
   // FIXME: not sure this is always "right"
-  GPIOPadConfigSet( spi_gpio_base[ id ], spi_gpio_pins[ id ], GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
-  GPIOPadConfigSet( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
+  MAP_GPIOPadConfigSet( spi_gpio_base[ id ], spi_gpio_pins[ id ], GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
+  MAP_GPIOPadConfigSet( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
 
   MAP_SSIConfigSetExpClk( spi_base[ id ], MAP_SysCtlClockGet(), protocol, mode, clock, databits );
   MAP_SSIEnable( spi_base[ id ] );

@@ -92,6 +92,8 @@ extern void USB0DeviceIntHandler(void);
 // Handlers in platform_int.c
 #include "platform_int.h"
 
+// From platform.c
+extern const u32 uart_base[];
 
 //*****************************************************************************
 //
@@ -428,6 +430,8 @@ ResetISR(void)
 // Instead of UART0_BASE, should use uart_base[CON_UART_ID]
 // Still would not be right for USB_CDC
 
+// FIXME: Assumes console is UART, will not be right for USB_CDC
+
 //*****************************************************************************
 //
 // This is the code that gets called when the processor receives a NMI.  This
@@ -438,15 +442,15 @@ ResetISR(void)
 static void
 NmiSR(void)
 {
-    UARTCharPut( UART0_BASE, 'N' );
-    UARTCharPut( UART0_BASE, 'M' );
-    UARTCharPut( UART0_BASE, 'I' );
+    MAP_UARTCharPut( uart_base[CON_UART_ID], 'N' );
+    MAP_UARTCharPut( uart_base[CON_UART_ID], 'M' );
+    MAP_UARTCharPut( uart_base[CON_UART_ID], 'I' );
     //
     // Enter an infinite loop.
     //
     while(1)
     {
-      UARTCharPut( UART0_BASE, '!' );
+      MAP_UARTCharPut( uart_base[CON_UART_ID], '!' );
     }
 }
 
@@ -463,11 +467,11 @@ FaultISR(void)
     //
     // Enter an infinite loop.
     //
-   UARTCharPut( UART0_BASE, 'F' );
-   UARTCharPut( UART0_BASE, 'a' );
-   UARTCharPut( UART0_BASE, 'u' );
-   UARTCharPut( UART0_BASE, 'l' );
-   UARTCharPut( UART0_BASE, 't' );
+   MAP_UARTCharPut( uart_base[CON_UART_ID], 'F' );
+   MAP_UARTCharPut( uart_base[CON_UART_ID], 'a' );
+   MAP_UARTCharPut( uart_base[CON_UART_ID], 'u' );
+   MAP_UARTCharPut( uart_base[CON_UART_ID], 'l' );
+   MAP_UARTCharPut( uart_base[CON_UART_ID], 't' );
    while(1)
    {
    }
@@ -483,14 +487,14 @@ FaultISR(void)
 static void
 IntDefaultHandler(void)
 {
-  UARTCharPut( UART0_BASE, 'I' );
-  UARTCharPut( UART0_BASE, 'n' );
-  UARTCharPut( UART0_BASE, 't' );
+  MAP_UARTCharPut( uart_base[CON_UART_ID], 'I' );
+  MAP_UARTCharPut( uart_base[CON_UART_ID], 'n' );
+  MAP_UARTCharPut( uart_base[CON_UART_ID], 't' );
     //
     // Go into an infinite loop.
     //
     while(1)
     {
-      UARTCharPut( UART0_BASE, '*' );
+      MAP_UARTCharPut( uart_base[CON_UART_ID], '*' );
     }
 }
