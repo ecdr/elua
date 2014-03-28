@@ -112,8 +112,10 @@ extern int main(void);
 #if defined( ccs )		// Put at 0 for CCS
 #pragma DATA_SECTION(g_pfnVectors, ".intvecs")
 #define PUT_ME_AT_0
-#else					// Put at 0 for gcc
+#elif defined( __GNUC__	)			// Put at 0 for gcc
 #define PUT_ME_AT_0 __attribute__ ((section(".isr_vector")))
+#else
+#warning Unrecognized compiler, not sure how to put vectors at 0.
 #endif
 
 PUT_ME_AT_0
