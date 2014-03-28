@@ -2273,7 +2273,8 @@ __error__(char *pcFilename, unsigned long ulLine)
 
 #ifdef PLATFORM_SHELL_INFO
 
-char * cpu_class[] = {"SANDSTORM", "FURY", "?", "DUSTDEVIL", "TEMPEST", "TM4C123", "FIRESTORM", "?", "?", "?", "TM4C129" };
+char * cpu_class[] = {"SANDSTORM", "FURY", "?", "DUSTDEVIL", "TEMPEST", 
+                      "TM4C123", "FIRESTORM", "?", "?", "?", "TM4C129" };
 
 void platform_show_startup(void)
 {
@@ -2281,8 +2282,10 @@ void platform_show_startup(void)
   unsigned int did1 = SYSCTL_DID1_R;
 
   printf("DID0: %x: class: %s revision: %c%x\n", did0, 
-    cpu_class[(did0 & SYSCTL_DID0_CLASS_M)], 'A'+((did0 & SYSCTL_DID0_MAJ_M)>>8), (did0 & SYSCTL_DID0_MIN_M) );
-  printf("DID1: %x: part: %x family: %x\n", did1, ((did1 & SYSCTL_DID1_PRTNO_M)>> 16), (did1 & SYSCTL_DID1_FAM_M) );
+    cpu_class[(did0 & SYSCTL_DID0_CLASS_M)>> 16 ], 
+    'A'+((did0 & SYSCTL_DID0_MAJ_M)>>8), (did0 & SYSCTL_DID0_MIN_M) );
+  printf("DID1: %x: part: %x family: %x\n", did1, ((did1 & SYSCTL_DID1_PRTNO_M)>> 16), 
+    (did1 & SYSCTL_DID1_FAM_M) );
 
 }
 
