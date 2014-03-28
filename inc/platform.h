@@ -360,4 +360,9 @@ int platform_flash_erase_sector( u32 sector_id );
 void* platform_get_first_free_ram( unsigned id );
 void* platform_get_last_free_ram( unsigned id );
 
+// *****************************************************************************
+// Shell
+
+void platform_show_startup(void);
+
 #endif
