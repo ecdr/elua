@@ -54,6 +54,9 @@
 #include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
 
+#include "driverlib/fpu.h"
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
 
 //*****************************************************************************
 //
@@ -392,6 +395,20 @@ ResetISR(void)
 
 #if defined( FORLM4F )
 // FIXME: incorporate FPU into eLua
+#if defined(LUA_NUMBER_INTEGRAL)
+
+// No floating point, so turn off FP stack for ISR
+    MAP_FPUStackingDisable();
+  
+#else
+#if defined( BUILD_LUA_INT_HANDLERS )
+    // FPU lazy stacking - in case use floating point in ISR
+    MAP_FPULazyStackingEnable();
+#else
+    // TODO:  Could make this a configurable option
+//    MAP_FPUStackingDisable();
+#endif // BUILD_LUA_INT_HANDLERS
+
     //
     // Enable the floating-point unit.  This must be done here to handle the
     // case where main() uses floating-point and the function prologue saves
@@ -409,6 +426,7 @@ ResetISR(void)
                         NVIC_CPAC_CP10_FULL | NVIC_CPAC_CP11_FULL);
 
 #endif // ccs
+#endif // LUA_NUMBER_INTEGRAL
 #endif // FORLM4F
 
     //
