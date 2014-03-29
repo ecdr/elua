@@ -379,8 +379,12 @@ void shell_start( void )
 #ifdef SHELL_SHOW_INFO
 // Show additional information about the eLua build, board, etc.
 
+// Get a macro expanded inside quotes
+#define STR_EXPAND(tok) #tok
+#define STRINGIFY(tok) STR_EXPAND(tok)
+
 // FIXME: Get the macros to substitute in string
-  printf( "Board: %s, platform: %s\n", "##ELUA_BOARD##", "ELUA_PLATFORM" );
+  printf( "Board: %s, platform: %s\n", STRINGIFY(ELUA_BOARD), STRINGIFY(ELUA_PLATFORM) );
 
 //#define PLATFORM_MSG_PWM "PWM, "
 //#define PLATFORM_MSG_CAN "CAN(ni), "
@@ -416,7 +420,7 @@ void shell_start( void )
 // TODO: Consider other status, like number of Vtimers
 
 // FIXME: Substitute macro in string
-  printf( "CPU: %s, speed: %ld\n", "ELUA_CPU", CPU_FREQUENCY);
+  printf( "CPU: %s, speed: %ld\n", STRINGIFY(ELUA_CPU), CPU_FREQUENCY);
 
 //  printf( "Free mem: %ld flash, %ld RAM\n",  INTERNAL_FLASH_SIZE - (u32) flash_used_size, 
 //    INTERNAL_RAM1_LAST_FREE - (u32) mstart);
