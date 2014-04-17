@@ -916,6 +916,8 @@ static const u32 uart_gpiofunc[] = {
 	GPIO_PC4_U4RX, GPIO_PC5_U4TX, GPIO_PE4_U5RX, GPIO_PE5_U5TX,
 	GPIO_PE0_U7RX, GPIO_PE1_U7TX, GPIO_PD4_U6RX, GPIO_PD5_U6TX };
 
+#define UART_PIN_CONFIGURE
+  
 #else // FORLM4F
 
 // All possible LM3S uart defs
@@ -924,13 +926,14 @@ static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYS
 static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
 static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
 
-// Something wrong here - not defined for LM3s8962
-#ifdef FORLM3S8962
-#warning Uses undefined symbols - need to track down this problem
-static const u32 uart_gpiofunc[] = { 0, 0, 0, 0, 0, 0 };
+#ifdef GPIO_PA0_U0RX
 
-#else
+// FIXME: These symbols used to be defined in gpio.h but were removed in 9453
+// TODO: Figure out what they should be
+
 static const u32 uart_gpiofunc[] = { GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PD2_U1RX, GPIO_PD3_U1TX, GPIO_PG0_U2RX, GPIO_PG1_U2TX };
+#define UART_PIN_CONFIGURE
+
 #endif
 
 #endif // FORLM4F
@@ -948,8 +951,10 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
   if( id < NUM_UART )
   {
+#ifdef UART_PIN_CONFIGURE
     MAP_GPIOPinConfigure( uart_gpiofunc[ id << 1 ] );
     MAP_GPIOPinConfigure( uart_gpiofunc[ ( id << 1 ) + 1 ] );
+#endif    
     MAP_GPIOPinTypeUART( uart_gpio_base[ id ], uart_gpio_pins[ id ] );
 
     switch( databits )
