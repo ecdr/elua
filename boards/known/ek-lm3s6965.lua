@@ -1,7 +1,7 @@
 -- EK-LM3S6965 build configuration
 
 return {
-  cpu = 'lm3s8962',
+  cpu = 'lm3s6965',
   components = {
     sercon = { uart = 0, speed = 115200 },
     wofs = true,
@@ -23,7 +23,7 @@ return {
     vtmr = { num = 4, freq = 4 },
   },
   modules = {
-    generic = { 'all', '-i2c', '-can' },
+    generic = { 'all', '-i2c', '-can', '-comp' },
     platform = 'all',
   }
 }

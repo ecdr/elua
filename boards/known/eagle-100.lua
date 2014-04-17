@@ -20,7 +20,7 @@ return {
     vtmr = { num = 4, freq = 4 },
   },
   modules = {
-    generic = { 'all', '-i2c', '-can' ,'-pwm' },
+    generic = { 'all', '-i2c', '-can' ,'-pwm', '-comp' },
   }
 }
 

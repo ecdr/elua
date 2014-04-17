@@ -21,7 +21,7 @@ return {
     vtmr = { num = 4, freq = 5 },
   },
   modules = {
-    generic = { 'all', '-i2c' },
+    generic = { 'all', '-i2c', '-comp' },
   }
 }
 
