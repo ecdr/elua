@@ -27,7 +27,7 @@ return {
   --{ "SHELL_SHOW_INFO", "" }, 
   },
   modules = {
-    generic = { 'all', '-i2c' },
+    generic = { 'all', '-i2c', '-comp' },
     platform = 'all',
   },
   macros = { { "PART_LM3S8962", "" }, },	-- Need to make pin_map work
