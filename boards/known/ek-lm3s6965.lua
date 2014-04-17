@@ -25,6 +25,7 @@ return {
   modules = {
     generic = { 'all', '-i2c', '-can', '-comp' },
     platform = 'all',
-  }
+  },
+  macros = { { "PART_LM3S6965", "" }, },	-- Need to make pin_map work  
 }
 
