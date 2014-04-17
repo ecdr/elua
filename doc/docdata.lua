@@ -179,6 +179,7 @@ local menu =
       { "AVR32", "installing_avr32.html" },
       { "i386", "installing_i386.html" },
       { "LM3S", "installing_lm3s.html" },
+      { "TM4C", "installing_tm4c.html" },
       { "LPC2888", "installing_lpc2888.html" },
       { "STR7", "installing_str7.html" },
       { "STR9", "installing_str9.html" },

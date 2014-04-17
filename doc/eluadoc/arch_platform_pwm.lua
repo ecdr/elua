@@ -39,7 +39,7 @@ enum
     },
 
     { sig = "u32 #platform_pwm_setup#( unsigned id, u32 frequency, unsigned duty );",
-      desc = "Sets up a PWM channel",
+      desc = "Sets up a PWM channel.  If the channel is started, then leave it started.  If it was stopped, leave it stopped.",
       args = 
       {
         "$id$ - PWM channel ID",

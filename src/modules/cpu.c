@@ -145,12 +145,21 @@ static int cpu_sei( lua_State *L )
   return cpuh_int_helper( L, PLATFORM_CPU_ENABLE );
 }
 
-// Lua: frequency = clock()
+// Lua: frequency = cpu.clock()
 static int cpu_clock( lua_State *L )
 {
   lua_pushinteger( L, platform_cpu_get_frequency() );
   return 1;
 }
+
+// Memory available for dynamic allocation (would prefer to know actual free memory, but this is a start)
+// Lua: memsize = cpu.mem()
+static int cpu_mem( lua_State *L )
+{
+  lua_pushinteger( L, ((u32) INTERNAL_RAM1_LAST_FREE) - ((u32) INTERNAL_RAM1_FIRST_FREE) );
+  return 1;
+}
+ 
 
 // CPU constants list
 typedef struct
@@ -271,6 +280,7 @@ const LUA_REG_TYPE cpu_map[] =
   { LSTRKEY( "cli" ), LFUNCVAL( cpu_cli ) },
   { LSTRKEY( "sei" ), LFUNCVAL( cpu_sei ) },
   { LSTRKEY( "clock" ), LFUNCVAL( cpu_clock ) },
+  { LSTRKEY( "mem" ), LFUNCVAL( cpu_mem ) },
 #ifdef BUILD_LUA_INT_HANDLERS
   { LSTRKEY( "set_int_handler" ), LFUNCVAL( cpu_set_int_handler ) },
   { LSTRKEY( "get_int_handler" ), LFUNCVAL( cpu_get_int_handler ) },

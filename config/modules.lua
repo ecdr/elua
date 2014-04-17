@@ -25,7 +25,9 @@ local lua_modules = {
 local elua_generic_modules = { 
   adc = { guards = { "BUILD_ADC", "NUM_ADC > 0" } }, 
   bit = {}, 
+  bitarray = {},
   can = { guards = { "NUM_CAN > 0" } }, 
+--  comp = { guards = { "BUILD_COMP", "NUM_COMP > 0" } },
   cpu = {}, 
   elua = {}, 
   i2c = { guards = { "NUM_I2C > 0" } },
@@ -183,7 +185,7 @@ function gen_module_list( desc, plconf, platform, boardname )
     utils.foreach( mdesc.generic, function( k, v ) process_module( gen_list_generic, v ) end )
     utils.foreach( mdesc.platform, function( k, v ) process_module( gen_list_platform, v, true ) end )
   end
-  -- Count the notal number of modules
+  -- Count the total number of modules
   utils.foreach( gen_list_generic, function( k, v ) ngenmods = ngenmods + 1 end )
   utils.foreach( gen_list_platform, function( k, v ) nplmods = nplmods + 1 end )
   if ngenmods + nplmods == 0 then return '' end

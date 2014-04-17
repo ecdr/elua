@@ -1,0 +1,33 @@
+$$HEADER$$
+<h3>Using <b>eLua</b> with the TM4C (Cortex-M4) CPUs from Texas Instruments</h3>
+ 
+ <h3>Pre-requisites</h3> 
+ <p>Before you'll be able to use <b>eLua</b> on the TM4C CPU, make sure that:</p>
+ <ul>
+ <li>you're using Windows. Yes, I really said <b>Windows</b>. The reason is quite simple: we're going to use TI's tools to burn <b>eLua</b> to the board,
+ and they're Windows specific. This is the case with many CPUs and vendors out there. You can have Windows installed on your HDD, or under 
+ an emulator in Linux, it doesn't matter, you can even try to run it from <a href="http://www.winehq.org/">Wine</a> if you're really, really brave. I'm using XP, Vista should work too.</li>
+ <li>you have installed the LM Flash Programmer tool from TI. Look for it on <a href="http://www.luminarymicro.com/products/ekk-lm3s8962_can_ethernet_evaluation_kit.html">this page</a>,
+ for example (the link is in the "Software updates" table).</li>
+ <li>you already have your <b>eLua</b> image for the TM4C123G CPU (<a href="building.html">built</a> or <a href="downloads.html">downloaded</a>). </li>
+ </ul>
+ <h3>Installing <b>eLua</b> on EK-TM4C123G</h3>
+ <p>Fortunately, this is as easy and painless as possible. One of the nicest things about these two kits is they use the on-board USB port for both firmware downloading and for
+ emulating a serial port (via a hardware USB to UART converter, so you don't need any special software on the CPU to access this UART port). Moreover, it automagically
+ knows how (and when) to switch from the firmware download mode to the UART emulation mode, so you don't need to move jumpers around or anything like this. So, let's do it:</p>
+ <ul>
+ <li>connect your board to your PC using a suitable USB cable. Connect to the debug USB port, not the device port.</li>
+ <li>If you didn't install the board drivers yet, you'll be asked to install them now.</li>
+ <li>if you're already using the USB connection on the board in the UART emulation mode, close your terminal program (or at least disconnect it from the USB COM port).</li>
+ <li>fire up the "LM Flash Programmer" application.</li>
+ <li>in the "Configuration" tab, select "LM4F120 Launchpad", "TM4C123G Launchpad" or "TM4C1294XL Launchpad" (depending on your board).</li>
+ <li>in the "Program" tab, select the <b>eLua</b> .bin file that you got from the compilation step.</li>
+ <li>select the "Options" as you like (I generally choose "Erase entire flash" and "Reset MCU after program").</li>
+ <li>hit the "Program" button.</li>
+ <li>wait until programming is over, then exit the flash programmer application.</li>
+ </ul>
+<p>It's worth to mention that since these boards come with an USB to JTAG converter it should be possible to use OpenOCD (or a similar package) 
+instead of the TI tool to program the image. The TI forums are a good place to look for information if you're exploring the OpenOCD option.
+</p>
+$$FOOTER$$
+

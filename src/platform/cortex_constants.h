@@ -11,5 +11,13 @@
 #define INTERRUPT_ACTIVE        ( 0 )
 #endif // #ifdef CORTEX_M3
 
+// Just copied from M3 for the moment
+#ifdef CORTEX_M4
+#define INTERRUPT_MASK_BIT      ( PM_BIT )
+// Define next constant as 0 if the interrupt flag is active on logic 0, or as INTERRUPT_MASK_BIT otherwise
+#define INTERRUPT_ACTIVE        ( 0 )
+#endif // #ifdef CORTEX_M4
+
+
 #endif
 

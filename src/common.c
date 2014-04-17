@@ -212,6 +212,22 @@ int platform_pio_has_port( unsigned port )
   return port < NUM_PIO;
 #elif defined( PIO_PIN_ARRAY )
   const u8 pio_port_pins[] = PIO_PIN_ARRAY;
+
+/*  This was intended as sanity check for NUM_PIO vs PIO_PIN_ARRAY, but numport is coming up 0
+  int const numport = sizeof(pio_port_pins)/sizeof(u8);
+  UNUSED(numport);
+#if ( numport == NUM_PIO )
+#error numport match PIO PIN_ARRAY 
+#elif ( numport < NUM_PIO )
+#error numport < NUM_PIO
+#elif ( numport > NUM_PIO )
+#error numport > NUM_PIO
+#else
+#endif
+// Or maybe this would work
+  ASSERT(NUM_PIO <= sizeof( pio_port_pins ) / sizeof( u8 ) );
+*/
+
   return port < NUM_PIO && pio_port_pins[ port ] != 0;
 #else
   #error "You must define either PIO_PINS_PER_PORT of PIO_PIN_ARRAY in cpu header"
@@ -329,6 +345,18 @@ void platform_adc_set_timer( unsigned id, u32 timer )
 }
 
 #endif // #ifdef BUILD_ADC
+
+// ****************************************************************************
+// COMP functions
+
+int platform_comp_exists( unsigned id )
+{
+#if defined( NUM_COMP )
+  return id < NUM_COMP;
+#else
+  return 0;
+#endif
+}
 
 // ****************************************************************************
 // Allocator support

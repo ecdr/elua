@@ -104,6 +104,7 @@ local platform_list =
 {
   at91sam7x = { cpus = { 'AT91SAM7X256', 'AT91SAM7X512' }, arch = 'arm' },
   lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92', 'LM3S9D92' }, arch = 'cortexm' },
+  tm4c = { cpus = { 'TM4C123G', 'TM4C1233', 'TM4C1294' }, arch = 'cortexm' },
   str9 = { cpus = { 'STR912FAW44' }, arch = 'arm' },
   i386 = { cpus = { 'I386' }, arch = 'i386' },
   sim = { cpus = { 'LINUX' }, arch = 'i386' },
