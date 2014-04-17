@@ -1127,7 +1127,10 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 
 #ifdef FORLM4F
 
+#define UART_PIN_CONFIGURE
+
 #if !defined( FORTM4C1294 )
+
 const u32 uart_base[] = { 	UART0_BASE, UART1_BASE, UART2_BASE, UART3_BASE, 
       				UART4_BASE, UART5_BASE, UART7_BASE, UART6_BASE };
 static const u32 uart_sysctl[] = { 
@@ -1176,7 +1179,8 @@ static const u32 uart_gpiofunc[] = {
 //  U4 PK0/1 or PA2/3
 
 #endif
-  
+
+ 
 #else // LM3S
 
 // All possible LM3S uart defs
@@ -1185,14 +1189,15 @@ static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYS
 static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
 static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
 
-// Something wrong here - not defined for LM3s8962
-#ifdef FORLM3S8962
-#warning Uses undefined symbols - need to track down this problem
-static const u32 uart_gpiofunc[] = { 0, 0, 0, 0, 0, 0 };
+#ifdef GPIO_PA0_U0RX
 
-#else
+// FIXME: These symbols used to be defined in gpio.h but were removed in Stellarisware 9453
+// TODO: Figure out neater test/fix
+
 static const u32 uart_gpiofunc[] = { GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PD2_U1RX, GPIO_PD3_U1TX, GPIO_PG0_U2RX, GPIO_PG1_U2TX };
-#endif // FORLM3S8962
+#define UART_PIN_CONFIGURE
+
+#endif // GPIO_PA0_U0RX
 
 #endif // FORLM4F
 
@@ -1218,8 +1223,10 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
 
   if( id < NUM_UART )
   {
+#ifdef UART_PIN_CONFIGURE
     MAP_GPIOPinConfigure( uart_gpiofunc[ id << 1 ] );
     MAP_GPIOPinConfigure( uart_gpiofunc[ ( id << 1 ) + 1 ] );
+#endif
     MAP_GPIOPinTypeUART( uart_gpio_base[ id ], uart_gpio_pins[ id ] );
 
 // Clock source - try PIOSC rather than system clock
@@ -1634,15 +1641,15 @@ const static u32 pwm_timer_sysctl[] = {
 
 #if (NUM_PWM_MOD == 2)
   const static u32 pwm_base[] = { PWM0_BASE, PWM1_BASE };
-#warning 2 PWM Mod
 #else
+
 #if defined(PWM_BASE)
   const static u32 pwm_base[] = { PWM_BASE };
 #else
   const static u32 pwm_base[] = { PWM0_BASE };
-#endif  
-#warning 1 PWM Mod
-#endif
+#endif // PWM_BASE
+
+#endif // NUM_PWM_MOD
 
 // FIXME: Range checks to be sure arrays filled in - need to fix syntax
 /*
