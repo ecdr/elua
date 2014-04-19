@@ -27,12 +27,15 @@
 #define NUM_I2C			          10	// ToDo: Not written yet for lm3
 // TODO: How many I2C does code support?
 #define NUM_ADC               21	// Actually 20 channels, temperature sensor is last channel
-// FIXME: Check ADC code if can handle that many channels
 
 #define NUM_CAN               2	// Max is 2
 
 #define NUM_COMP			3	// ToDo: Not written yet
 #define NUM_QEI			  1	// ToDo: Not written yet
+
+// ToDo: Add support for USB
+// #define NUM_USB             1
+
 
 #define FORLM4F				// Common defines for LM4F/TM4C
 
@@ -208,32 +211,6 @@ extern unsigned long clockfreq;
   _C( INT_GPIO_POSEDGE ),\
   _C( INT_GPIO_NEGEDGE ),\
   _C( INT_TMR_MATCH ),
-
-  
-/*  These would handle the wide timers on LM4F120 - add if needed, before UART_RX
-  _C( INT_WTIMER0A ),\
-  _C( INT_WTIMER0B ),\
-  _C( INT_WTIMER1A ),\
-  _C( INT_WTIMER1B ),\
-  _C( INT_WTIMER2A ),\
-  _C( INT_WTIMER2B ),\
-  _C( INT_WTIMER3A ),\
-  _C( INT_WTIMER3B ),\
-  _C( INT_WTIMER4A ),\
-  _C( INT_WTIMER4B ),\
-  _C( INT_WTIMER5A ),\
-  _C( INT_WTIMER5B ),\  */
-
-
-/* 
-// ToDo: Add support for USB
-#ifdef FORLM4F
-  #define NUM_USB             1
-#else
-  #define NUM_USB             0
-// FIXME: Need to fill in number USB for other lm3s...
-#endif
-*/
 
 
 #endif // #ifndef __CPU_TM4C1294_H__
