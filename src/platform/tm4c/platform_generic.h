@@ -21,7 +21,7 @@
 extern char end[];
 
 // TODO: Removed several interrupts that no longer exist in Tivaware - see if should add any to replace
-#if defined( FORTM4C1294)
+#if defined( FORTM4C1294 )
 #define CPU_CONST_ETHERNET_INT  _C( INT_EMAC0 ),
 #else
 #define CPU_CONST_ETHERNET_INT

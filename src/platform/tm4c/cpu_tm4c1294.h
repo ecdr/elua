@@ -204,8 +204,12 @@ extern unsigned long clockfreq;
   _C( INT_TIMER4B ),\
   _C( INT_TIMER5A ),\
   _C( INT_TIMER5B ),\
-  _C( INT_UART_RX ),
+  _C( INT_UART_RX ),\
+  _C( INT_GPIO_POSEDGE ),\
+  _C( INT_GPIO_NEGEDGE ),\
+  _C( INT_TMR_MATCH ),
 
+  
 /*  These would handle the wide timers on LM4F120 - add if needed, before UART_RX
   _C( INT_WTIMER0A ),\
   _C( INT_WTIMER0B ),\
@@ -219,8 +223,6 @@ extern unsigned long clockfreq;
   _C( INT_WTIMER4B ),\
   _C( INT_WTIMER5A ),\
   _C( INT_WTIMER5B ),\  */
-
-
 
 
 /* 
