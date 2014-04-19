@@ -343,9 +343,13 @@ static void pios_init()
     GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
     GPIO_PORTD_CR_R = 0xFF;
     GPIO_PORTD_LOCK_R = 0;
+#if !defined( FORTM4C1294 )
+// Unlock PF0 (NMI) for TM4C123x
     GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
     GPIO_PORTF_CR_R = 0xFF;
     GPIO_PORTF_LOCK_R = 0;
+#endif // ! FORTM4C1294
+    
 #endif //UNLOCK_NMI
 }
 
@@ -1916,7 +1920,7 @@ void platform_pwm_stop( unsigned id )
                                   ADC_CTL_CH8, ADC_CTL_CH9, ADC_CTL_CH10, ADC_CTL_CH11,
                                   ADC_CTL_CH12, ADC_CTL_CH13, ADC_CTL_CH14, ADC_CTL_CH15 };
 
-  #define ADC_PIN_CONFIG
+#define ADC_PIN_CONFIG
 
 #elif defined( FORTM4C1294 )
 // 20 Inputs, plust therm channel
@@ -1926,20 +1930,21 @@ void platform_pwm_stop( unsigned id )
                                    GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE,
                                    GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTD_BASE,
                                    GPIO_PORTK_BASE, GPIO_PORTK_BASE, GPIO_PORTK_BASE, GPIO_PORTK_BASE };
+
   const static u8 adc_pins[] =  {  GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0,
                                    GPIO_PIN_7, GPIO_PIN_6, GPIO_PIN_5, GPIO_PIN_4,
                                    GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_4, GPIO_PIN_5,
                                    GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0,
                                    GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
-  
-  #define ADC_PIN_CONFIG
-  
+
   const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3,
                                   ADC_CTL_CH4, ADC_CTL_CH5, ADC_CTL_CH6, ADC_CTL_CH7,
                                   ADC_CTL_CH8, ADC_CTL_CH9, ADC_CTL_CH10, ADC_CTL_CH11,
                                   ADC_CTL_CH12, ADC_CTL_CH13, ADC_CTL_CH14, ADC_CTL_CH15,
                                   ADC_CTL_CH16, ADC_CTL_CH17, ADC_CTL_CH18, ADC_CTL_CH19, 
                                   ADC_CTL_TS };
+
+#define ADC_PIN_CONFIG
 
 #elif defined( FORLM4F )
 
@@ -1954,18 +1959,16 @@ void platform_pwm_stop( unsigned id )
                                     GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_4, GPIO_PIN_5 };
 
 // Do pin maping
-#define ADC_PIN_CONFIG
 
   const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3,
                                   ADC_CTL_CH4, ADC_CTL_CH5, ADC_CTL_CH6, ADC_CTL_CH7,
                                   ADC_CTL_CH8, ADC_CTL_CH9, ADC_CTL_CH10, ADC_CTL_CH11,
                                   ADC_CTL_TS };
 
-// Add temperature sensor as last channel
+#define ADC_PIN_CONFIG
 
 // ToDo: Have 2 ADC, could figure how to split the work
 // ToDo: Not sure how many ADC ints should have.  (Is it one per ADC or ?)
-
 
 #else
 
@@ -1975,7 +1978,7 @@ const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_C
 const static u32 adc_ints[] = { INT_ADC0SS0, INT_ADC0SS1, INT_ADC0SS2, INT_ADC0SS3 };
 
 //ToDo: Add error checking for NUM_ADC
-//#if (NUM_ADC > sizeof(adc_ctls))
+//#if (NUM_ADC > sizeof(adc_ctls)/sizeof(u32))
 //#error More ADC specified than hardware has.
 //#endif
 
@@ -2058,8 +2061,10 @@ static void adcs_init()
   unsigned id;
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
 
-  ASSERT(NUM_ADC <= sizeof(adc_ports)/sizeof(u32));
-  ASSERT(NUM_ADC <= sizeof(adc_pins)/sizeof(adc_pins[0]));
+// FIXME: Adjust assertions for temperature channel, which has no port/pin
+//  ASSERT(NUM_ADC <= sizeof(adc_ports)/sizeof(u32));
+//  ASSERT(NUM_ADC <= sizeof(adc_pins)/sizeof(adc_pins[0]));
+
   ASSERT(NUM_ADC <= sizeof(adc_ctls)/sizeof(u32));
 
   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
@@ -2080,7 +2085,7 @@ static void adcs_init()
   MAP_IntEnable( adc_ints[ 0 ] ); // Enable sequencer 0 int
 }
 
-// If use ADCClockConfigSet - 16MHz final freq on 123, between 16 and 32 MHz on 1294
+// Note: If use ADCClockConfigSet - 16MHz final freq on 123, between 16 and 32 MHz on 1294
 
 u32 platform_adc_set_clock( unsigned id, u32 frequency )
 {
@@ -3243,7 +3248,7 @@ LUALIB_API int luaopen_platform( lua_State *L )
 void
 __error__(char *pcFilename, unsigned long ulLine)
 {
-//  printf("Error in file %s, line %lu\n", pcFilename, ulLine);
+  printf("Error in file %s, line %lu\n", pcFilename, ulLine);
 }
 #endif
 
