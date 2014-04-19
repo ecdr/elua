@@ -68,13 +68,25 @@ static const u8 gpio_int_ids[] = { INT_GPIOA, INT_GPIOB, INT_GPIOC, INT_GPIOD, I
 #ifdef INT_GPION
                                    , INT_GPION
 #endif
-#ifdef INT_GPIOP
+// FIXME: Ports P and Q may require special handling, interrupts broken out for each pin
+#ifdef INT_GPIOP0
                                    , 0  // Space filler since there is no port O
-                                   , INT_GPIOP
+                                   , INT_GPIOP0
 #endif
-#ifdef INT_GPIOQ
-                                   , INT_GPIOQ
+#ifdef INT_GPIOQ0
+                                   , INT_GPIOQ0
 #endif
+/*
+#ifdef INT_GPIOR
+                                   , INT_GPIOR
+#endif
+#ifdef INT_GPIOS
+                                   , INT_GPIOS
+#endif
+#ifdef INT_GPIOT
+                                   , INT_GPIOT
+#endif
+*/
                                    };
 extern const u32 timer_base[];
 extern u8 lm3s_timer_int_periodic_flag[ NUM_TIMER ];
