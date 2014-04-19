@@ -1268,21 +1268,22 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 // ****************************************************************************
 // Timers
 
-// FIXME LM4F has 12 timers (6 32 and 6 64 bit)
-
 #define TIMER_MAX_COUNT	0xFFFFFFFF
 
 
 #if defined( FORTM4C1294)
 
 const u32 timer_base[] = { 	TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
-					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE};
+					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, TIMER6_BASE, TIMER7_BASE };
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
-	SYSCTL_PERIPH_TIMER3, SYSCTL_PERIPH_TIMER4, SYSCTL_PERIPH_TIMER5 };
+	SYSCTL_PERIPH_TIMER3, SYSCTL_PERIPH_TIMER4, SYSCTL_PERIPH_TIMER5,
+  SYSCTL_PERIPH_TIMER6, SYSCTL_PERIPH_TIMER7 };
 
 #elif defined( FORLM4F )
+
+// FIXME LM4F has 12 timers (6 32 and 6 64 bit)
 
 const u32 timer_base[] = { 	TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
 					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, 
@@ -1306,12 +1307,24 @@ static const u32 timer_sysctl[] = {
 const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
 static const u32 timer_sysctl[] = { SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, SYSCTL_PERIPH_TIMER3 };
 
+#endif
 
-#endif // FORLM4F
+/*
+// FIXME: Attempt at error checking - not working yet
+const unsigned num_timer_base = sizeof(timer_base)/sizeof(u32);
+const unsigned num_timer_sysctl = sizeof(timer_sysctl)/sizeof(u32);
+
+#if (NUM_TIMER > num_timer_base) || (NUM_TIMER > num_timer_sysctl)
+#error Not all your timer base are belong to us.
+#endif
+*/
 
 static void timers_init()
 {
   unsigned i;
+
+  ASSERT(NUM_TIMER <= sizeof(timer_base)/sizeof(u32));
+  ASSERT(NUM_TIMER <= sizeof(timer_sysctl)/sizeof(u32));
 
   for( i = 0; i < NUM_TIMER; i ++ )
   {
