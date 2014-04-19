@@ -35,12 +35,12 @@ return {
   },
   modules = {
     generic = { 'all', '-i2c', '-net' },
-    platform = 'all'
+    platform = { 'all', '-net' }
   },
   macros = { 
      { "PART_TM4C1294NCPDT", "" },	-- Needed for PIN_MAP.
      { "TARGET_IS_TM4C129_RA0", ""}, -- RA1 is other choice so far
 --     { "UART_ALT_CLOCK", ""}, -- Use alternate clock for UART
+     { "DEBUG", ""}, -- Extra checks
   },
 }
-
