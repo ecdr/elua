@@ -322,6 +322,9 @@ static void pios_init()
 {
   unsigned i;
 
+  ASSERT(NUM_PIO <= sizeof(pio_base)/sizeof(u32));
+  ASSERT(NUM_PIO <= sizeof(pio_sysctl)/sizeof(u32));
+  
   for( i = 0; i < NUM_PIO; i ++ )
     if (pio_sysctl[ i ])          // Skip dummy entries
       MAP_SysCtlPeripheralEnable(pio_sysctl[ i ]);
@@ -632,6 +635,11 @@ static void cans_init( void )
 {
   unsigned id;
 
+  ASSERT(NUM_CAN <= sizeof(can_base)/sizeof(u32));
+  ASSERT(NUM_CAN <= sizeof(can_sysctl)/sizeof(u32));
+  ASSERT(NUM_CAN <= sizeof(can_int)/sizeof(u32));
+  ASSERT(NUM_CAN <= sizeof(can_gpio_base)/sizeof(u32));
+  
   for( id = 0; id < NUM_CAN; id++){
     MAP_SysCtlPeripheralEnable( can_sysctl[id] );
     MAP_CANInit( can_base[id] );
@@ -854,6 +862,11 @@ static void spis_init()
 {
   unsigned i;
 
+  ASSERT(NUM_SPI <= sizeof(spi_base)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(spi_sysctl)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(spi_gpio_base)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(spi_gpio_clk_base)/sizeof(u32));
+
 #if defined( ELUA_BOARD_SOLDERCORE )
   GPIOPinConfigure( GPIO_PH4_SSI1CLK );
   GPIOPinConfigure( GPIO_PF4_SSI1RX );
@@ -861,6 +874,10 @@ static void spis_init()
 #else
 // TODO: fix Pin Mux
 #ifdef USE_PIN_MUX
+
+  ASSERT(NUM_SPI <= sizeof(ssi_rx_pin)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(ssi_tx_pin)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(ssi_clk_pin)/sizeof(u32));
 
 #error Debug: USE_PIN_MUX is on
 // TODO: Instead should probably do pin configure first time actually setup a SPI port (so don't configure unused ports)
@@ -988,6 +1005,10 @@ static const i2c_sda_pin[] = {};
 // FIXME: just copied from others, need to check documents
 static void I2Cs_init()
 {
+  ASSERT(NUM_I2C <= sizeof(i2c_base)/sizeof(u32));
+  ASSERT(NUM_I2C <= sizeof(i2c_sysctl)/sizeof(u32));
+  ASSERT(NUM_I2C <= sizeof(i2c_gpio_base)/sizeof(u32));
+
   unsigned i;
   for( i = 0; i < NUM_I2C; i ++ )
     MAP_SysCtlPeripheralEnable(i2c_sysctl[ i ]);
@@ -1129,8 +1150,8 @@ static const u32 uart_gpiofunc[] = {
 
 #else
 
-const u32 uart_base[] = { 	UART0_BASE, UART1_BASE, UART2_BASE, UART3_BASE, 
-      				UART4_BASE, UART5_BASE, UART6_BASE, UART7_BASE };
+const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE, UART3_BASE, 
+      				            UART4_BASE, UART5_BASE, UART6_BASE, UART7_BASE };
 static const u32 uart_sysctl[] = { 
 	SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2, SYSCTL_PERIPH_UART3, 
 	SYSCTL_PERIPH_UART4, SYSCTL_PERIPH_UART5, SYSCTL_PERIPH_UART6, SYSCTL_PERIPH_UART7 };
@@ -1179,10 +1200,13 @@ static const u32 uart_gpiofunc[] = { GPIO_PA0_U0RX, GPIO_PA1_U0TX, GPIO_PD2_U1RX
 static void uarts_init()
 {
   unsigned i;
+
+  ASSERT(NUM_UART <= sizeof(uart_sysctl)/sizeof(u32));
+  ASSERT(NUM_UART <= sizeof(uart_base)/sizeof(u32));
+  ASSERT(NUM_UART <= sizeof(uart_gpio_base)/sizeof(u32));
+  
   for( i = 0; i < NUM_UART; i ++ )
     MAP_SysCtlPeripheralEnable(uart_sysctl[ i ]);
-
-
 }
 
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
@@ -1273,8 +1297,8 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 
 #if defined( FORTM4C1294)
 
-const u32 timer_base[] = { 	TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, 
-					TIMER3_BASE, TIMER4_BASE, TIMER5_BASE, TIMER6_BASE, TIMER7_BASE };
+const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE, 
+                           TIMER4_BASE, TIMER5_BASE, TIMER6_BASE, TIMER7_BASE };
 
 static const u32 timer_sysctl[] = { 
 	SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, 
@@ -1775,7 +1799,9 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
 
 #else
   unsigned i, min_i;
-
+  
+  ASSERT(sizeof(pwm_div_ctl)/sizeof(u32) == sizeof(pwm_div_data)/sizeof(u8));
+  
   for( i = min_i = 0; i < sizeof( pwm_div_data ) / sizeof( u8 ); i ++ )
     if( ABSDIFF( clock, clockfreq / pwm_div_data[ i ] ) < ABSDIFF( clock, clockfreq / pwm_div_data[ min_i ] ) )
       min_i = i;
@@ -1792,7 +1818,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 {
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
-  
+
 #if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F )
   MAP_GPIOPinConfigure( pwm_configs[ id ] );
 #endif
@@ -2024,7 +2050,11 @@ static void adcs_init()
 {
   unsigned id;
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
-  
+
+  ASSERT(NUM_ADC <= sizeof(adc_ports)/sizeof(u32));
+  ASSERT(NUM_ADC <= sizeof(adc_pins)/sizeof(adc_pins[0]));
+  ASSERT(NUM_ADC <= sizeof(adc_ctls)/sizeof(u32));
+
   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 
   // Try ramping up max sampling rate
@@ -2210,6 +2240,9 @@ const static u32 comp_ref_codes[] = {};	// Codes used by library
 
 static void comps_init()
 {
+  ASSERT(NUM_CMP <= sizeof(comp_in_ports)/sizeof(u32));
+  ASSERT(NUM_CMP <= sizeof(comp_out_ports)/sizeof(u32));
+
   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_COMP0);
 }
 
@@ -3203,6 +3236,7 @@ LUALIB_API int luaopen_platform( lua_State *L )
 void
 __error__(char *pcFilename, unsigned long ulLine)
 {
+//  printf("Error in file %s, line %lu\n", pcFilename, ulLine);
 }
 #endif
 
