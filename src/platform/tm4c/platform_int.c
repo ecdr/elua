@@ -37,6 +37,8 @@
 #define GPIO_INT_POSEDGE_ENABLED        1
 #define GPIO_INT_NEGEDGE_ENABLED        2
 #define GPIO_INT_BOTH_ENABLED           ( GPIO_INT_POSEDGE_ENABLED | GPIO_INT_NEGEDGE_ENABLED )
+//#define GPIO_INT_HIGH_ENABLED         4
+//#define GPIO_INT_LOW_ENABLED          8  
 
 // ****************************************************************************
 // Interrupt handlers
@@ -194,7 +196,7 @@ static void gpio_common_handler( int port )
         cmn_int_handler( INT_GPIO_POSEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
       else if( ( ibe & pinmask ) || !( iev & pinmask ) ) // low level and negedge interrupt enabled
         cmn_int_handler( INT_GPIO_NEGEDGE, PLATFORM_IO_ENCODE( port, pin, 0 ) );
-      HWREG( base + GPIO_O_ICR ) = pinmask;
+      HWREG( base + GPIO_O_ICR ) = pinmask;   // Clear the interrupt
     }
 }
 
@@ -362,14 +364,31 @@ void tmr11_handler()
 // ****************************************************************************
 // Helpers
 
-// Get GPIO interrupt status as a mask
+// return non-zero if int enabled for this port/pin.
+static int gpio_int_enabled( u32 portbase, u8 pinmask)
+{
+  return ( HWREG( portbase + GPIO_O_IM ) & pinmask );
+}
+
+// Return which interrupt type(s) are enabled for the port and pin indicated by resnum
 static int inth_gpio_get_int_status( elua_int_resnum resnum )
 {
   const u32 portbase = pio_base[ PLATFORM_IO_GET_PORT( resnum ) ];
   const u8 pinmask = 1 << PLATFORM_IO_GET_PIN( resnum );
 
-  if( ( HWREG( portbase + GPIO_O_IM ) & pinmask ) == 0 )
+  if( gpio_int_enabled( portbase, pinmask ) == 0 )
     return 0;
+/* // Rest of this could be done with a driverlib call
+// Int are enabled, return what type of interrupt(s)
+  switch (MAP_GPIOIntTypeGet(portbase, PLATFORM_IO_GET_PIN( resnum ))) {
+    case GPIO_FALLING_EDGE: return GPIO_INT_NEGEDGE_ENABLED;
+    case GPIO_RISING_EDGE:  return GPIO_INT_POSEDGE_ENABLED;
+    case GPIO_BOTH_EDGES:   return GPIO_INT_BOTH_ENABLED;
+    case GPIO_LOW_LEVEL:
+    case GPIO_HIGH_LEVEL:
+    default: 
+  }
+*/
   if( ( HWREG( portbase + GPIO_O_IBE ) & pinmask ) != 0 )
     return GPIO_INT_BOTH_ENABLED;
   else if( ( HWREG( portbase + GPIO_O_IEV ) & pinmask ) != 0 )
@@ -415,7 +434,7 @@ static int int_gpio_posedge_get_status( elua_int_resnum resnum )
   int port = PLATFORM_IO_GET_PORT( resnum ), pin = PLATFORM_IO_GET_PIN( resnum );
   unsigned long type;
 
-  if( ( HWREG( pio_base[ port ] + GPIO_O_IM ) & ( 1 << pin ) ) == 0 )
+  if( gpio_int_enabled( pio_base[ port ], ( 1 << pin ) ) == 0 )
     return 0;
   type = MAP_GPIOIntTypeGet( pio_base[ port ], pin );   
   return ( type == GPIO_RISING_EDGE || type == GPIO_BOTH_EDGES ) ? 1 : 0;
@@ -440,7 +459,7 @@ static int int_gpio_posedge_set_status( elua_int_resnum resnum, int status )
   }
   else
   {
-    // If configured for both, enable only falling edge
+    // If configured for both, leave only falling enabled
     // Otherwise disable interrupts completely
     if( crtstat == GPIO_INT_BOTH_ENABLED )
     {
@@ -477,7 +496,7 @@ static int int_gpio_negedge_get_status( elua_int_resnum resnum )
   int port = PLATFORM_IO_GET_PORT( resnum ), pin = PLATFORM_IO_GET_PIN( resnum );
   unsigned long type;
 
-  if( ( HWREG( pio_base[ port ] + GPIO_O_IM ) & ( 1 << pin ) ) == 0 )
+  if( gpio_int_enabled( pio_base[ port ], ( 1 << pin ) ) == 0 )
     return 0;
   type = MAP_GPIOIntTypeGet( pio_base[ port ], pin );   
   return ( type == GPIO_FALLING_EDGE || type == GPIO_BOTH_EDGES ) ? 1 : 0;
