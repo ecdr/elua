@@ -91,7 +91,7 @@ The relationship between a module and its implementation on a particular platfor
 | _LM4F230       | _sok  | _snt  | _sok   | _snt  | _snt  | _sna  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _sni
 | _TM4C1233      | _snt  | _snt  | _snt   | _snt  | _snt  | _sna  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _sni
 | _TM4C123G      | _snt  | _snt  | _snt   | _snt  | _snt  | _sna  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _sni
-| _TM4C1294      | _sok  | _snt  | _snt   | _snt  | _snt  | _snt  | _snt  | _snt  | _snt  | _sok  | _sok  | _snt  | _snt  | _snt  | _snt  | _sni
+| _TM4C1294      | _sok  | _snt  | _snt   | _snt  | _snt  | _snt  | _sok  | _snt  | _sok  | _sok  | _sok  | _snt  | _snt  | _snt  | _snt  | _sni
 | _AT32UC3A0128  | _sok  | _sok  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sok  | _sok
 | _AT32UC3A0256  | _sok  | _sok  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sok  | _sok
 | _AT32UC3A0512  | _sok  | _sok  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sok  | _sok
