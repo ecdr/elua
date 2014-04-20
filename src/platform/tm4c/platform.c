@@ -745,13 +745,9 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 #if NUM_SPI > 0
 
-// LM4F120 has 4 SPIs - need way to specify how many to use
+// TODO: LM4F120 has 4 SPIs - need way to specify how many to use
 
-// Think I fixed the defines, but haven't looked at the code to see if anything needs adapting for LM4F.
-// FIXME: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
-//  Port D, uses same pins as SSI3
-//  Port F, uses pins connected to buttons and LED
-//
+// TODO: Think I fixed the defines, but haven't looked at the code to see if anything needs adapting for LM4F.
 
 #if defined( FORLM4F )
 
@@ -767,6 +763,7 @@ static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1,
 //  PIN info extracted from LM3S6950 and 5769 datasheets
 static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE };
 static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
+
 #endif // defined( FORLM4F )
 
 
@@ -799,6 +796,10 @@ static const u8  spi_gpio_fss_pin[] =
 
 #elif defined( FORLM4F )
 
+// TODO: LM4F120 can map SSI 1 to either port D or port F (check code to see implications)
+//  Port D, uses same pins as SSI3
+//  Port F, uses pins connected to buttons and LED
+
 // PIN information from LM4F120H5QR Datasheet
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, 
                                      GPIO_PORTB_BASE, GPIO_PORTD_BASE };
@@ -808,6 +809,7 @@ static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5,
                                     GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3,
   };
 //                                  SSIxClk       SSIxRx       SSIxTx
+
 static const u32 spi_gpio_clk_base[] = 
   { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
 static const u8 spi_gpio_clk_pin[] = 
@@ -833,10 +835,11 @@ static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE };
 static const u8 spi_gpio_pins[] = { GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
                                     GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 };
 //                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
+
 static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE };
 static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
 
-// TODO: Add fss?
+// TODO: Add fss (if it exists for these processors)?
 
 #endif // defined( ELUA_BOARD_SOLDERCORE )
 
