@@ -777,13 +777,15 @@ static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
 // Note: SSI1 is split, some pins on port B, some on port E PB5/PB4 PE4/PE5
 
 // TODO: Pin Map - SSI3 chose between portQ and portF
+// SSI3 alternate - clock: PQ0, FSS: PQ1, TX: PQ2, RX: PQ3
 
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE,
                                      GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
-static const u8  spi_gpio_pins[] = { GPIO_PIN_2 |              GPIO_PIN_4 | GPIO_PIN_5,
-                                                               GPIO_PIN_5 | GPIO_PIN_4 ,
-                                     GPIO_PIN_0 |              GPIO_PIN_2 | GPIO_PIN_3,
-                                     GPIO_PIN_0 |              GPIO_PIN_2 | GPIO_PIN_3 };
+static const u8  spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5,
+                                                  GPIO_PIN_5 | GPIO_PIN_4,
+                                     GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3,
+                                     GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3 };
+//                                    SSIxClk       SSIxRx       SSIxTx
 
 static const u32 spi_gpio_clk_base[] = 
   { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
@@ -800,14 +802,12 @@ static const u8  spi_gpio_fss_pin[] =
 // PIN information from LM4F120H5QR Datasheet
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, 
                                      GPIO_PORTB_BASE, GPIO_PORTD_BASE };
-static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
-                                    GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_0 | GPIO_PIN_1,
-                                    GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7,
-                                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
+static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5,
+                                    GPIO_PIN_2 | GPIO_PIN_0 | GPIO_PIN_1,
+                                    GPIO_PIN_4 | GPIO_PIN_6 | GPIO_PIN_7,
+                                    GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3,
   };
-// FIXME: Remove FSS pins from above
-
-//                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
+//                                  SSIxClk       SSIxRx       SSIxTx
 static const u32 spi_gpio_clk_base[] = 
   { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
 static const u8 spi_gpio_clk_pin[] = 
