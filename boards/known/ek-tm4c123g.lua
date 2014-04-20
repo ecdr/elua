@@ -14,13 +14,14 @@ return {
     romfs = true,
     shell = true,
     term = { lines = 25, cols = 80 },
-    linenoise = { shell_lines = 3, lua_lines = 10 }, -- was 10/50 on mbed
+    linenoise = { shell_lines = 3, lua_lines = 10 },
     cints = true,
     lm3s_pio = true,
     rpc = { uart = 0, speed = 115200 },
     adc = { buf_size = 2 },
 --    comp = true,
     xmodem = true,
+--    mmcfs = { spi = 2, cs_port = 0, cs_pin = 3 },
   },
   config = {
     vtmr = { num = 4, freq = 4 },
@@ -29,7 +30,6 @@ return {
   },
   modules = {
     generic = { 'all', '-i2c', '-net' },
-	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
     platform = 'all'
   },
   macros = { 

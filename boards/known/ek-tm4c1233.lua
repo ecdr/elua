@@ -9,22 +9,19 @@ return {
     romfs = true,
     shell = true,
     term = { lines = 25, cols = 80 },
--- Fixme: Testing, I thought it had line editor before, maybe this is why gone?
     linenoise = { shell_lines = 3, lua_lines = 10 }, -- was 10/50 on mbed
     cints = true,
-    luaints = true,	-- Not set by default, think have it working now
+    luaints = true,
     lm3s_pio = true,
 
     rpc = { uart = 0, speed = 115200 },
     adc = { buf_size = 2 },	-- Not sure about this
     xmodem = true,
--- MMCFS works (No MMC slot on board, but can use boosterpack)
--- ToDo: Was pin 6 for earlier trial, pin 3 replaces FSS  I think code doesn't use FSS, but check that
---    mmcfs = { spi = 0, cs_port = 0, cs_pin = 3 },	
+--    mmcfs = { spi = 2, cs_port = 0, cs_pin = 3 }, -- TODO: Check that pins match boosterpack
   },
   config = {
---    vtmr = { num = 4, freq = 4 },
-    vtmr = false,
+    vtmr = { num = 4, freq = 4 },
+--    vtmr = false,
     tm4c_unlock_nmi = true, 	-- Allow use of PF0 and PD7 as GPIO pins
 --    tm4c_target = { revision = A3 },
   },
@@ -40,6 +37,7 @@ return {
      { "TARGET_IS_TM4C123_RA0", ""},  -- Todo: make platform component to handle target revisions
      { "UART_ALT_CLOCK", ""},     
 --     { "BUILD_COMP", ""},
+     { "DEBUG", ""}, -- Extra checks
   },
   build = {
     target = "lualong"			-- Integer only to conserve memory

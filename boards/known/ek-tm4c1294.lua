@@ -25,13 +25,16 @@ return {
 --    dns = true,
 --    dhcp = true,
     xmodem = true,
---    mmcfs = { spi = 2, cs_port = 7, cs_pin = 2 }, -- SSI 2 on Booster pack 1 (TODO: what chip select makes sense?)
---    mmcfs = { spi = 3, cs_port = 15, cs_pin = 5 }, -- SSI 3 on Booster pack 2 (TODO: what chip select makes sense?)
+--    mmcfs = { spi = 2, cs_port = 13, cs_pin = 3 }, -- SSI 2 on Booster pack 1 (FSS not connected to BP 1)
+-- TODO: what chip select makes sense? (CS Wireless is PH2, CS Display is PN2, CS Other is PN3)
+--    mmcfs = { spi = 3, cs_port = 16, cs_pin = 1 }, -- SSI 3 on Booster pack 2 
+-- TODO: what chip select makes sense? (CS Wireless is PP5, CS Display is PP3, CS Other is PQ1 (FSS))
   },
   config = {
     vtmr = { num = 4, freq = 4 },
+--    tm4c_unlock_nmi = true, 	-- Allow use of PD7 as GPIO pin
     clocks = { cpu = 120000000 },
---    tm4c_target = { revision = A1 },
+--    tm4c_target = { revision = A0 },
   },
   modules = {
     generic = { 'all', '-i2c', '-net' },
