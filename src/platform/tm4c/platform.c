@@ -137,6 +137,10 @@ static void i2cs_init();
 
 unsigned long clockfreq;
 
+#ifdef DEBUG  
+BOOL consoleinited = false;
+#endif
+
 int platform_init()
 {
   // Set the clocking to run from PLL
@@ -247,7 +251,10 @@ int platform_init()
   
   // Common platform initialization code
   cmn_platform_init();
-
+#ifdef DEBUG
+// Console has been set up now, so can print error messages for assertion failures, etc.
+  consoleinited = true;
+#endif
 
   // Virtual timers
   // If the ethernet controller is used the timer is already initialized, so skip this sequence
@@ -747,7 +754,7 @@ int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 
 // TODO: LM4F120 has 4 SPIs - need way to specify how many to use
 
-// TODO: Think I fixed the defines, but haven't looked at the code to see if anything needs adapting for LM4F.
+// TODO: Fixed the defines, but haven't looked at the code to see if anything needs adapting for LM4F/TM4C.
 
 #if defined( FORLM4F )
 
@@ -778,10 +785,10 @@ static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
 
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE,
                                      GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
-static const u8  spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5,
+static const u8  spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_5 | GPIO_PIN_4,
                                                   GPIO_PIN_5 | GPIO_PIN_4,
-                                     GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3,
-                                     GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3 };
+                                     GPIO_PIN_3 | GPIO_PIN_0 | GPIO_PIN_1,
+                                     GPIO_PIN_0 | GPIO_PIN_3 | GPIO_PIN_2};
 //                                    SSIxClk       SSIxRx       SSIxTx
 
 static const u32 spi_gpio_clk_base[] = 
@@ -789,10 +796,12 @@ static const u32 spi_gpio_clk_base[] =
 static const u8  spi_gpio_clk_pin[] = 
   { GPIO_PIN_2,      GPIO_PIN_5,      GPIO_PIN_3,      GPIO_PIN_0 };
 
+// Note: While SSI2 is SPI for BoosterPack 1 connector, PD2 is on BoosterPack2 connector
+// SSI3 is SPI for BoosterPack 2 connector, FSS (PQ1) is "CS Other" on that connector
 static const u32 spi_gpio_fss_base[] = 
   { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
 static const u8  spi_gpio_fss_pin[] = 
-  { GPIO_PIN_3,      GPIO_PIN_4,      GPIO_PIN_1,      GPIO_PIN_1 };
+  { GPIO_PIN_3,      GPIO_PIN_4,      GPIO_PIN_2,      GPIO_PIN_1 };
 
 #elif defined( FORLM4F )
 
@@ -816,9 +825,9 @@ static const u8 spi_gpio_clk_pin[] =
   { GPIO_PIN_2,      GPIO_PIN_2,      GPIO_PIN_4,      GPIO_PIN_0};
 
 static const u32 spi_gpio_fss_base[] = 
-  { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
+  { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
 static const u8  spi_gpio_fss_pin[] = 
-  { GPIO_PIN_3,      GPIO_PIN_4,      GPIO_PIN_1,      GPIO_PIN_1 };
+  { GPIO_PIN_3,      GPIO_PIN_3,      GPIO_PIN_5,      GPIO_PIN_1 };
   
 #elif defined( ELUA_BOARD_SOLDERCORE )
 
@@ -869,13 +878,13 @@ static const u32 ssi_fss_pin[] =
 #elif defined( FORLM4F )
 
 static const u32 ssi_rx_pin[] =  
-  {GPIO_PA4_SSI0RX,  GPIO_PD3_SSI1TX,  GPIO_PB7_SSI2TX,  GPIO_PD3_SSI3TX };
+  {GPIO_PA4_SSI0RX,  GPIO_PF0_SSI1RX,  GPIO_PB6_SSI2RX,  GPIO_PD2_SSI3RX };
 static const u32 ssi_tx_pin[] =  
-  {GPIO_PA5_SSI0TX,  GPIO_PD2_SSI1RX,  GPIO_PB6_SSI2RX,  GPIO_PD2_SSI3RX };
+  {GPIO_PA5_SSI0TX,  GPIO_PF1_SSI1TX,  GPIO_PB7_SSI2TX,  GPIO_PD3_SSI3TX };
 static const u32 ssi_clk_pin[] = 
-  {GPIO_PA2_SSI0CLK, GPIO_PD0_SSI1CLK, GPIO_PB4_SSI2CLK, GPIO_PD0_SSI3CLK};
+  {GPIO_PA2_SSI0CLK, GPIO_PF2_SSI1CLK, GPIO_PB4_SSI2CLK, GPIO_PD0_SSI3CLK};
 static const u32 ssi_fss_pin[] = 
-  {GPIO_PA3_SSI0FSS, GPIO_PD1_SSI1FSS, GPIO_PB5_SSI2FSS, GPIO_PD1_SSI3FSS};
+  {GPIO_PA3_SSI0FSS, GPIO_PF3_SSI1FSS, GPIO_PB5_SSI2FSS, GPIO_PD1_SSI3FSS};
 
 /*
 GPIO_PB4_SSI2CLK  (also CAN0RX)
@@ -977,7 +986,7 @@ void platform_spi_select( unsigned id, int is_select )
 {
 #ifdef SSI_USE_FSS
 
-#warning SSI: Need to add code to handle FSS
+  // FIXME: Not sure if there is anything to do here to manage FSS
 
 #else
   // This platform doesn't have a hardware SS pin, so there's nothing to do here
@@ -1353,7 +1362,7 @@ int platform_s_uart_set_flow_control( unsigned id, int type )
 #define TIMER_MAX_COUNT	0xFFFFFFFF
 
 
-#if defined( FORTM4C1294)
+#if defined( FORTM4C1294 )
 
 const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE, 
                            TIMER4_BASE, TIMER5_BASE, TIMER6_BASE, TIMER7_BASE };
@@ -1805,8 +1814,9 @@ static void pwms_init()
   
   MAP_SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
 
-  for ( i = 0; i < NUM_PWM; i++)
-    MAP_PWMGenConfigure( pwm_base[i >> 3], pwm_gens[ i >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+//  for ( i = 0; i < NUM_PWM; i++)
+//    MAP_PWMGenConfigure( pwm_base[i >> 3], pwm_gens[ i >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+   
 // PWMGenConfigure was in platform_pwm_setup, and it seemed to work on EK-LM3S8962
 // However the Stellarisware documentation says that it leaves the generator disabled.
 // The Stellarisware code does not appear to disable the generator (version 9453)
@@ -1903,10 +1913,13 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 
   // Set pin as PWM
   MAP_GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
+
+  MAP_PWMGenConfigure( pwm_base[id >> 3], pwm_gens[ id >> 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+
   // Compute period
   period = pwmclk / frequency;
   // Set the period
-
+    
   MAP_PWMGenPeriodSet( pwm_base[id >> 3], pwm_gens[ id >> 1 ], period );
   // Set duty cycle
   MAP_PWMPulseWidthSet( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], ( period * duty ) / 100 );
@@ -2014,15 +2027,16 @@ void platform_pwm_stop( unsigned id )
 
 #define ADC_PIN_CONFIG
 
-// ToDo: Have 2 ADC, could figure how to split the work
-// ToDo: Not sure how many ADC ints should have.  (Is it one per ADC or ?)
-
 #else
 
 const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3 };
 #endif
 
+// ToDo: Have 2 ADC, could figure how to split the work
+// ToDo: Not sure how many ADC ints should have.  (Is it one per ADC or ?)
+
 const static u32 adc_ints[] = { INT_ADC0SS0, INT_ADC0SS1, INT_ADC0SS2, INT_ADC0SS3 };
+
 
 //ToDo: Add error checking for NUM_ADC
 //#if (NUM_ADC > sizeof(adc_ctls)/sizeof(u32))
@@ -3289,13 +3303,14 @@ LUALIB_API int luaopen_platform( lua_State *L )
 
 
 // Assertion failure error handler
-// TODO: Give feedback on console, and place for breakpoint for debugging
+// give feedback on console (if it has been setup), and place for breakpoint for debugging
 
 #ifdef DEBUG
 void
 __error__(char *pcFilename, unsigned long ulLine)
 {
-  printf("Error in file %s, line %lu\n", pcFilename, ulLine);
+  if (consoleinited)
+    printf("Error in file %s, line %lu\n", pcFilename, ulLine);
 }
 #endif
 

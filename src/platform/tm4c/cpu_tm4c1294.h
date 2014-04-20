@@ -128,6 +128,7 @@ extern unsigned long clockfreq;
 // #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
 // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
 //                              A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T
+//                              0  1  2  3  4  5  6  7     9 10 11 12 13    15 16 17 18 19
 #define PIO_PIN_ARRAY         { 8, 6, 8, 8, 6, 5, 2, 4, 0, 2, 8, 8, 8, 2, 0, 6, 5 }
 
 // Note: Letter assignments for ports are not contiguous, use 0 to indicate unused port letter
