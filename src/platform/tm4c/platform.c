@@ -774,20 +774,26 @@ static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
 
 #if defined( FORTM4C1294 )
 
-// FIXME: SSI1 is split, some pins on port B, some on port E PB5/PB4 PE4/PE5
-#warning TM4C1294 - SSI1 not implemented yet - need to fix pin mapping
+// Note: SSI1 is split, some pins on port B, some on port E PB5/PB4 PE4/PE5
 
 // TODO: Pin Map - SSI3 chose between portQ and portF
 
-static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE,
+static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE,
                                      GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
-static const u8  spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
-                                     GPIO_PIN_4 | GPIO_PIN_5,
-                                     GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
-                                     GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 };
-static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE,
-                                     GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
-static const u8  spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_5, GPIO_PIN_3, GPIO_PIN_0 };
+static const u8  spi_gpio_pins[] = { GPIO_PIN_2 |              GPIO_PIN_4 | GPIO_PIN_5,
+                                                               GPIO_PIN_5 | GPIO_PIN_4 ,
+                                     GPIO_PIN_0 |              GPIO_PIN_2 | GPIO_PIN_3,
+                                     GPIO_PIN_0 |              GPIO_PIN_2 | GPIO_PIN_3 };
+
+static const u32 spi_gpio_clk_base[] = 
+  { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
+static const u8  spi_gpio_clk_pin[] = 
+  { GPIO_PIN_2,      GPIO_PIN_5,      GPIO_PIN_3,      GPIO_PIN_0 };
+
+static const u32 spi_gpio_fss_base[] = 
+  { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
+static const u8  spi_gpio_fss_pin[] = 
+  { GPIO_PIN_3,      GPIO_PIN_4,      GPIO_PIN_1,      GPIO_PIN_1 };
 
 #elif defined( FORLM4F )
 
@@ -798,12 +804,20 @@ static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_
                                     GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_0 | GPIO_PIN_1,
                                     GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7,
                                     GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
- };
+  };
+// FIXME: Remove FSS pins from above
+
 //                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
-static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
-static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_2, GPIO_PIN_4, GPIO_PIN_0};
+static const u32 spi_gpio_clk_base[] = 
+  { GPIO_PORTA_BASE, GPIO_PORTF_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE };
+static const u8 spi_gpio_clk_pin[] = 
+  { GPIO_PIN_2,      GPIO_PIN_2,      GPIO_PIN_4,      GPIO_PIN_0};
 
-
+static const u32 spi_gpio_fss_base[] = 
+  { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTD_BASE, GPIO_PORTQ_BASE };
+static const u8  spi_gpio_fss_pin[] = 
+  { GPIO_PIN_3,      GPIO_PIN_4,      GPIO_PIN_1,      GPIO_PIN_1 };
+  
 #elif defined( ELUA_BOARD_SOLDERCORE )
 
 static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTF_BASE };
@@ -821,6 +835,9 @@ static const u8 spi_gpio_pins[] = { GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
 //                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
 static const u32 spi_gpio_clk_base[] = { GPIO_PORTA_BASE, GPIO_PORTE_BASE };
 static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
+
+// TODO: Add fss?
+
 #endif // defined( ELUA_BOARD_SOLDERCORE )
 
 
@@ -837,17 +854,25 @@ static const u32 ssi_clk_pin[] = { GPIO_PH4_SSI1CLK };
 // ToDo: Need general pin mux handling
 #elif defined( FORTM4C1294 )
 
-static const u32 ssi_rx_pin[] =  {GPIO_PA4_SSI0XDAT0,  GPIO_PE4_SSI1XDAT0,  GPIO_PD1_SSI2XDAT0,  GPIO_PQ2_SSI3XDAT0 };
-static const u32 ssi_tx_pin[] =  {GPIO_PA5_SSI0XDAT1,  GPIO_PE5_SSI1XDAT1,  GPIO_PD0_SSI2XDAT1,  GPIO_PQ3_SSI3XDAT1 };
-static const u32 ssi_clk_pin[] = {GPIO_PA2_SSI0CLK, GPIO_PB5_SSI1CLK, GPIO_PD3_SSI2CLK, GPIO_PQ0_SSI3CLK};
-static const u32 ssi_fss_pin[] = {GPIO_PA3_SSI0FSS, GPIO_PB4_SSI1FSS, GPIO_PD2_SSI2FSS, GPIO_PQ1_SSI3FSS};
+static const u32 ssi_rx_pin[] =  
+  {GPIO_PA4_SSI0XDAT0,  GPIO_PE4_SSI1XDAT0,  GPIO_PD1_SSI2XDAT0,  GPIO_PQ2_SSI3XDAT0 };
+static const u32 ssi_tx_pin[] =  
+  {GPIO_PA5_SSI0XDAT1,  GPIO_PE5_SSI1XDAT1,  GPIO_PD0_SSI2XDAT1,  GPIO_PQ3_SSI3XDAT1 };
+static const u32 ssi_clk_pin[] = 
+  {GPIO_PA2_SSI0CLK, GPIO_PB5_SSI1CLK, GPIO_PD3_SSI2CLK, GPIO_PQ0_SSI3CLK};
+static const u32 ssi_fss_pin[] = 
+  {GPIO_PA3_SSI0FSS, GPIO_PB4_SSI1FSS, GPIO_PD2_SSI2FSS, GPIO_PQ1_SSI3FSS};
 
 #elif defined( FORLM4F )
 
-static const u32 ssi_rx_pin[] =  {GPIO_PA4_SSI0RX,  GPIO_PD3_SSI1TX,  GPIO_PB7_SSI2TX,  GPIO_PD3_SSI3TX };
-static const u32 ssi_tx_pin[] =  {GPIO_PA5_SSI0TX,  GPIO_PD2_SSI1RX,  GPIO_PB6_SSI2RX,  GPIO_PD2_SSI3RX };
-static const u32 ssi_clk_pin[] = {GPIO_PA2_SSI0CLK, GPIO_PD0_SSI1CLK, GPIO_PB4_SSI2CLK, GPIO_PD0_SSI3CLK};
-static const u32 ssi_fss_pin[] = {GPIO_PA3_SSI0FSS, GPIO_PD1_SSI1FSS, GPIO_PB5_SSI2FSS, GPIO_PD1_SSI3FSS};
+static const u32 ssi_rx_pin[] =  
+  {GPIO_PA4_SSI0RX,  GPIO_PD3_SSI1TX,  GPIO_PB7_SSI2TX,  GPIO_PD3_SSI3TX };
+static const u32 ssi_tx_pin[] =  
+  {GPIO_PA5_SSI0TX,  GPIO_PD2_SSI1RX,  GPIO_PB6_SSI2RX,  GPIO_PD2_SSI3RX };
+static const u32 ssi_clk_pin[] = 
+  {GPIO_PA2_SSI0CLK, GPIO_PD0_SSI1CLK, GPIO_PB4_SSI2CLK, GPIO_PD0_SSI3CLK};
+static const u32 ssi_fss_pin[] = 
+  {GPIO_PA3_SSI0FSS, GPIO_PD1_SSI1FSS, GPIO_PB5_SSI2FSS, GPIO_PD1_SSI3FSS};
 
 /*
 GPIO_PB4_SSI2CLK  (also CAN0RX)
@@ -858,6 +883,9 @@ GPIO_PF1_SSI1TX
 GPIO_PF2_SSI1CLK
 GPIO_PF3_SSI1FSS  (also CAN0TX)
 */
+#elif defined( USE_PIN_MUX )
+
+#error USE_PIN_MUX defined, but no pin mappings for this CPU
 
 #endif
 
@@ -890,10 +918,13 @@ static void spis_init()
     MAP_GPIOPinConfigure(ssi_rx_pin[i]);
     MAP_GPIOPinConfigure(ssi_tx_pin[i]);
     MAP_GPIOPinConfigure(ssi_clk_pin[i]);
-//    MAP_GPIOPinConfigure(ssi_fss_pin[i]);
+#ifdef SSI_USE_FSS
+    MAP_GPIOPinConfigure(ssi_fss_pin[i]);
+#endif
   };
-#endif
-#endif
+#endif // USE_PIN_MUX
+
+#endif // ELUA_BOARD_SOLDERCORE
 
   for( i = 0; i < NUM_SPI; i ++ )
     MAP_SysCtlPeripheralEnable( spi_sysctl[ i ] );
@@ -913,12 +944,19 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
 
   MAP_GPIOPinTypeSSI( spi_gpio_base[ id ], spi_gpio_pins[ id ] );
   MAP_GPIOPinTypeSSI( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ] );
+#ifdef SSI_USE_FSS
+  MAP_GPIOPinTypeSSI( spi_gpio_fss_base[ id ], spi_gpio_fss_pin[ id ] );
+#endif
 
   // FIXME: not sure this is always "right"
   MAP_GPIOPadConfigSet( spi_gpio_base[ id ], spi_gpio_pins[ id ], 
     GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
   MAP_GPIOPadConfigSet( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ],
     GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
+#ifdef SSI_USE_FSS
+  MAP_GPIOPadConfigSet( spi_gpio_fss_base[ id ], spi_gpio_fss_pin[ id ],
+    GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
+#endif
 
   MAP_SSIConfigSetExpClk( spi_base[ id ], clockfreq, protocol, mode, clock, databits );
   MAP_SSIEnable( spi_base[ id ] );
@@ -934,9 +972,15 @@ spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
 
 void platform_spi_select( unsigned id, int is_select )
 {
+#ifdef SSI_USE_FSS
+
+#warning SSI: Need to add code to handle FSS
+
+#else
   // This platform doesn't have a hardware SS pin, so there's nothing to do here
   id = id;
   is_select = is_select;
+#endif
 }
 
 #endif // NUM_SPI > 0
