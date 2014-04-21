@@ -1068,11 +1068,10 @@ static const u32 i2c_sda_pin[] = {};
 // FIXME: just copied from others, need to check documents
 static void I2Cs_init()
 {
-  ASSERT(NUM_I2C <= sizeof(i2c_base)/sizeof(u32));
-  ASSERT(NUM_I2C <= sizeof(i2c_sysctl)/sizeof(u32));
-  ASSERT(NUM_I2C <= sizeof(i2c_gpio_base)/sizeof(u32));
-
   unsigned i;
+
+  ASSERT(NUM_I2C <= sizeof(i2c_sysctl)/sizeof(u32));
+
   for( i = 0; i < NUM_I2C; i ++ )
     MAP_SysCtlPeripheralEnable(i2c_sysctl[ i ]);
 }
@@ -1082,6 +1081,10 @@ static void I2Cs_init()
 // Not finished - needs to enable I2C, needs to figure out speed, clock should be from cache
 u32 platform_i2c_setup( unsigned id, u32 speed )
 {
+  ASSERT(NUM_I2C <= sizeof(i2c_base)/sizeof(u32));
+  ASSERT(NUM_I2C <= sizeof(i2c_gpio_base)/sizeof(u32));
+  ASSERT(NUM_I2C <= sizeof(i2c_gpio_pins)/sizeof(u8));
+
   //FIXME: Pin mux - may not need for all parts
 
 #ifdef USE_PIN_MUX
@@ -1275,8 +1278,7 @@ static void uarts_init()
   unsigned i;
 
   ASSERT(NUM_UART <= sizeof(uart_sysctl)/sizeof(u32));
-  ASSERT(NUM_UART <= sizeof(uart_base)/sizeof(u32));
-  ASSERT(NUM_UART <= sizeof(uart_gpio_base)/sizeof(u32));
+
   
   for( i = 0; i < NUM_UART; i ++ )
     MAP_SysCtlPeripheralEnable(uart_sysctl[ i ]);
@@ -1285,6 +1287,9 @@ static void uarts_init()
 u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
 {
   u32 config;
+  ASSERT(NUM_UART <= sizeof(uart_base)/sizeof(u32));
+  ASSERT(NUM_UART <= sizeof(uart_gpio_base)/sizeof(u32));
+
 // FIXME: This may need to disable interrupts and then restore them to previous state
 // Or at least throw an error if UART interrupt enabled when this called
 // TODO: What about setting FIFO Int size (check int code).
@@ -1360,6 +1365,7 @@ int platform_s_uart_recv( unsigned id, timer_data_type timeout )
   return MAP_UARTCharGet( base );
 }
 
+// TODO: Add support for flow control
 int platform_s_uart_set_flow_control( unsigned id, int type )
 {
   return PLATFORM_ERR;
@@ -1897,6 +1903,9 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
 
+  ASSERT(NUM_PWM <= sizeof(pwm_ports)/sizeof(u32));
+  ASSERT(NUM_PWM <= sizeof(pwm_pins)/sizeof(u8));
+
 #ifdef USE_PIN_MUX
   ASSERT(NUM_PWM <= sizeof(pwm_configs)/sizeof(u32));
 
@@ -1923,9 +1932,6 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   MAP_TimerMatchSet( pwm_timer_base[id], TIMER_A, ( period * duty ) / 100);
 #else
 
-  ASSERT(NUM_PWM <= sizeof(pwm_ports)/sizeof(u32));
-  ASSERT(NUM_PWM <= sizeof(pwm_pins)/sizeof(u8));
-
   // Set pin as PWM
   MAP_GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
 
@@ -1948,8 +1954,7 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
 void platform_pwm_start( unsigned id )
 {
 #ifdef EMULATE_PWM
-//FIXME: what does PWMOutputState do?  - // Turn on the Output pins
-    MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
+  MAP_TimerEnable(pwm_timer_base[id], TIMER_A);
 #else
   MAP_PWMGenEnable( pwm_base[id >> 3], pwm_gens[ id >> 1 ] );  // Enable the PWM generator
   MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], true );      // Turn on the Output pin
@@ -1960,8 +1965,7 @@ void platform_pwm_start( unsigned id )
 void platform_pwm_stop( unsigned id )
 {
 #ifdef EMULATE_PWM
-//FIXME: what does PWMOutputState do?
-    MAP_TimerDisable(pwm_timer_base[id], TIMER_A);
+  MAP_TimerDisable(pwm_timer_base[id], TIMER_A);
 #else
   MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id % PWM_PER_MOD ], false );      // Turn off the Output pin
 //  MAP_PWMOutputState( pwm_base[id >> 3], pwm_outs[ id ], false );      // Turn off the Output pin
@@ -1996,6 +2000,7 @@ void platform_pwm_stop( unsigned id )
                                   ADC_CTL_CH12, ADC_CTL_CH13, ADC_CTL_CH14, ADC_CTL_CH15 };
 
 #define ADC_PIN_CONFIG
+#define NUM_ADC_CHAN_INTERNAL 0
 
 #elif defined( FORTM4C1294 )
 // 20 Inputs, plust therm channel
@@ -2021,6 +2026,9 @@ void platform_pwm_stop( unsigned id )
 
 #define ADC_PIN_CONFIG
 
+// Number of ADC channels without pins (e.g. temperature)
+#define NUM_ADC_CHAN_INTERNAL 1
+
 #elif defined( FORLM4F )
 
 // 11 Pins - AIN0 .. AIN 11
@@ -2041,22 +2049,20 @@ void platform_pwm_stop( unsigned id )
                                   ADC_CTL_TS };
 
 #define ADC_PIN_CONFIG
+#define NUM_ADC_CHAN_INTERNAL 1
 
 #else
 
 const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3 };
+
+#define NUM_ADC_CHAN_INTERNAL 0
+
 #endif
 
 // ToDo: Have 2 ADC, could figure how to split the work
 // ToDo: Not sure how many ADC ints should have.  (Is it one per ADC or ?)
 
 const static u32 adc_ints[] = { INT_ADC0SS0, INT_ADC0SS1, INT_ADC0SS2, INT_ADC0SS3 };
-
-
-//ToDo: Add error checking for NUM_ADC
-//#if (NUM_ADC > sizeof(adc_ctls)/sizeof(u32))
-//#error More ADC specified than hardware has.
-//#endif
 
 
 int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
@@ -2137,9 +2143,8 @@ static void adcs_init()
   unsigned id;
   elua_adc_dev_state *d = adc_get_dev_state( 0 );
 
-// FIXME: Adjust assertions for temperature channel, which has no port/pin
-//  ASSERT(NUM_ADC <= sizeof(adc_ports)/sizeof(u32));
-//  ASSERT(NUM_ADC <= sizeof(adc_pins)/sizeof(adc_pins[0]));
+  ASSERT(NUM_ADC <= sizeof(adc_ports)/sizeof(u32) + NUM_ADC_CHAN_INTERNAL );
+  ASSERT(NUM_ADC <= sizeof(adc_pins)/sizeof(adc_pins[0]) + NUM_ADC_CHAN_INTERNAL);
 
   ASSERT(NUM_ADC <= sizeof(adc_ctls)/sizeof(u32));
 
@@ -2158,7 +2163,7 @@ static void adcs_init()
   // Perform sequencer setup
   platform_adc_set_clock( 0, 0 );
   MAP_ADCIntEnable( ADC0_BASE, d->seq_id );
-  MAP_IntEnable( adc_ints[ 0 ] ); // Enable sequencer 0 int
+  MAP_IntEnable( adc_ints[ 0 ] ); // Enable ADC0, sequencer 0 int
 }
 
 // Note: If use ADCClockConfigSet - 16MHz final freq on 123, between 16 and 32 MHz on 1294
@@ -2201,14 +2206,16 @@ int platform_adc_update_sequence( )
   d->seq_ctr = 0; 
   while( d->seq_ctr < d->seq_len-1 )
   {
-    MAP_ADCSequenceStepConfigure( ADC0_BASE, d->seq_id, d->seq_ctr, adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
+    MAP_ADCSequenceStepConfigure( ADC0_BASE, d->seq_id, d->seq_ctr, 
+      adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
 #ifdef ADC_PIN_CONFIG
     if (adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] != ADC_CTL_TS)	// Temperature sensor channel does not have pin
         MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
 #endif
     d->seq_ctr++;
   }
-  MAP_ADCSequenceStepConfigure( ADC0_BASE, d->seq_id, d->seq_ctr, ADC_CTL_IE | ADC_CTL_END | adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
+  MAP_ADCSequenceStepConfigure( ADC0_BASE, d->seq_id, d->seq_ctr, 
+    ADC_CTL_IE | ADC_CTL_END | adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] );
 #ifdef ADC_PIN_CONFIG
   if (adc_ctls[ d->ch_state[ d->seq_ctr ]->id ] != ADC_CTL_TS)	// Temperature sensor channel does not have pin
     MAP_GPIOPinTypeADC( adc_ports[ d->ch_state[ d->seq_ctr ]->id ], adc_pins[ d->ch_state[ d->seq_ctr ]->id ] );
@@ -2328,9 +2335,6 @@ const static u32 comp_ref_codes[] = {};	// Codes used by library
 
 static void comps_init()
 {
-  ASSERT(NUM_CMP <= sizeof(comp_in_ports)/sizeof(u32));
-  ASSERT(NUM_CMP <= sizeof(comp_out_ports)/sizeof(u32));
-
   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_COMP0);
 }
 
@@ -2376,13 +2380,24 @@ unsigned platform_comp_ref_set(unsigned id, unsigned vref)
 // output on pin, or not
 int platform_comp_setup(unsigned id)
 {
+  ASSERT(NUM_CMP <= sizeof(comp_in_ports)/sizeof(u32));
+  ASSERT(NUM_CMP <= sizeof(comp_in_pins)/sizeof(u32));
+  ASSERT(NUM_CMP <= sizeof(comp_out_ports)/sizeof(u32));
+  ASSERT(NUM_CMP <= sizeof(comp_out_pins)/sizeof(u32));
+
   // Todo: Map pins
   MAP_GPIOPinTypeComparator( comp_in_ports[ id ], comp_in_pins[ id ] );
 // ?? does it need pin configures? - have not found the macros in pin_map
 
   // Only do these if output on pin
   MAP_GPIOPinTypeComparator( comp_out_ports[ id ], comp_out_pins[ id ] );
+  
+#ifdef USE_PIN_MUX  
+  ASSERT(NUM_CMP <= sizeof(comp_pin_out)/sizeof(u32));
+
   MAP_GPIOPinConfigure( comp_pin_out[ id ] );
+  
+#endif
 
   MAP_ComparatorConfigure(COMP_BASE, id, (COMP_TRIG_NONE | COMP_ASRCP_REF | COMP_OUTPUT_NORMAL) );
     // NO ADC trigger, use internal reference, non-inverted output
