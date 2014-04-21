@@ -680,6 +680,7 @@ static void cans_init( void )
 
 u32 platform_can_setup( unsigned id, u32 clock )
 {
+#ifdef USE_PIN_MUX
   //TODO: generalize to more than 2 CANs
   if (id == 0) 
   {
@@ -693,6 +694,7 @@ u32 platform_can_setup( unsigned id, u32 clock )
   #error Need to extend setup to handle more than 2 CAN
 #endif // NUM_CAN > 2
   }
+#endif  
   MAP_GPIOPinTypeCAN(can_gpio_base[id], can_gpio_pins[id]);
 
   MAP_CANDisable(can_base[id]);
@@ -910,36 +912,7 @@ static void spis_init()
 {
   unsigned i;
 
-  ASSERT(NUM_SPI <= sizeof(spi_base)/sizeof(u32));
   ASSERT(NUM_SPI <= sizeof(spi_sysctl)/sizeof(u32));
-  ASSERT(NUM_SPI <= sizeof(spi_gpio_base)/sizeof(u32));
-  ASSERT(NUM_SPI <= sizeof(spi_gpio_clk_base)/sizeof(u32));
-
-#if defined( ELUA_BOARD_SOLDERCORE )
-  GPIOPinConfigure( GPIO_PH4_SSI1CLK );
-  GPIOPinConfigure( GPIO_PF4_SSI1RX );
-  GPIOPinConfigure( GPIO_PF5_SSI1TX );
-#else
-// TODO: fix Pin Mux
-#ifdef USE_PIN_MUX
-
-  ASSERT(NUM_SPI <= sizeof(ssi_rx_pin)/sizeof(u32));
-  ASSERT(NUM_SPI <= sizeof(ssi_tx_pin)/sizeof(u32));
-  ASSERT(NUM_SPI <= sizeof(ssi_clk_pin)/sizeof(u32));
-
-// TODO: Instead should probably do pin configure first time actually setup a SPI port (so don't configure unused ports)
-
-  for( i = 0; i < NUM_SPI; i ++ ){
-    MAP_GPIOPinConfigure(ssi_rx_pin[i]);
-    MAP_GPIOPinConfigure(ssi_tx_pin[i]);
-    MAP_GPIOPinConfigure(ssi_clk_pin[i]);
-#ifdef SPI_USE_FSS
-    MAP_GPIOPinConfigure(ssi_fss_pin[i]);
-#endif // SPI_USE_FSS
-  };
-#endif // USE_PIN_MUX
-
-#endif // ELUA_BOARD_SOLDERCORE
 
   for( i = 0; i < NUM_SPI; i ++ )
     MAP_SysCtlPeripheralEnable( spi_sysctl[ i ] );
@@ -949,6 +922,33 @@ static void spis_init()
 u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
 {
   unsigned protocol;
+
+  ASSERT(NUM_SPI <= sizeof(spi_base)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(spi_gpio_base)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(spi_gpio_clk_base)/sizeof(u32));
+
+#if defined( ELUA_BOARD_SOLDERCORE )
+  GPIOPinConfigure( GPIO_PH4_SSI1CLK );
+  GPIOPinConfigure( GPIO_PF4_SSI1RX );
+  GPIOPinConfigure( GPIO_PF5_SSI1TX );
+#else
+
+#ifdef USE_PIN_MUX
+
+  ASSERT(NUM_SPI <= sizeof(ssi_rx_pin)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(ssi_tx_pin)/sizeof(u32));
+  ASSERT(NUM_SPI <= sizeof(ssi_clk_pin)/sizeof(u32));
+
+  MAP_GPIOPinConfigure(ssi_rx_pin[id]);
+  MAP_GPIOPinConfigure(ssi_tx_pin[id]);
+  MAP_GPIOPinConfigure(ssi_clk_pin[id]);
+#ifdef SPI_USE_FSS
+  MAP_GPIOPinConfigure(ssi_fss_pin[id]);
+#endif // SPI_USE_FSS
+
+#endif // USE_PIN_MUX
+
+#endif // ELUA_BOARD_SOLDERCORE
 
   if( cpol == 0 )
     protocol = cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
