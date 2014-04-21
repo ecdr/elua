@@ -923,16 +923,15 @@ static void spis_init()
   ASSERT(NUM_SPI <= sizeof(ssi_tx_pin)/sizeof(u32));
   ASSERT(NUM_SPI <= sizeof(ssi_clk_pin)/sizeof(u32));
 
-#error Debug: USE_PIN_MUX is on
 // TODO: Instead should probably do pin configure first time actually setup a SPI port (so don't configure unused ports)
 
   for( i = 0; i < NUM_SPI; i ++ ){
     MAP_GPIOPinConfigure(ssi_rx_pin[i]);
     MAP_GPIOPinConfigure(ssi_tx_pin[i]);
     MAP_GPIOPinConfigure(ssi_clk_pin[i]);
-#ifdef SSI_USE_FSS
+#ifdef SPI_USE_FSS
     MAP_GPIOPinConfigure(ssi_fss_pin[i]);
-#endif
+#endif // SPI_USE_FSS
   };
 #endif // USE_PIN_MUX
 
@@ -956,19 +955,19 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
 
   MAP_GPIOPinTypeSSI( spi_gpio_base[ id ], spi_gpio_pins[ id ] );
   MAP_GPIOPinTypeSSI( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ] );
-#ifdef SSI_USE_FSS
+#ifdef SPI_USE_FSS
   MAP_GPIOPinTypeSSI( spi_gpio_fss_base[ id ], spi_gpio_fss_pin[ id ] );
-#endif
+#endif // SPI_USE_FSS
 
   // FIXME: not sure this is always "right"
   MAP_GPIOPadConfigSet( spi_gpio_base[ id ], spi_gpio_pins[ id ], 
     GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
   MAP_GPIOPadConfigSet( spi_gpio_clk_base[ id ], spi_gpio_clk_pin[ id ],
     GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
-#ifdef SSI_USE_FSS
+#ifdef SPI_USE_FSS
   MAP_GPIOPadConfigSet( spi_gpio_fss_base[ id ], spi_gpio_fss_pin[ id ],
     GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
-#endif
+#endif // SPI_USE_FSS
 
   MAP_SSIConfigSetExpClk( spi_base[ id ], clockfreq, protocol, mode, clock, databits );
   MAP_SSIEnable( spi_base[ id ] );
@@ -984,7 +983,7 @@ spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
 
 void platform_spi_select( unsigned id, int is_select )
 {
-#ifdef SSI_USE_FSS
+#ifdef SPI_USE_FSS
 
   // FIXME: Not sure if there is anything to do here to manage FSS
 
@@ -992,7 +991,7 @@ void platform_spi_select( unsigned id, int is_select )
   // This platform doesn't have a hardware SS pin, so there's nothing to do here
   id = id;
   is_select = is_select;
-#endif
+#endif // SPI_USE_FSS
 }
 
 #endif // NUM_SPI > 0
@@ -1028,10 +1027,10 @@ static const u8 i2c_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_P
                                     GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, 
                                     GPIO_PIN_0 | GPIO_PIN_1 };
 
-static const i2c_scl_pin[] = { GPIO_PB2_I2C0SCL, GPIO_PG0_I2C1SCL, GPIO_PL1_I2C2SCL, GPIO_PK4_I2C3SCL,
+static const u32 i2c_scl_pin[] = { GPIO_PB2_I2C0SCL, GPIO_PG0_I2C1SCL, GPIO_PL1_I2C2SCL, GPIO_PK4_I2C3SCL,
                                GPIO_PK6_I2C4SCL, GPIO_PB0_I2C5SCL, GPIO_PA6_I2C6SCL, GPIO_PD0_I2C7SCL,
                                GPIO_PD2_I2C8SCL, GPIO_PA0_I2C9SCL };
-static const i2c_sda_pin[] = { GPIO_PB3_I2C0SDA, GPIO_PG1_I2C1SDA, GPIO_PL0_I2C2SDA, GPIO_PK5_I2C3SDA,
+static const u32 i2c_sda_pin[] = { GPIO_PB3_I2C0SDA, GPIO_PG1_I2C1SDA, GPIO_PL0_I2C2SDA, GPIO_PK5_I2C3SDA,
                                GPIO_PK7_I2C4SDA, GPIO_PB1_I2C5SDA, GPIO_PA7_I2C6SDA, GPIO_PD1_I2C7SDA,
                                GPIO_PD3_I2C8SDA, GPIO_PA1_I2C9SDA };
 
@@ -1040,8 +1039,8 @@ static const i2c_sda_pin[] = { GPIO_PB3_I2C0SDA, GPIO_PG1_I2C1SDA, GPIO_PL0_I2C2
 static const u32 i2c_gpio_base[] = { GPIO_PORTB_BASE, GPIO_PORTA_BASE, GPIO_PORTE_BASE, GPIO_PORTD_BASE };
 static const u8 i2c_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_0 | GPIO_PIN_1 };
 
-static const i2c_scl_pin[] = { GPIO_PB2_I2C0SCL, GPIO_PA6_I2C1SCL, GPIO_PE4_I2C2SCL, GPIO_PD0_I2C3SCL };
-static const i2c_sda_pin[] = { GPIO_PB3_I2C0SDA, GPIO_PA7_I2C1SDA, GPIO_PE5_I2C2SDA, GPIO_PD1_I2C3SDA };
+static const u32 i2c_scl_pin[] = { GPIO_PB2_I2C0SCL, GPIO_PA6_I2C1SCL, GPIO_PE4_I2C2SCL, GPIO_PD0_I2C3SCL };
+static const u32 i2c_sda_pin[] = { GPIO_PB3_I2C0SDA, GPIO_PA7_I2C1SDA, GPIO_PE5_I2C2SDA, GPIO_PD1_I2C3SDA };
 
 
 #elif defined( FORLM6918 ) || defined( FORLM6965 ) || defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
@@ -1057,8 +1056,8 @@ static const u32 i2c_sysctl[] = { SYSCTL_PERIPH_I2C0 };
 static const u32 i2c_gpio_base[] = {};
 static const u8 i2c_gpio_pins[] = {};
 
-static const i2c_scl_pin[] = {};
-static const i2c_sda_pin[] = {};
+static const u32 i2c_scl_pin[] = {};
+static const u32 i2c_sda_pin[] = {};
 #endif
 
 
@@ -1082,6 +1081,9 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
   //FIXME: Pin mux - may not need for all parts
 
 #ifdef USE_PIN_MUX
+  ASSERT(NUM_I2C <= sizeof(i2c_scl_pin)/sizeof(u32));
+  ASSERT(NUM_I2C <= sizeof(i2c_sda_pin)/sizeof(u32));
+
   MAP_GPIOPinConfigure(i2c_scl_pin[ id ]);
   MAP_GPIOPinConfigure(i2c_sda_pin[ id ]);
 #endif
@@ -1284,6 +1286,8 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
   if( id < NUM_UART )
   {
 #ifdef UART_PIN_CONFIGURE
+    ASSERT((NUM_UART * 2) <= sizeof(uart_gpiofunc)/sizeof(u32));
+
     MAP_GPIOPinConfigure( uart_gpiofunc[ id << 1 ] );
     MAP_GPIOPinConfigure( uart_gpiofunc[ ( id << 1 ) + 1 ] );
 #endif
@@ -1642,7 +1646,7 @@ const static u32 pwm_timer_sysctl[] = {
   const static u32 pwm_configs[] = { GPIO_PF0_M0PWM0, GPIO_PF1_M0PWM1, GPIO_PF2_M0PWM2, GPIO_PF3_M0PWM3,
             GPIO_PG0_M0PWM4, GPIO_PG1_M0PWM5, GPIO_PK4_M0PWM6, GPIO_PK5_M0PWM7 };
 
-#elif defined( FORLM4F230 ) || defined( FORTM4C123G)
+#elif defined( FORLM4F230 ) || defined( FORTM4C123G )
 
 // Has two PWM modules - PWM_BASE0, PWM_BASE1 each with 4 generators, 8 pins, 8 PWM_OUTs
 // TODO: Parameterize better (number of modules, number pins/module, etc.)
@@ -1887,7 +1891,9 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   u32 pwmclk = platform_pwm_get_clock( id );
   u32 period;
 
-#if defined( FORLM3S9B92 ) || defined( FORLM3S9D92 ) || defined( FORLM4F )
+#ifdef USE_PIN_MUX
+  ASSERT(NUM_PWM <= sizeof(pwm_configs)/sizeof(u32));
+
   MAP_GPIOPinConfigure( pwm_configs[ id ] );
 #endif
 
@@ -1910,6 +1916,9 @@ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
   MAP_TimerLoadSet( pwm_timer_base[id], TIMER_A, period);
   MAP_TimerMatchSet( pwm_timer_base[id], TIMER_A, ( period * duty ) / 100);
 #else
+
+  ASSERT(NUM_PWM <= sizeof(pwm_ports)/sizeof(u32));
+  ASSERT(NUM_PWM <= sizeof(pwm_pins)/sizeof(u8));
 
   // Set pin as PWM
   MAP_GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
