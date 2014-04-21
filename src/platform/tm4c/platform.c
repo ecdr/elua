@@ -138,7 +138,9 @@ static void i2cs_init();
 unsigned long clockfreq;
 
 #ifdef DEBUG  
-BOOL consoleinited = false;
+static BOOL consoleinited = false;
+static BOOL debugmsgwaiting = false;
+void errorcatchup(void);
 #endif
 
 int platform_init()
@@ -254,6 +256,8 @@ int platform_init()
 #ifdef DEBUG
 // Console has been set up now, so can print error messages for assertion failures, etc.
   consoleinited = true;
+// Display error that happened before console was available
+  errorcatchup();
 #endif
 
   // Virtual timers
@@ -1186,6 +1190,8 @@ int platform_i2c_send_address( unsigned id, u16 address, int direction )
 // If implement USB, then remove UART6 - since it uses PD4,5 (so put UART6 last)
 
 // TODO: add flow control support, at least some ports have it on the TM4C129x
+
+// FIXME: maybe should replace UART_PIN_CONFIGURE with USE_PIN_MUX?
 
 #ifdef FORLM4F
 
@@ -3310,16 +3316,32 @@ LUALIB_API int luaopen_platform( lua_State *L )
 
 */
 
-
 // Assertion failure error handler
 // give feedback on console (if it has been setup), and place for breakpoint for debugging
 
 #ifdef DEBUG
+static char * dbugFname = 0;
+static unsigned long dbugLine = 0;
+
 void
 __error__(char *pcFilename, unsigned long ulLine)
 {
   if (consoleinited)
     printf("Error in file %s, line %lu\n", pcFilename, ulLine);
+  else
+  {
+    debugmsgwaiting = true;
+    dbugFname = pcFilename;
+    dbugLine = ulLine;
+  }
 }
+
+void
+errorcatchup(void)
+{
+  if (consoleinited && debugmsgwaiting)
+    printf("Error in file %s, line %lu\n", dbugFname, dbugLine);
+}
+
 #endif
 
