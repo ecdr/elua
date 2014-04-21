@@ -27,6 +27,11 @@
 
 #define FORLM4F				// Common defines for LM4F
 
+// *****************************************************************************
+// Support for chips that have alternative pin mappings 
+
+#define USE_PIN_MUX
+
 
 /*
 // Platform should define maximum number of item, and default number to use, let build specify a number <max
@@ -80,23 +85,6 @@
 #endif
 */
 
-// *****************************************************************************
-// Support for chips that have alternative pin mappings 
-// TODO: probably need for other CPU that use pinmux - suspect applies to ELUA_CPU_LM3S9B92 and ELUA_CPU_LM3S9D92
-
-// From platform_conf.h - much of this may already be in other places, just haven't found it
-/*
-#if defined( FORLM4F ) || defined( ELUA_BOARD_SOLDERCORE )
-#define USE_PIN_MUX
-#endif
-
-// lm3s_pio.c has specifics for alternative pin mapping in eLua
-
-
-// Include LM3S GPIO functions in platform map
-#define ENABLE_LM3S_GPIO
-
-*/
 
 
 #define ADC_BIT_RESOLUTION    12
