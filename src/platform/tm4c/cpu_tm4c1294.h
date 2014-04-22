@@ -44,6 +44,11 @@
 
 #define USE_PIN_MUX
 
+// MAC addresses - used if problems reading stored MAC
+
+#define MAC_DEFAULT_0 0x00b61a00
+#define MAC_DEFAULT_1 0x006d0a00
+
 
 /*
 // Platform should define maximum number of item, and default number to use, let build specify a number <max

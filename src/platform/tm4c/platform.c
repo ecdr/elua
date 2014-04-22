@@ -10,10 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
-#include "uip_arp.h"
-#include "elua_uip.h"
 #include "elua_adc.h"
-#include "uip-conf.h"
 #include "platform_conf.h"
 #include "common.h"
 #include "math.h"
@@ -43,6 +40,10 @@
 #include "inc/hw_types.h" // HWREG(x)
 
 #ifdef BUILD_UIP
+#include "uip_arp.h"
+#include "elua_uip.h"
+#include "uip-conf.h"
+
 #include "driverlib/emac.h"
 #include "inc/hw_emac.h"
 
@@ -2743,7 +2744,6 @@ static void eth_init()
 #ifdef BUILD_UIP
 #ifdef FORLM4F
   uint32_t user0, user1;
-  uint8_t ui8PHYAddr;
 #else
   u32 user0, user1, intStatus;
 #endif //FORLM4F
@@ -2784,6 +2784,7 @@ static void eth_init()
 #else
   MAP_FlashUserGet(&user0, &user1);
 #endif
+// FIXME: Perhaps offer MAC address set at compile, or ??
 
   if((user0 == 0xffffffff) || (user1 == 0xffffffff))
   {
@@ -2791,12 +2792,17 @@ static void eth_init()
     // We should never get here.  This is an error if the MAC address has
     // not been programmed into the device.  Exit the program.
     //
-// FIXME: Perhaps offer MAC address set at compile, or ??
 // FIXME: Better error feedback
-//  UpdateStatus("MAC Address Not Programmed!");
+    ASSERT(false);
+
+#ifdef DEBUG
+    user0 = MAC_DEFAULT_0;
+    user1 = MAC_DEFAULT_1;
+#else
     while(1)
     {
     }
+#endif
   }
 
   // Convert the 24/24 split MAC address from NV ram into a 32/16 split MAC
@@ -2835,8 +2841,9 @@ static void eth_init()
   //
   // Configure for use with the internal PHY.
   //
-  ui8PHYAddr = 0;
-  MAP_EMACPHYConfigSet(EMAC0_BASE, (EMAC_PHY_TYPE_INTERNAL | EMAC_PHY_INT_MDIX_EN | EMAC_PHY_AN_100B_T_FULL_DUPLEX));
+
+  MAP_EMACPHYConfigSet(EMAC0_BASE, 
+    (EMAC_PHY_TYPE_INTERNAL | EMAC_PHY_INT_MDIX_EN | EMAC_PHY_AN_100B_T_FULL_DUPLEX));
   //
   // Reset the MAC to latch the PHY configuration.
   //
@@ -2849,7 +2856,8 @@ static void eth_init()
   //
   // Set MAC configuration options.
   //
-  MAP_EMACConfigSet(EMAC0_BASE, (EMAC_CONFIG_FULL_DUPLEX | EMAC_CONFIG_CHECKSUM_OFFLOAD | EMAC_CONFIG_7BYTE_PREAMBLE |
+  MAP_EMACConfigSet(EMAC0_BASE, 
+    (EMAC_CONFIG_FULL_DUPLEX | EMAC_CONFIG_CHECKSUM_OFFLOAD | EMAC_CONFIG_7BYTE_PREAMBLE |
     EMAC_CONFIG_IF_GAP_96BITS | EMAC_CONFIG_USE_MACADDR0 | EMAC_CONFIG_SA_FROM_DESCRIPTOR | EMAC_CONFIG_BO_LIMIT_1024),
     (EMAC_MODE_RX_STORE_FORWARD | EMAC_MODE_TX_STORE_FORWARD | EMAC_MODE_TX_THRESHOLD_64_BYTES |
     EMAC_MODE_RX_THRESHOLD_64_BYTES), 0);
@@ -2868,7 +2876,7 @@ static void eth_init()
   // Wait for the link to become active.
   //
   // TODO: Add busywait macro WAIT_WHILE
-  while((MAP_EMACPHYRead(EMAC0_BASE, ui8PHYAddr, EPHY_BMSR) & EPHY_BMSR_LINKSTAT) == 0)
+  while((MAP_EMACPHYRead(EMAC0_BASE, 0, EPHY_BMSR) & EPHY_BMSR_LINKSTAT) == 0)
     {
     }
 
