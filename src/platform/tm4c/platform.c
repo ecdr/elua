@@ -39,6 +39,9 @@
 #include "driverlib/pwm.h"
 #include "driverlib/adc.h"
 
+#include "inc/hw_gpio.h"
+#include "inc/hw_types.h" // HWREG(x)
+
 #ifdef BUILD_UIP
 #include "driverlib/emac.h"
 #include "inc/hw_emac.h"
@@ -356,9 +359,14 @@ static void pios_init()
 //  Fixme: Locked pins should return an error when asked to do things can not (like set PF0 as input)
 
 // Unlock PD7 and PF0 (NMI) so can reprogram
-    GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
-    GPIO_PORTD_CR_R = 0xFF;
-    GPIO_PORTD_LOCK_R = 0;
+
+    HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+    HWREG(GPIO_PORTD_BASE + GPIO_O_CR) = 0xff;
+    HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = 0;
+// Following do not work on TM4C1294 (macros not defined)
+//    GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
+//    GPIO_PORTD_CR_R = 0xFF;
+//    GPIO_PORTD_LOCK_R = 0;
 #if !defined( FORTM4C1294 )
 // Unlock PF0 (NMI) for TM4C123x
     GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
@@ -3084,7 +3092,7 @@ static void usb_init()
 
 // Unlock D7 if not already unlocked 
 // unclear why doing this, since only using D6?
-// FIXME: See if really need this unlock - it is not used if configuring D6 for input (if not using USB)
+// FIXME: See if really need this unlock - no unlock if configuring D6 for input (if not using USB)
 #ifndef PIO_UNLOCK_NMI
   HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
   HWREG(GPIO_PORTD_BASE + GPIO_O_CR) = 0xff;

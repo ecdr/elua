@@ -44,6 +44,7 @@ return {
      { "PART_TM4C1294NCPDT", "" },	-- Needed for PIN_MAP.
      { "TARGET_IS_TM4C129_RA0", ""}, -- RA1 is other choice so far
 --     { "UART_ALT_CLOCK", ""}, -- Use alternate clock for UART
+     { "PIO_UNLOCK_NMI", ""},   -- Unlock D7 (NMI)
      { "DEBUG", ""}, -- Extra checks
   },
 }
