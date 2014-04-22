@@ -166,8 +166,8 @@ int platform_init()
 #endif // CPU_MAX_FREQUENCY
 
 #ifdef BUILD_UIP
-  // Enable main oscillator - required for ethernet PHY
-  MAP_SysCtlMOSCConfigSet(SYSCTL_MOSC_HIGHFREQ);
+  // Enable main oscillator - required for ethernet PHY (this is in lwip example, but not in uip)
+//  MAP_SysCtlMOSCConfigSet(SYSCTL_MOSC_HIGHFREQ);
 #endif
 
   clockfreq = MAP_SysCtlClockFreqSet(( SYSCTL_CFG_VCO_480 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_25MHZ), 
@@ -239,6 +239,11 @@ int platform_init()
 #ifdef BUILD_USB_CDC
   // Setup USB
   usb_init();
+#else
+  // If not using USB add a pull down to PD6 to turn off the TPS2052 switch
+  MAP_GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_6);
+  MAP_GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA,
+    GPIO_PIN_TYPE_STD_WPD);
 #endif
 
   // Setup system timer
@@ -3073,8 +3078,40 @@ void EthernetIntHandler()
 
 static void usb_init()
 {
+// USB setup - from example code
+#ifdef FORTM4C1294
+  ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_USB0);
+
+// Unlock D7 if not already unlocked 
+// unclear why doing this, since only using D6?
+// FIXME: See if really need this unlock - it is not used if configuring D6 for input (if not using USB)
+#ifndef PIO_UNLOCK_NMI
+  HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+  HWREG(GPIO_PORTD_BASE + GPIO_O_CR) = 0xff;
+  HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = 0;
+#endif
+  MAP_GPIOPinConfigure(GPIO_PD6_USB0EPEN);
+  MAP_GPIOPinTypeUSBAnalog(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+  MAP_GPIOPinTypeUSBDigital(GPIO_PORTD_BASE, GPIO_PIN_6);
+  MAP_GPIOPinTypeUSBAnalog(GPIO_PORTL_BASE, GPIO_PIN_6 | GPIO_PIN_7);
+  MAP_GPIOPinTypeGPIOInput(GPIO_PORTQ_BASE, GPIO_PIN_4);
+
+#elif defined( FORTM4C123G )
+
+  MAP_GPIOPinTypeUSBAnalog(GPIO_PORTD_BASE, GPIO_PIN_5 | GPIO_PIN_4);
+
+#else
+
+#warning USB not set up for this processor
+
+#endif //FORLTM4C1294
+
   USBBufferInit( &g_sTxBuffer );
   USBBufferInit( &g_sRxBuffer );
+
+#if defined( FORTM4C123G )
+  USBStackModeSet(0, eUSBModeForceDevice, 0);
+#endif   
 
   // Pass the device information to the USB library and place the device
   // on the bus.
@@ -3116,6 +3153,7 @@ unsigned long TxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulM
     }
       
     default:
+        ASSERT(false);  // If debugging, signal an error, otherwise ignore
         break;
   }
   
@@ -3170,6 +3208,7 @@ unsigned long RxHandler(void *pvCBData, unsigned long ulEvent, unsigned long ulM
     // Other events can be safely ignored.
     default:
     {
+      ASSERT(false);  // If debugging, signal an error, otherwise ignore
       break;
     }
   }
