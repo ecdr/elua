@@ -193,15 +193,18 @@ int platform_init()
 //  It incorrectly returns 66,666,666 Hz when clock is set to 80 MHz
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ); // 80MHz clock
 
+/*
 #if defined(TIVAWARE_CLOCK_BUG)
-// WHY ISN'T THIS WORKING???
+// This attempt at workaround for the clock bug did not work - not sure why
+// It still reported something other than 80000000 clock speed, even when clockfreq set from a constant
 
-//  clockfreq = 80000000UL;
+  clockfreq = 80000000UL;
 #warning clockbug  
 #else
-//  clockfreq = MAP_SysCtlClockGet();
+  clockfreq = MAP_SysCtlClockGet();
 #warning noclockbug
 #endif
+*/
   
 #else
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_8MHZ);
