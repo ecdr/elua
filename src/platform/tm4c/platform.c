@@ -452,6 +452,16 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 #if defined (FORTM4C1294)
 
 // Caution: On TM4C1294 CAN0 conflicts with Uart0, change console to UART4 if using CAN0
+#if (0 == CON_UART_ID)
+#define NO_CAN_0
+#warning Do not use CAN0, conflicts with console
+#endif
+
+// Caution: CAN1 pins conflict with USB pins, so if USB console, do not use CAN1
+#ifdef BUILD_USB_CDC
+#warning CAN1 conflicts with USB pins, do not use CAN1 with USB console
+#endif
+
 
 #define CAN_PORT_BASE	GPIO_PORTA_BASE
 #define CAN_PORT_PINS	( GPIO_PIN_0 | GPIO_PIN_1 )
@@ -587,7 +597,7 @@ typedef struct {
   tCANMsgObject msg_rx;
 } can_status_t;
 
-can_status_t can_status[ NUM_CAN-1 ];
+can_status_t can_status[ NUM_CAN ];
 
 // Speed used in INIT
 #ifndef CAN_INIT_SPEED
@@ -678,8 +688,12 @@ static void cans_init( void )
   ASSERT(NUM_CAN <= sizeof(can_sysctl)/sizeof(u32));
   ASSERT(NUM_CAN <= sizeof(can_int)/sizeof(u32));
   ASSERT(NUM_CAN <= sizeof(can_gpio_base)/sizeof(u32));
-  
+
+#if defined( NO_CAN_0 )
+  for( id = 1; id < NUM_CAN; id++){
+#else  
   for( id = 0; id < NUM_CAN; id++){
+#endif  
     MAP_SysCtlPeripheralEnable( can_sysctl[id] );
     MAP_CANInit( can_base[id] );
     MAP_CANBitRateSet(can_base[id], LM3S_CAN_CLOCK, CAN_INIT_SPEED);
@@ -708,8 +722,12 @@ u32 platform_can_setup( unsigned id, u32 clock )
   //TODO: generalize to more than 2 CANs
   if (id == 0) 
   {
+#if defined( NO_CAN_0 )
+    printf("CAN 0 disabled - conflicts with console\n");
+#else
     MAP_GPIOPinConfigure(PIN_CAN0RX);
     MAP_GPIOPinConfigure(PIN_CAN0TX);
+#endif    
   } else {
 #if (NUM_CAN == 2)  
     MAP_GPIOPinConfigure(PIN_CAN1RX);
@@ -733,6 +751,10 @@ int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data
   const char *s = ( char * )data;
   char *d;
 
+#if defined( NO_CAN_0 )
+  if (id == 0)
+    return PLATFORM_ERR;
+#endif
   // Wait for outgoing messages to clear
   WAIT_WHILE( can_status[id].tx_flag == 1 );
 
@@ -757,6 +779,11 @@ int platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data
 
 int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
 {
+#if defined( NO_CAN_0 )
+  if (id == 0)
+    return PLATFORM_ERR;
+#endif
+
   // wait for a message
   if( can_status[id].rx_flag != 0 )
   {
