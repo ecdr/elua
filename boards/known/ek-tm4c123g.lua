@@ -33,9 +33,10 @@ return {
     platform = 'all'
   },
   macros = { 
-     { "PART_TM4C123GH6PM", "" },	-- Needed for Tivaware PIN_MAP.
+     { "PART_TM4C123GH6PM", "" },	   -- Needed for Tivaware PIN_MAP.
      { "TARGET_IS_TM4C123_RA0", ""}, -- Replacement for BLIZZARD_Rxx
-     { "UART_ALT_CLOCK", ""},     -- Alternative clock for serial port, don't know if need for this processor
+     { "UART_ALT_CLOCK", ""},        -- Probably do not need to use this with workaround for Tivaware clock bug
+--     { "TIVAWARE_CLOCK_BUG", ""},  -- Work around bug in reading clock for TM4C123x in Tivaware 2.1.0.12573
 --     { "BUILD_COMP", ""},
  },
   build = {

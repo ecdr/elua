@@ -32,10 +32,12 @@ return {
 	-- ToDo: i2c needs code for lm3 etc (8962, LM4F, )
     platform = {'all', '-pwm', '-mmc'},
   },
-  macros = { -- { "PART_LM4F120H5QR", "" },	-- Needed for Stellaris PIN_MAP.
-     { "PART_TM4C1233H6PM", ""}, -- Needed for Tivaware PIN_MAP.
+  macros = { 
+  -- { "PART_LM4F120H5QR", "" },	-- Needed for Stellaris PIN_MAP.
+     { "PART_TM4C1233H6PM", ""},      -- Needed for Tivaware PIN_MAP.
      { "TARGET_IS_TM4C123_RA0", ""},  -- Todo: make platform component to handle target revisions
-     { "UART_ALT_CLOCK", ""},     
+     { "UART_ALT_CLOCK", ""},         -- Probably do not need to use this with workaround for Tivaware clock bug
+--     { "TIVAWARE_CLOCK_BUG", ""},   -- Work around bug in reading clock for TM4C123x in Tivaware 2.1.0.12573
 --     { "BUILD_COMP", ""},
      { "DEBUG", ""}, -- Extra checks
   },
