@@ -111,7 +111,7 @@
 // Error checking on clock frequency
 #define CPU_MAX_FREQUENCY         120000000
 
-extern unsigned long clockfreq;
+extern u32 clockfreq;
 
 // Get CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)
 #define CPU_FREQUENCY         clockfreq

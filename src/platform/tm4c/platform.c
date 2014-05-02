@@ -138,8 +138,11 @@ static void comps_init();
 static void i2cs_init();
 #endif
 
+#if defined( FORTM4C1294 )
 
-unsigned long clockfreq;
+u32 clockfreq;
+
+#endif
 
 #ifdef DEBUG  
 static BOOL consoleinited = false;
@@ -157,7 +160,7 @@ int platform_init()
 // #define CPU_CLOCK	SYSCTL_SYSDIV_4 | SYSCTL_XTAL_8MHZ
 //
 
-#if defined ( FORTM4C1294 )
+#if defined( FORTM4C1294 )
 
 #ifdef CPU_MAX_FREQUENCY
 #if ( ELUA_BOARD_CPU_CLOCK_HZ > CPU_MAX_FREQUENCY )
@@ -182,18 +185,24 @@ int platform_init()
 // Fixme: This check may belong at end (to get uart set up so can give error message).
 // TODO: Could add more checking on clock return value
 
-#elif defined ( FORLM4F )
+#elif defined( FORLM4F )
 //  MAP_SysCtlClockSet(SYSCTL_SYSDIV_3 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ); // 66MHz clock
 //  MAP_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ); // 50MHz clock
 
-// !!!! FIXME: So how do I set the system clock to 80 MHz?
-// The following works in Stellarisware (sets the clock to 80MHz)
-// But in Tivaware I get problems with Uart speed (serial output on uart0/debug port comes up gibberish).
-// Note there are some changes in sysctl.c - SysCtlClockSet (e.g. one delay is missing in new version)
-// In Tivaware seem to get clock 66,666,666 hz
+// Caution: There is an error in SysCtlClockGet in Tivaware 2.1.0.12573
+//  It incorrectly returns 66,666,666 Hz when clock is set to 80 MHz
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ); // 80MHz clock
 
-  clockfreq = MAP_SysCtlClockGet();
+#if defined(TIVAWARE_CLOCK_BUG)
+// WHY ISN'T THIS WORKING???
+
+//  clockfreq = 80000000UL;
+#warning clockbug  
+#else
+//  clockfreq = MAP_SysCtlClockGet();
+#warning noclockbug
+#endif
+  
 #else
   MAP_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_8MHZ);
 
@@ -251,7 +260,7 @@ int platform_init()
 #endif
 
   // Setup system timer
-  cmn_systimer_set_base_freq( clockfreq );
+  cmn_systimer_set_base_freq( CPU_FREQUENCY );
   cmn_systimer_set_interrupt_freq( SYSTICKHZ );
 
 #ifdef BUILD_UIP
@@ -274,7 +283,7 @@ int platform_init()
 #if VTMR_NUM_TIMERS > 0 
 #if !defined( BUILD_UIP )
   // Configure SysTick for a periodic interrupt.
-  MAP_SysTickPeriodSet( clockfreq / SYSTICKHZ );
+  MAP_SysTickPeriodSet( CPU_FREQUENCY / SYSTICKHZ );
   MAP_SysTickEnable();
 //    MAP_IntPrioritySet(FAULT_SYSTICK, SYSTICK_INT_PRIORITY);  
   MAP_SysTickIntEnable();
@@ -283,8 +292,8 @@ int platform_init()
 #endif  
 #endif
 
-#if ! defined ( FORLM4F )
-  MAP_FlashUsecSet( SysCtlClockGet() );   // not required on Tiva devices
+#if ! defined( FORLM4F )
+  MAP_FlashUsecSet( MAP_SysCtlClockGet() );   // not required on Tiva devices
 #endif
 
   // All done
@@ -597,7 +606,8 @@ can_status_t can_status[ NUM_CAN-1 ];
 #if defined( FORLM3S8962 )
 #define LM3S_CAN_CLOCK  8000000
 #else
-#define LM3S_CAN_CLOCK  SysCtlClockGet()
+//#define LM3S_CAN_CLOCK  MAP_SysCtlClockGet()
+#define LM3S_CAN_CLOCK  CPU_FREQUENCY
 #endif
 
 // CAN Interrupt Handler
@@ -987,7 +997,7 @@ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigne
     GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU );
 #endif // SPI_USE_FSS
 
-  MAP_SSIConfigSetExpClk( spi_base[ id ], clockfreq, protocol, mode, clock, databits );
+  MAP_SSIConfigSetExpClk( spi_base[ id ], CPU_FREQUENCY, protocol, mode, clock, databits );
   MAP_SSIEnable( spi_base[ id ] );
   return clock;
 }
@@ -1111,7 +1121,7 @@ u32 platform_i2c_setup( unsigned id, u32 speed )
 
   MAP_GPIOPinTypeI2C( i2c_gpio_base[ id ], i2c_gpio_pins[ id ] );
 
-  MAP_I2CMasterInitExpClk( i2c_base[id], clockfreq,  
+  MAP_I2CMasterInitExpClk( i2c_base[id], CPU_FREQUENCY,  
                     speed == PLATFORM_I2C_SPEED_SLOW);
   //FIXME: Needs to return speed actually set
 };
@@ -1326,8 +1336,8 @@ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int st
     MAP_UARTClockSourceSet(uart_base[ id ], UART_CLOCK_PIOSC);
     uart_clock = 16000000;
 #else
-    uart_clock = clockfreq;
-#endif 
+    uart_clock = CPU_FREQUENCY;
+#endif
     
     switch( databits )
     {
@@ -1460,7 +1470,7 @@ void platform_s_timer_delay( unsigned id, timer_data_type delay_us )
   timer_data_type final;
   u32 base = timer_base[ id ];
 
-  final = TIMER_MAX_COUNT - ( ( ( u64 )delay_us * clockfreq ) / 1000000 );
+  final = TIMER_MAX_COUNT - ( ( ( u64 )delay_us * CPU_FREQUENCY ) / 1000000 );
   MAP_TimerLoadSet( base, TIMER_A, TIMER_MAX_COUNT );
   while( MAP_TimerValueGet( base, TIMER_A ) > final );
 	// Fixme: Looks like it does busy waiting for timer, consider sleep? - WAIT_WHILE
@@ -1486,7 +1496,7 @@ timer_data_type platform_s_timer_op( unsigned id, int op, timer_data_type data )
 
     case PLATFORM_TIMER_OP_SET_CLOCK:
     case PLATFORM_TIMER_OP_GET_CLOCK:
-      res = clockfreq;
+      res = CPU_FREQUENCY;
       break;
 
     case PLATFORM_TIMER_OP_GET_MAX_CNT:
@@ -1534,7 +1544,7 @@ int platform_s_timer_set_match_int( unsigned id, timer_data_type period_us, int 
     MAP_TimerEnable( base, TIMER_A );
     return PLATFORM_TIMER_INT_OK;
   }
-  final = ( ( u64 )period_us * clockfreq ) / 1000000;
+  final = ( ( u64 )period_us * CPU_FREQUENCY ) / 1000000;
   if( final == 0 )
     return PLATFORM_TIMER_INT_TOO_SHORT;
   if( final > 0xFFFFFFFFULL )				// todo: check
@@ -1875,7 +1885,7 @@ static void pwms_init()
 u32 platform_pwm_get_clock( unsigned id )
 {
 #ifdef EMULATE_PWM
-  return clockfreq;
+  return CPU_FREQUENCY;
 
 #else
   unsigned i;
@@ -1885,7 +1895,7 @@ u32 platform_pwm_get_clock( unsigned id )
   for( i = 0; i < sizeof( pwm_div_ctl ) / sizeof( u32 ); i ++ )
     if( clk == pwm_div_ctl[ i ] )
       break;
-  return clockfreq / pwm_div_data[ i ];
+  return CPU_FREQUENCY / pwm_div_data[ i ];
 #endif // EMULATE_PWM
 }
 
@@ -1901,12 +1911,12 @@ u32 platform_pwm_set_clock( unsigned id, u32 clock )
   ASSERT(sizeof(pwm_div_ctl)/sizeof(u32) == sizeof(pwm_div_data)/sizeof(u8));
   
   for( i = min_i = 0; i < sizeof( pwm_div_data ) / sizeof( u8 ); i ++ )
-    if( ABSDIFF( clock, clockfreq / pwm_div_data[ i ] ) < ABSDIFF( clock, clockfreq / pwm_div_data[ min_i ] ) )
+    if( ABSDIFF( clock, CPU_FREQUENCY / pwm_div_data[ i ] ) < ABSDIFF( clock, CPU_FREQUENCY / pwm_div_data[ min_i ] ) )
       min_i = i;
   AUX_SetPWMClock( pwm_base[id >> 3], pwm_div_ctl[ min_i ] );
 
 // FIXME: Doesn't return actual clock - might be better to read clock back  
-  return clockfreq / pwm_div_data[ min_i ];
+  return CPU_FREQUENCY / pwm_div_data[ min_i ];
 #endif // EMULATE_PWM
 }
 
@@ -2196,8 +2206,8 @@ u32 platform_adc_set_clock( unsigned id, u32 frequency )
     MAP_ADCSequenceConfigure( ADC0_BASE, d->seq_id, ADC_TRIGGER_TIMER, d->seq_id );
 
     // Set up timer trigger
-    MAP_TimerLoadSet( timer_base[ d->timer_id ], TIMER_A, clockfreq / frequency );
-    frequency = clockfreq / MAP_TimerLoadGet( timer_base[ d->timer_id ], TIMER_A );
+    MAP_TimerLoadSet( timer_base[ d->timer_id ], TIMER_A, CPU_FREQUENCY / frequency );
+    frequency = CPU_FREQUENCY / MAP_TimerLoadGet( timer_base[ d->timer_id ], TIMER_A );
   }
   else
   {
@@ -2818,7 +2828,7 @@ static void eth_init()
   //
   // Configure SysTick for a periodic interrupt.
   //
-  ROM_SysTickPeriodSet(clockfreq / SYSTICKHZ);
+  ROM_SysTickPeriodSet(CPU_FREQUENCY / SYSTICKHZ);
   ROM_SysTickEnable();
   ROM_SysTickIntEnable();
 
@@ -2851,7 +2861,7 @@ static void eth_init()
   //
   // Initialize the MAC and set the DMA mode.
   //
-  MAP_EMACInit(EMAC0_BASE, clockfreq, EMAC_BCONFIG_MIXED_BURST | EMAC_BCONFIG_PRIORITY_FIXED, 4, 4, 0);
+  MAP_EMACInit(EMAC0_BASE, CPU_FREQUENCY, EMAC_BCONFIG_MIXED_BURST | EMAC_BCONFIG_PRIORITY_FIXED, 4, 4, 0);
 
   //
   // Set MAC configuration options.
@@ -2931,7 +2941,7 @@ static void eth_init()
   MAP_EthernetIntClear(EMAC0_BASE , intStatus);
 
   // Initialize the Ethernet Controller for operation.
-  MAP_EthernetInitExpClk(EMAC0_BASE , clockfreq);
+  MAP_EthernetInitExpClk(EMAC0_BASE , CPU_FREQUENCY);
 
   // Configure the Ethernet Controller for normal operation.
   // - Full Duplex

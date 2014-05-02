@@ -99,10 +99,15 @@
 // CAN - LM4F120 can use port B, E, or F
 #define CAN_PORT	B
 
-extern unsigned long clockfreq;
+//CPU_FREQUENCY used to be a call to MAP_SysCtlClockGet()
+// But that doesn't work in Tivaware 2.1.
+// Had been optimized to use a cached value, but that didn't work either for some reason
+// Using a constant for the moment
+//extern u32 clockfreq;
 
 // CPU frequency (needed by the CPU module and MMCFS code, 0 if not used)
-#define CPU_FREQUENCY         clockfreq
+//#define CPU_FREQUENCY         clockfreq
+#define CPU_FREQUENCY         80000000
 
 // PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
 #define PIO_PREFIX            'A'
