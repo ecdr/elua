@@ -38,7 +38,7 @@
 // This was draft at code for that from platform_conf.h
 
 // UART - Max 3 unless LM4F120
-#if defined ( FORLM4F )
+#if defined( FORLM4F )
   #define MAX_UART            8
 #else
   #define MAX_UART 		3

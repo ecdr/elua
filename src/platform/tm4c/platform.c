@@ -319,7 +319,7 @@ int platform_init()
                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH,
                                     SYSCTL_PERIPH_GPIOJ };
 
-#elif defined ( FORTM4C1294 )
+#elif defined( FORTM4C1294 )
 
 // Dummy entries for ports with no pins I, O
   const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE,
@@ -452,7 +452,7 @@ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
 
 // Added handle different port mapping (So far this assumed fixed ports PORTD)
 
-#if defined (FORTM4C1294)
+#if defined(FORTM4C1294)
 
 // Caution: On TM4C1294 CAN0 conflicts with Uart0, change console to UART4 if using CAN0
 #if (0 == CON_UART_ID)
@@ -1065,7 +1065,7 @@ void platform_spi_select( unsigned id, int is_select )
 
 #ifdef BUILD_I2C
 
-#if defined (FORTM4C1294)
+#if defined(FORTM4C1294)
 // 10 I2C
 // TODO: support alternate pin mapping for I2C: 2, 5, 7
 // Caution: I2C9 uses PortA pins 0/1 - conflict with UART0 (Serial console)

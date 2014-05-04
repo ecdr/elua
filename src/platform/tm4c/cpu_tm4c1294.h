@@ -55,7 +55,7 @@
 // This was draft at code for that from platform_conf.h
 
 // UART - Max 3 unless LM4F
-#if defined (FORLM4F)
+#if defined(FORLM4F)
   #define MAX_UART            8
 #else
   #define MAX_UART 		3
@@ -67,7 +67,7 @@
   #define NUM_UART            3
 #elif defined( FORLM3S9B92 ) || defined( FORLM3S9D92 )
   #define NUM_UART            3
-#elif defined (FORLM4F)
+#elif defined(FORLM4F)
   #define NUM_UART            4
 //  LM4F120 actually has 8, but UART number 6 uses same pins as USB
 #else
