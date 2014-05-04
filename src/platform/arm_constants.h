@@ -6,7 +6,7 @@
 #define I_BIT                   0x80
 #define F_BIT                   0x40
 
-#if ! (defined( CORTEX_M3 ) || defined ( CORTEX_M4 ))
+#if ! (defined( CORTEX_M3 ) || defined( CORTEX_M4 ))
 
 #define INTERRUPT_MASK_BIT      ( I_BIT )
 // Define next constant as 0 if the interrupt flag is active on logic 0, or as INTERRUPT_MASK_BIT otherwise
